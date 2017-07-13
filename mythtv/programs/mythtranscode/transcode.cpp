@@ -1396,14 +1396,14 @@ int Transcode::TranscodeFile(const QString &inputname,
                 AVPictureFill(&imageIn, lastDecode);
                 AVPictureFill(&imageOut, &frame);
 
-                int bottomBand = (lastDecode->height == 1088) ? 8 : 0;
+                lastDecode->height = (lastDecode->height == 1088) ? 1080 : lastDecode->height;
                 scontext = sws_getCachedContext(scontext,
                                lastDecode->width, lastDecode->height, FrameTypeToPixelFormat(lastDecode->codec),
                                frame.width, frame.height, FrameTypeToPixelFormat(frame.codec),
                                SWS_FAST_BILINEAR, NULL, NULL, NULL);
 
                 sws_scale(scontext, imageIn.data, imageIn.linesize, 0,
-                          lastDecode->height - bottomBand,
+                          lastDecode->height,
                           imageOut.data, imageOut.linesize);
             }
 
