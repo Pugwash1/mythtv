@@ -8,6 +8,8 @@
 #include "mythlogging.h"
 #include "serverpool.h"
 
+#include <unistd.h>
+
 #define PRETTYIP(x)      x->protocol() == QAbstractSocket::IPv6Protocol ? \
                                     "[" + x->toString().toLower() + "]" : \
                                           x->toString().toLower()
