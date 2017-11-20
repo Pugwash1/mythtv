@@ -35,37 +35,26 @@ class SERVICE_PUBLIC Cutting : public QObject
 
         static inline void InitializeCustomTypes();
 
-    public:
-
         Cutting(QObject *parent = 0)
             : QObject( parent ), m_Mark(0), m_Offset(0)
         {
         }
 
-        Cutting( const Cutting &src )
+        void Copy( const Cutting *src )
         {
-            Copy( src );
+            m_Mark          = src->m_Mark   ;
+            m_Offset        = src->m_Offset ;
         }
 
-        void Copy( const Cutting &src )
-        {
-            m_Mark          = src.m_Mark   ;
-            m_Offset        = src.m_Offset ;
-        }
+    private:
+        Q_DISABLE_COPY(Cutting);
 };
 
-} // namespace DTC
-
-Q_DECLARE_METATYPE( DTC::Cutting  )
-Q_DECLARE_METATYPE( DTC::Cutting* )
-
-namespace DTC
-{
 inline void Cutting::InitializeCustomTypes()
 {
-    qRegisterMetaType< Cutting  >();
     qRegisterMetaType< Cutting* >();
 }
-}
+
+} // namespace DTC
 
 #endif

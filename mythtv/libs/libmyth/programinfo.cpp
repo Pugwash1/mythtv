@@ -46,17 +46,6 @@ ProgramInfoUpdater *ProgramInfo::updater;
 int dummy = pginfo_init_statics();
 bool ProgramInfo::usingProgIDAuth = true;
 
-// kUnknownInputName is a placeholder for when ProgramInfo::inputname is
-// unknown, in which case ProgramInfo::ToMap() will call the expensive
-// QueryInputDisplayName() to approximate it.  The inputname value is always
-// known when the ProgramInfo is created from a query on the recorded table, and
-// unknown when created from a query on a different table like oldrecorded or
-// program, or from a non-copy/assignment constructor.
-//
-// We try to pick a short string that a user is unlikely to use as an input
-// display name.  If it does collide with a user choice, the results will still
-// be correct, but there will be extra calls to QueryInputDisplayName().
-const static QString kUnknownInputName = "~";
 const static uint kInvalidDateTime = QDateTime().toTime_t();
 
 
@@ -114,6 +103,10 @@ static QString determineURLType(const QString& url)
 
                 case MythCDROM::kDVD:
                     result = "dvd:" + url;
+                    break;
+
+                case MythCDROM::kUnknown:
+                    // Quiet compiler warning.
                     break;
             }
         }
@@ -225,7 +218,7 @@ ProgramInfo::ProgramInfo(void) :
     dupmethod(kDupCheckSubThenDesc),
 
     recordedid(0),
-    inputname(kUnknownInputName),
+    inputname(),
     bookmarkupdate(),
 
     // everything below this line is not serialized
@@ -615,7 +608,7 @@ ProgramInfo::ProgramInfo(
     dupmethod(0),
 
     recordedid(0),
-    inputname(kUnknownInputName),
+    inputname(),
     bookmarkupdate(),
 
     // everything below this line is not serialized
@@ -746,7 +739,7 @@ ProgramInfo::ProgramInfo(
     dupmethod(kDupCheckSubThenDesc),
 
     recordedid(0),
-    inputname(kUnknownInputName),
+    inputname(),
     bookmarkupdate(),
 
     // everything below this line is not serialized
@@ -789,6 +782,7 @@ ProgramInfo::ProgramInfo(
         findid      = s.findid;
         recordedid  = s.recordedid;
         hostname    = s.hostname;
+        inputname   = s.inputname;
 
         // This is the exact showing (same chanid or callsign)
         // which will be recorded
@@ -835,7 +829,8 @@ ProgramInfo::ProgramInfo(
 
     const QString &_seriesid,
     const QString &_programid,
-    const QString &_inetref) :
+    const QString &_inetref,
+    const QString &_inputname) :
     title(_title),
     subtitle(_subtitle),
     description(_description),
@@ -901,7 +896,7 @@ ProgramInfo::ProgramInfo(
     dupmethod(kDupCheckSubThenDesc),
 
     recordedid(0),
-    inputname(kUnknownInputName),
+    inputname(_inputname),
     bookmarkupdate(),
 
     // everything below this line is not serialized
@@ -1245,7 +1240,7 @@ void ProgramInfo::clear(void)
     dupmethod = kDupCheckSubThenDesc;
 
     recordedid = 0;
-    inputname = kUnknownInputName;
+    inputname.clear();
     bookmarkupdate = QDateTime();
 
     sourceid = 0;
@@ -1470,7 +1465,7 @@ void ProgramInfo::ToStringList(QStringList &list) const
 /** \fn ProgramInfo::FromStringList(QStringList::const_iterator&,
                                     QStringList::const_iterator)
  *  \brief Uses a QStringList to initialize this ProgramInfo instance.
- *  \param beg    Iterator pointing to first item in list to treat as
+ *  \param it     Iterator pointing to first item in list to treat as
  *                beginning of serialized ProgramInfo.
  *  \param end    Iterator that will stop parsing of the ProgramInfo
  *  \return true if it succeeds, false if it fails.
@@ -1755,9 +1750,9 @@ void ProgramInfo::ToMap(InfoMap &progMap,
     progMap["rectypestatus"] = tmp_rec;
 
     progMap["card"] = RecStatus::toString(GetRecordingStatus(), inputid);
-    progMap["input"] = RecStatus::toString(GetRecordingStatus(), inputid);
-    progMap["inputname"] = (inputname == kUnknownInputName ?
-                            QueryInputDisplayName() : inputname);
+    progMap["input"] = RecStatus::toString(GetRecordingStatus(),
+                                           GetShortInputName());
+    progMap["inputname"] = inputname;
     // Don't add bookmarkupdate to progMap, for now.
 
     progMap["recpriority"] = recpriority;
@@ -2463,9 +2458,10 @@ void ProgramInfo::SetAvailableStatus(
     if (status != availableStatus)
     {
         LOG(VB_GUI, LOG_INFO,
-                 toString(kTitleSubtitle) + QString(": %1 -> %2")
-                     .arg(::toString((AvailableStatusType)availableStatus))
-                     .arg(::toString(status)));
+            toString(kTitleSubtitle) + QString(": %1 -> %2 in %3")
+            .arg(::toString((AvailableStatusType)availableStatus))
+            .arg(::toString(status))
+            .arg(where));
     }
     availableStatus = status;
 }
@@ -3239,7 +3235,7 @@ TranscodingStatus ProgramInfo::QueryTranscodeStatus(void) const
 /** \brief Set "transcoded" field in "recorded" table to "trans".
  *  \note Also sets the FL_TRANSCODED flag if the status is
  *        TRASCODING_COMPLETE and clears it otherwise.
- *  \param transFlag value to set transcoded field to.
+ *  \param trans value to set transcoded field to.
  */
 void ProgramInfo::SaveTranscodeStatus(TranscodingStatus trans)
 {
@@ -5187,53 +5183,6 @@ bool ProgramInfo::QueryTuningInfo(QString &channum, QString &input) const
     }
 }
 
-/** \brief Returns the display name of the card input for this program.
- *  \note Ideally this would call CardUtil::GetDisplayName(), but
- *        that's in libmythtv.  Dupliacte code for now until a better
- *        solution can be found.
- */
-QString ProgramInfo::QueryInputDisplayName(void) const
-{
-    QString result;
-
-    if (recordedid)
-    {
-        MSqlQuery query(MSqlQuery::InitCon());
-        query.prepare("SELECT inputname "
-                      "FROM recorded "
-                      "WHERE recordedid = :RECORDEDID");
-        query.bindValue(":RECORDEDID", recordedid);
-
-        if (!query.exec())
-            MythDB::DBError("ProgramInfo::GetInputDisplayName()", query);
-        else if (query.next())
-            result = query.value(0).toString();
-    }
-
-    if (result.isEmpty() && inputid)
-    {
-        MSqlQuery query(MSqlQuery::InitCon());
-        query.prepare("SELECT displayname, cardid, inputname "
-                      "FROM capturecard "
-                      "WHERE cardid = :INPUTID");
-        query.bindValue(":INPUTID", inputid);
-
-        if (!query.exec())
-            MythDB::DBError("ProgramInfo::GetInputDisplayName()", query);
-        else if (query.next())
-        {
-            result = query.value(0).toString();
-            if (result.isEmpty())
-            {
-                result = QString("%1: %2").arg(query.value(1).toInt())
-                    .arg(query.value(2).toString());
-            }
-        }
-    }
-
-    return result;
-}
-
 static int init_tr(void)
 {
     static bool done = false;
@@ -5791,12 +5740,26 @@ bool LoadFromOldRecorded(ProgramList &destination, const QString &sql,
         "WHERE oldrecorded.future = 0 "
         + sql;
 
+    bool hasLimit = querystr.contains(" LIMIT ",Qt::CaseInsensitive);
+
+    // make sure the most recent rows are retrieved first in case
+    // there are more than the limit to be set below
+    if (!hasLimit && !querystr.contains(" ORDER ",Qt::CaseInsensitive))
+        querystr += " ORDER BY starttime DESC ";
+
     // If a limit arg was given then append the LIMIT, otherwise set a hard
-    // limit of 20000.
+    // limit of 20000, which can be overridden by a setting
     if (limit > 0)
         querystr += QString("LIMIT %1 ").arg(limit);
-    else if (!querystr.contains(" LIMIT "))
-        querystr += " LIMIT 20000 "; // For performance reasons we have to have an upper limit
+    else if (!hasLimit)
+    {
+        // For performance reasons we have to have an upper limit
+        int nLimit = gCoreContext->GetNumSetting("PrevRecLimit", 20000);
+        // For sanity sake at least 100
+        if (nLimit < 100)
+            nLimit = 100;
+        querystr += QString("LIMIT %1 ").arg(nLimit);
+    }
 
     MSqlBindings::const_iterator it;
     // If count is non-zero then also return total number of matching records,

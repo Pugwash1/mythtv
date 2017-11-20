@@ -33,27 +33,20 @@ class SERVICE_PUBLIC CaptureCardList : public QObject
 
     Q_PROPERTY( QVariantList CaptureCards READ CaptureCards DESIGNABLE true )
 
-    PROPERTYIMP_RO_REF( QVariantList, CaptureCards )
+    PROPERTYIMP_RO_REF( QVariantList, CaptureCards );
 
     public:
 
         static inline void InitializeCustomTypes();
-
-    public:
 
         CaptureCardList(QObject *parent = 0)
             : QObject( parent )
         {
         }
 
-        CaptureCardList( const CaptureCardList &src )
+        void Copy( const CaptureCardList *src )
         {
-            Copy( src );
-        }
-
-        void Copy( const CaptureCardList &src )
-        {
-            CopyListContents< CaptureCard >( this, m_CaptureCards, src.m_CaptureCards );
+            CopyListContents< CaptureCard >( this, m_CaptureCards, src->m_CaptureCards );
         }
 
         CaptureCard *AddNewCaptureCard()
@@ -67,22 +60,16 @@ class SERVICE_PUBLIC CaptureCardList : public QObject
             return pObject;
         }
 
+    private:
+        Q_DISABLE_COPY(CaptureCardList);
 };
 
-} // namespace DTC
-
-Q_DECLARE_METATYPE( DTC::CaptureCardList  )
-Q_DECLARE_METATYPE( DTC::CaptureCardList* )
-
-namespace DTC
-{
 inline void CaptureCardList::InitializeCustomTypes()
 {
-    qRegisterMetaType< CaptureCardList  >();
     qRegisterMetaType< CaptureCardList* >();
-
     CaptureCard::InitializeCustomTypes();
 }
-}
+
+} // namespace DTC
 
 #endif

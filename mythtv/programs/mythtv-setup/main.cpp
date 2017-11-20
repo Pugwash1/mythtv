@@ -279,6 +279,10 @@ int main(int argc, char *argv[])
     QString scanTableName = "atsc-vsb8-us";
     QString scanInputName = "";
 
+#if CONFIG_OMX_RPI
+    setenv("QT_XCB_GL_INTEGRATION","none",0);
+#endif
+
     MythTVSetupCommandLineParser cmdline;
     if (!cmdline.Parse(argc, argv))
     {
@@ -390,7 +394,8 @@ int main(int argc, char *argv[])
 
     gContext = new MythContext(MYTH_BINARY_VERSION);
 
-    if (!gContext->Init(use_display)) // No Upnp, Prompt for db
+    cmdline.ApplySettingsOverride();
+    if (!gContext->Init(use_display,false,true)) // No Upnp, Prompt for db
     {
         LOG(VB_GENERAL, LOG_ERR, "Failed to init MythContext, exiting.");
         return GENERIC_EXIT_NO_MYTHCONTEXT;

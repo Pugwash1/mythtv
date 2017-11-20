@@ -806,8 +806,15 @@ class VideoDevice : public CaptureCardComboBoxSetting
                               card, driver, false);
     };
 
+    /**
+     *  \param dir      The directory to open and search for devices.
+     *  \param absPath  Ignored. The function always uses absolute paths.
+     */
     void fillSelectionsFromDir(const QDir &dir, bool absPath = true)
     {
+        // Needed to make both compiler and doxygen happy.
+        (void) absPath;
+
         fillSelectionsFromDir(dir, 0, 255, QString::null, QString::null, false);
     }
 
@@ -916,8 +923,15 @@ class VBIDevice : public CaptureCardComboBoxSetting
         return count;
     }
 
+    /**
+     *  \param dir      The directory to open and search for devices.
+     *  \param absPath  Ignored. The function always uses absolute paths.
+     */
     void fillSelectionsFromDir(const QDir &dir, bool absPath = true)
     {
+        // Needed to make both compiler and doxygen happy.
+        (void) absPath;
+
         fillSelectionsFromDir(dir, QString::null, QString::null);
     }
 
@@ -1331,6 +1345,7 @@ class FirewireSpeed : public MythUIComboBoxSetting
     }
 };
 
+#ifdef USING_FIREWIRE
 static void FirewireConfigurationGroup(CaptureCard& parent, CardType& cardtype)
 {
     FirewireGUID  *dev(new FirewireGUID(parent));
@@ -1357,6 +1372,7 @@ static void FirewireConfigurationGroup(CaptureCard& parent, CardType& cardtype)
     QObject::connect(dev,   SIGNAL(valueChanged(const QString&)),
                      desc,  SLOT(  SetGUID(     const QString&)));
 }
+#endif
 
 // -----------------------
 // HDHomeRun Configuration
@@ -1373,7 +1389,7 @@ HDHomeRunIP::HDHomeRunIP()
 
 void HDHomeRunIP::setEnabled(bool e)
 {
-    GroupSetting::setEnabled(e);
+    MythUITextEditSetting::setEnabled(e);
     if (e)
     {
         if (!_oldValue.isEmpty())
@@ -1409,7 +1425,7 @@ HDHomeRunTunerIndex::HDHomeRunTunerIndex()
 
 void HDHomeRunTunerIndex::setEnabled(bool e)
 {
-    GroupSetting::setEnabled(e);
+    MythUITextEditSetting::setEnabled(e);
     if (e) {
         if (!_oldValue.isEmpty())
             setValue(_oldValue);
@@ -1440,6 +1456,7 @@ HDHomeRunDeviceID::HDHomeRunDeviceID(const CaptureCard &parent) :
 {
     setLabel(tr("Device ID"));
     setHelpText(tr("Device ID of HDHomeRun device"));
+    setEnabled(false);
 }
 
 void HDHomeRunDeviceID::SetIP(const QString &ip)
@@ -1487,12 +1504,14 @@ HDHomeRunDeviceIDList::HDHomeRunDeviceIDList(
     StandardSetting     *desc,
     HDHomeRunIP         *cardip,
     HDHomeRunTunerIndex *cardtuner,
-    HDHomeRunDeviceList *devicelist) :
+    HDHomeRunDeviceList *devicelist,
+    const CaptureCard &parent) :
     _deviceid(deviceid),
     _desc(desc),
     _cardip(cardip),
     _cardtuner(cardtuner),
-    _devicelist(devicelist)
+    _devicelist(devicelist),
+    m_parent(parent)
 {
     setLabel(QObject::tr("Available devices"));
     setHelpText(
@@ -1580,7 +1599,9 @@ void HDHomeRunDeviceIDList::Load(void)
 {
     clearSelections();
 
-    fillSelections(_deviceid->getValue());
+    int cardid = m_parent.getCardID();
+    QString device = CardUtil::GetVideoDevice(cardid);
+    fillSelections(device);
 }
 
 void HDHomeRunDeviceIDList::UpdateDevices(const QString &v)
@@ -1629,7 +1650,7 @@ VBoxIP::VBoxIP()
 
 void VBoxIP::setEnabled(bool e)
 {
-    GroupSetting::setEnabled(e);
+    MythUITextEditSetting::setEnabled(e);
     if (e)
     {
         if (!_oldValue.isEmpty())
@@ -1661,7 +1682,7 @@ VBoxTunerIndex::VBoxTunerIndex()
 
 void VBoxTunerIndex::setEnabled(bool e)
 {
-    GroupSetting::setEnabled(e);
+    MythUITextEditSetting::setEnabled(e);
     if (e) {
         if (!_oldValue.isEmpty())
             setValue(_oldValue);
@@ -1687,6 +1708,7 @@ VBoxDeviceID::VBoxDeviceID(const CaptureCard &parent) :
 {
     setLabel(tr("Device ID"));
     setHelpText(tr("Device ID of VBox device"));
+    setEnabled(false);
 }
 
 void VBoxDeviceID::SetIP(const QString &ip)
@@ -1722,12 +1744,14 @@ VBoxDeviceIDList::VBoxDeviceIDList(
     StandardSetting     *desc,
     VBoxIP              *cardip,
     VBoxTunerIndex      *cardtuner,
-    VBoxDeviceList      *devicelist) :
+    VBoxDeviceList      *devicelist,
+    const CaptureCard &parent) :
     _deviceid(deviceid),
     _desc(desc),
     _cardip(cardip),
     _cardtuner(cardtuner),
-    _devicelist(devicelist)
+    _devicelist(devicelist),
+    m_parent(parent)
 {
     setLabel(QObject::tr("Available devices"));
     setHelpText(
@@ -1796,7 +1820,9 @@ void VBoxDeviceIDList::Load(void)
 {
     clearSelections();
 
-    fillSelections(_deviceid->getValue());
+    int cardid = m_parent.getCardID();
+    QString device = CardUtil::GetVideoDevice(cardid);
+    fillSelections(device);
 }
 
 void VBoxDeviceIDList::UpdateDevices(const QString &v)
@@ -1972,6 +1998,7 @@ void ASIConfigurationGroup::probeCard(const QString &device)
     }
     cardinfo->setValue(tr("Valid DVEO ASI card"));
 #else
+    Q_UNUSED(device);
     cardinfo->setValue(QString("Not compiled with ASI support"));
 #endif
 }
@@ -2065,7 +2092,7 @@ HDHomeRunConfigurationGroup::HDHomeRunConfigurationGroup
     cardip       = new HDHomeRunIP();
     cardtuner    = new HDHomeRunTunerIndex();
     deviceidlist = new HDHomeRunDeviceIDList(
-        deviceid, desc, cardip, cardtuner, &devicelist);
+        deviceid, desc, cardip, cardtuner, &devicelist, parent);
 
     a_cardtype.addTargetedChild("HDHOMERUN", deviceidlist);
     a_cardtype.addTargetedChild("HDHOMERUN", new EmptyAudioDevice(parent));
@@ -2228,7 +2255,7 @@ VBoxConfigurationGroup::VBoxConfigurationGroup
     cardip       = new VBoxIP();
     cardtuner    = new VBoxTunerIndex();
     deviceidlist = new VBoxDeviceIDList(
-        deviceid, desc, cardip, cardtuner, &devicelist);
+        deviceid, desc, cardip, cardtuner, &devicelist, parent);
 
     a_cardtype.addTargetedChild("VBOX", deviceidlist);
     a_cardtype.addTargetedChild("VBOX", new EmptyAudioDevice(parent));
@@ -2806,6 +2833,8 @@ void CaptureCard::fillSelections(GroupSetting *setting)
         return;
     }
 
+    CardUtil::ClearVideoDeviceCache();
+
     while (query.next())
     {
         uint    cardid      = query.value(0).toUInt();
@@ -2986,7 +3015,7 @@ class InputName : public MythUIComboBoxSetting
         QString type = CardUtil::GetRawInputType(cardid);
         QString device = CardUtil::GetVideoDevice(cardid);
         QStringList inputs;
-        CardUtil::GetDeviceInputNames(cardid, device, type, inputs);
+        CardUtil::GetDeviceInputNames(device, type, inputs);
         while (!inputs.isEmpty())
         {
             addSelection(inputs.front());
@@ -3190,11 +3219,11 @@ class QuickTune : public CardInputComboBoxSetting
     };
 };
 
-class ExternalChannelCommand : public CardInputComboBoxSetting
+class ExternalChannelCommand : public MythUITextEditSetting
 {
   public:
     explicit ExternalChannelCommand(const CardInput &parent) :
-        CardInputComboBoxSetting(parent, "externalcommand")
+        MythUITextEditSetting(new CardInputDBStorage(this, parent, "externalcommand"))
     {
         setLabel(QObject::tr("External channel change command"));
         setValue("");
@@ -3205,11 +3234,11 @@ class ExternalChannelCommand : public CardInputComboBoxSetting
     };
 };
 
-class PresetTuner : public CardInputComboBoxSetting
+class PresetTuner : public MythUITextEditSetting
 {
   public:
     explicit PresetTuner(const CardInput &parent) :
-        CardInputComboBoxSetting(parent, "tunechan")
+        MythUITextEditSetting(new CardInputDBStorage(this, parent, "tunechan"))
     {
         setLabel(QObject::tr("Preset tuner to channel"));
         setValue("");
@@ -3328,7 +3357,7 @@ class DishNetEIT : public MythUICheckBoxSetting
 };
 
 CardInput::CardInput(const QString & cardtype, const QString & device,
-                     bool isNewInput, int _cardid) :
+                     int _cardid) :
     id(new ID()),
     inputname(new InputName(*this)),
     sourceid(new SourceID(*this)),
@@ -3346,7 +3375,7 @@ CardInput::CardInput(const QString & cardtype, const QString & device,
     if (CardUtil::IsInNeedOfExternalInputConf(_cardid))
     {
         addChild(new DTVDeviceConfigGroup(*externalInputSettings,
-                                          _cardid, true /*isNewInput*/));
+                                          _cardid, true));
     }
 
     addChild(inputname);
@@ -3729,6 +3758,7 @@ void CaptureCardEditor::AddNewCard()
 {
     CaptureCard *card = new CaptureCard();
     card->setLabel(tr("New capture card"));
+    card->Load();
     addChild(card);
     emit settingsChanged(this);
 }
@@ -3879,7 +3909,7 @@ void CardInputEditor::Load(void)
         QString inputname   = query.value(3).toString();
 
         CardInput *cardinput = new CardInput(cardtype, videodevice,
-                                             true, cardid);
+                                             cardid);
         cardinput->loadByID(cardid);
         QString inputlabel = QString("%1 (%2) -> %3")
             .arg(CardUtil::GetDeviceLabel(cardtype, videodevice))

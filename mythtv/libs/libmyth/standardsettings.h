@@ -98,7 +98,7 @@ class MPUBLIC StandardSetting : public QObject, public StorageUser
     void settingsChanged(StandardSetting *selectedSetting = NULL);
 
   protected:
-    StandardSetting(Storage *_storage = NULL);
+    explicit StandardSetting(Storage *_storage = NULL);
     virtual ~StandardSetting();
     void setParent(StandardSetting *parent);
     QString m_settingValue;
@@ -144,7 +144,7 @@ class MPUBLIC MythUITextEditSetting : public StandardSetting
     void SetPasswordEcho(bool b);
 
   protected:
-    MythUITextEditSetting(Storage *_storage = NULL);
+    explicit MythUITextEditSetting(Storage *_storage = NULL);
     bool m_passwordEcho;
 };
 
@@ -160,14 +160,14 @@ class MPUBLIC TransTextEditSetting: public MythUITextEditSetting
 class MPUBLIC HostTextEditSetting: public MythUITextEditSetting
 {
   public:
-    HostTextEditSetting(const QString &name) :
+    explicit HostTextEditSetting(const QString &name) :
         MythUITextEditSetting(new HostDBStorage(this, name)) { }
 };
 
 class MPUBLIC GlobalTextEditSetting: public MythUITextEditSetting
 {
   public:
-    GlobalTextEditSetting(const QString &name) :
+    explicit GlobalTextEditSetting(const QString &name) :
         MythUITextEditSetting(new GlobalDBStorage(this, name)) { }
 };
 
@@ -186,7 +186,7 @@ class MPUBLIC MythUIFileBrowserSetting : public StandardSetting
     void SetNameFilter(QStringList filter) { m_nameFilter = filter; };
 
   protected:
-    MythUIFileBrowserSetting(Storage *_storage);
+    explicit MythUIFileBrowserSetting(Storage *_storage);
     QDir::Filters      m_typeFilter;
     QStringList        m_nameFilter;
 };
@@ -195,7 +195,7 @@ class MPUBLIC MythUIFileBrowserSetting : public StandardSetting
 class MPUBLIC HostFileBrowserSetting: public MythUIFileBrowserSetting
 {
   public:
-    HostFileBrowserSetting(const QString &name) :
+    explicit HostFileBrowserSetting(const QString &name) :
         MythUIFileBrowserSetting(new HostDBStorage(this, name)) { }
 };
 
@@ -253,8 +253,8 @@ class MPUBLIC GlobalComboBoxSetting: public MythUIComboBoxSetting
 class MPUBLIC TransMythUIComboBoxSetting: public MythUIComboBoxSetting
 {
   public:
-    TransMythUIComboBoxSetting() :
-        MythUIComboBoxSetting() { }
+    explicit TransMythUIComboBoxSetting(bool rw = false) :
+        MythUIComboBoxSetting(NULL, rw) { }
 };
 
 class MPUBLIC HostTimeBoxSetting : public HostComboBoxSetting
@@ -296,14 +296,18 @@ class MPUBLIC MythUISpinBoxSetting : public StandardSetting
     virtual void updateButton(MythUIButtonListItem *item);
 
   protected:
+    // MythUISpinBoxSetting(Storage *_storage, int min, int max, int step,
+    //                      bool allow_single_step = false,
+    //                      const QString &special_value_text = QString());
+
     MythUISpinBoxSetting(Storage *_storage, int min, int max, int step,
-                         bool allow_single_step = false,
+                         int pageMultiple = 8,
                          const QString &special_value_text = QString());
   private:
     int m_min;
     int m_max;
     int m_step;
-    bool m_allow_single_step;
+    int m_pageMultiple;
     QString m_special_value_text;
 };
 
@@ -311,9 +315,9 @@ class MPUBLIC TransMythUISpinBoxSetting: public MythUISpinBoxSetting
 {
   public:
     TransMythUISpinBoxSetting(int min, int max, int step,
-                              bool allow_single_step = false,
+                              int pageMultiple = 5,
                               const QString &special_value_text = QString()) :
-        MythUISpinBoxSetting(NULL, min, max, step, allow_single_step,
+        MythUISpinBoxSetting(NULL, min, max, step, pageMultiple,
                              special_value_text)
     { }
 };
@@ -322,10 +326,10 @@ class MPUBLIC HostSpinBoxSetting: public MythUISpinBoxSetting
 {
   public:
     HostSpinBoxSetting(const QString &name, int min, int max, int step,
-                       bool allow_single_step = false,
+                       int pageMultiple = 8,
                        const QString &special_value_text = QString()) :
         MythUISpinBoxSetting(new HostDBStorage(this, name), min, max, step,
-                             allow_single_step, special_value_text)
+                             pageMultiple, special_value_text)
     { }
 };
 
@@ -333,10 +337,10 @@ class MPUBLIC GlobalSpinBoxSetting: public MythUISpinBoxSetting
 {
   public:
     GlobalSpinBoxSetting(const QString &name, int min, int max, int step,
-                         bool allow_single_step = false,
+                         int pageMultiple = 8,
                          const QString &special_value_text = QString()) :
         MythUISpinBoxSetting(new GlobalDBStorage(this, name), min, max, step,
-                             allow_single_step, special_value_text)
+                             pageMultiple, special_value_text)
     { }
 };
 
@@ -361,7 +365,7 @@ class MPUBLIC MythUICheckBoxSetting : public StandardSetting
     void valueChanged(bool);
 
   protected:
-    MythUICheckBoxSetting(Storage *_storage = NULL);
+    explicit MythUICheckBoxSetting(Storage *_storage = NULL);
 
 };
 
@@ -375,14 +379,14 @@ class MPUBLIC TransMythUICheckBoxSetting: public MythUICheckBoxSetting
 class MPUBLIC HostCheckBoxSetting: public MythUICheckBoxSetting
 {
   public:
-    HostCheckBoxSetting(const QString &name) :
+    explicit HostCheckBoxSetting(const QString &name) :
         MythUICheckBoxSetting(new HostDBStorage(this, name)) { }
 };
 
 class MPUBLIC GlobalCheckBoxSetting: public MythUICheckBoxSetting
 {
   public:
-    GlobalCheckBoxSetting(const QString &name) :
+    explicit GlobalCheckBoxSetting(const QString &name) :
         MythUICheckBoxSetting(new GlobalDBStorage(this, name)) { }
 };
 
@@ -411,7 +415,7 @@ class MPUBLIC ButtonStandardSetting : public StandardSetting
     Q_OBJECT
 
   public:
-    ButtonStandardSetting(const QString &label);
+    explicit ButtonStandardSetting(const QString &label);
 
     virtual void edit(MythScreenType *screen);
     virtual void resultEdit(DialogCompletionEvent *){};

@@ -36,13 +36,11 @@ class SERVICE_PUBLIC LabelValue : public QObject
     PROPERTYIMP( QString  , Value       )
     PROPERTYIMP( QString  , Description )
     PROPERTYIMP( bool     , Active      )
-    PROPERTYIMP( bool     , Selected    )
+    PROPERTYIMP( bool     , Selected    );
 
     public:
 
         static inline void InitializeCustomTypes();
-
-    public:
 
         LabelValue(QObject *parent = 0)
             : QObject       ( parent ),
@@ -54,33 +52,24 @@ class SERVICE_PUBLIC LabelValue : public QObject
         {
         }
 
-        LabelValue( const LabelValue &src )
+        void Copy( const LabelValue *src )
         {
-            Copy( src );
+            m_Label       = src->m_Label       ;
+            m_Value       = src->m_Value       ;
+            m_Description = src->m_Description ;
+            m_Active      = src->m_Active      ;
+            m_Selected    = src->m_Selected    ;
         }
 
-        void Copy( const LabelValue &src )
-        {
-            m_Label       = src.m_Label       ;
-            m_Value       = src.m_Value       ;
-            m_Description = src.m_Description ;
-            m_Active      = src.m_Active      ;
-            m_Selected    = src.m_Selected    ;
-        }
+    private:
+        Q_DISABLE_COPY(LabelValue);
 };
 
-} // namespace DTC
-
-Q_DECLARE_METATYPE( DTC::LabelValue )
-Q_DECLARE_METATYPE( DTC::LabelValue* )
-
-namespace DTC
-{
 inline void LabelValue::InitializeCustomTypes()
 {
-    qRegisterMetaType< LabelValue  >();
     qRegisterMetaType< LabelValue* >();
 }
-}
+
+} // namespace DTC
 
 #endif

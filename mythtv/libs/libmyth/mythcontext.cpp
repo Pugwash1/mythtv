@@ -127,6 +127,7 @@ class MythContextPrivate : public QObject
     GUIStartup *m_guiStartup;
     QEventLoop *m_loop;
     bool needsBackend;
+    bool m_settingsCacheDirty;
 
   private:
     MythConfirmationDialog *MBEversionPopup;
@@ -241,6 +242,7 @@ MythContextPrivate::MythContextPrivate(MythContext *lparent)
       m_sh(new MythContextSlotHandler(this)),
       m_guiStartup(0),
       needsBackend(false),
+      m_settingsCacheDirty(false),
       MBEversionPopup(NULL),
       m_registration(-1),
       m_socket(0)
@@ -287,7 +289,6 @@ void MythContextPrivate::TempMainWindow(bool languagePrompt)
     SilenceDBerrors();
 
     loadSettingsCacheOverride();
-    parent->SetDisableEventPopup(true);
 
 #ifdef Q_OS_MAC
     // Qt 4.4 has window-focus problems
@@ -319,19 +320,18 @@ void MythContextPrivate::EndTempWindow(void)
                 m_guiStartup = 0;
             }
         }
-        DestroyMythMainWindow();
     }
-    clearSettingsCacheOverride();
-    parent->SetDisableEventPopup(false);
     EnableDBerrors();
 }
 
 /**
  * Check if a port is open and sort out the link-local scope.
  *
- * \param host Host or IP address. Will be updated with link-local
- * scope if needed.
-*/
+ * \param host      Host or IP address. Will be updated with link-local
+ *                  scope if needed.
+ * \param port      Port number to check.
+ * \param timeLimit Limit in seconds for testing.
+ */
 
 bool MythContextPrivate::checkPort(QString &host, int port, int timeLimit)
 {
@@ -786,7 +786,7 @@ QString MythContextPrivate::TestDBconnection(bool prompt)
     // Jan 20, 2017
     // Changed to use port check instead of ping
 
-    int port;
+    int port = 0;
 
     // 1 = db awake, 2 = db listening, 3 = db connects,
     // 4 = backend awake, 5 = backend listening
@@ -808,7 +808,10 @@ QString MythContextPrivate::TestDBconnection(bool prompt)
 
     do
     {
-        host = m_DBparams.dbHostName;
+        if (m_DBparams.dbHostName.isNull() && m_DBhostCp.length())
+            host = m_DBhostCp;
+        else
+            host = m_DBparams.dbHostName;
         port = m_DBparams.dbPort;
         if (port == 0)
             port = 3306;
@@ -880,12 +883,12 @@ QString MythContextPrivate::TestDBconnection(bool prompt)
                         break;
                 }
                 startupState = st_dbAwake;
-                // Fall through to next case
+                [[clang::fallthrough]];
             case st_dbAwake:
                 if (!checkPort(host, port, useTimeout))
                     break;
                 startupState = st_dbStarted;
-                // Fall through to next case
+                [[clang::fallthrough]];
             case st_dbStarted:
                 // If the database is connecting with link-local
                 // address, it may have changed
@@ -906,7 +909,7 @@ QString MythContextPrivate::TestDBconnection(bool prompt)
                     break;
                 }
                 startupState = st_dbConnects;
-                // Fall through to next case
+                [[clang::fallthrough]];
             case st_dbConnects:
                 if (needsBackend)
                 {
@@ -935,7 +938,7 @@ QString MythContextPrivate::TestDBconnection(bool prompt)
                 backendIP = gCoreContext->GetSettingOnHost
                     ("BackendServerAddr", masterserver);
                 backendPort = gCoreContext->GetMasterServerPort();
-                // Fall through to next case
+                [[clang::fallthrough]];
             case st_beWOL:
                 if (!beWOLCmd.isEmpty()) {
                     if (attempt > 0)
@@ -944,11 +947,15 @@ QString MythContextPrivate::TestDBconnection(bool prompt)
                         break;
                 }
                 startupState = st_beAwake;
-                // Fall through to next case
+                [[clang::fallthrough]];
             case st_beAwake:
                 if (!checkPort(backendIP, backendPort, useTimeout))
                     break;
                 startupState = st_success;
+                [[clang::fallthrough]];
+            case st_success:
+                // Quiet compiler warning.
+                break;
             }
             if (m_guiStartup)
             {
@@ -1007,7 +1014,6 @@ QString MythContextPrivate::TestDBconnection(bool prompt)
     // Current DB connection may have been silenced (invalid):
     EnableDBerrors();
     ResetDatabase();
-    saveSettingsCache();
 
     return QString::null;
 }
@@ -1423,36 +1429,44 @@ void MythContextPrivate::processEvents(void)
 
 const QString MythContextPrivate::settingsToSave[] =
 { "Theme", "Language", "Country", "GuiHeight",
-  "GuiOffsetX", "GuiOffsetY", "GuiWidth", "RunFrontendInWindow" };
+  "GuiOffsetX", "GuiOffsetY", "GuiWidth", "RunFrontendInWindow",
+  "AlwaysOnTop", "HideMouseCursor", "ThemePainter", "libCECEnabled" };
 
 
 bool MythContextPrivate::saveSettingsCache(void)
 {
+    if (!m_gui)
+        return true;
     QString cacheDirName = GetConfDir() + "/cache/";
     QDir dir(cacheDirName);
     dir.mkpath(cacheDirName);
-    // remove prior cache in case it was corrupt
-    QFile::remove(cacheDirName+"contextcache.xml");
     XmlConfiguration config = XmlConfiguration("cache/contextcache.xml");
-
-    clearSettingsCacheOverride();
-
     static const int arraySize = sizeof(settingsToSave)/sizeof(settingsToSave[0]);
     for (int ix = 0; ix < arraySize; ix++)
     {
+        QString cacheValue = config.GetValue("Settings/"+settingsToSave[ix],QString());
+        gCoreContext->ClearOverrideSettingForSession(settingsToSave[ix]);
         QString value = gCoreContext->GetSetting(settingsToSave[ix],QString());
-        if (!value.isEmpty())
+        if (value != cacheValue)
+        {
             config.SetValue("Settings/"+settingsToSave[ix],value);
+            m_settingsCacheDirty = true;
+        }
     }
+    clearSettingsCacheOverride();
     return config.Save();
 }
 
 void MythContextPrivate::loadSettingsCacheOverride(void)
 {
+    if (!m_gui)
+        return;
     XmlConfiguration config = XmlConfiguration("cache/contextcache.xml");
     static const int arraySize = sizeof(settingsToSave)/sizeof(settingsToSave[0]);
     for (int ix = 0; ix < arraySize; ix++)
     {
+        if (!gCoreContext->GetSetting(settingsToSave[ix],QString()).isEmpty())
+            continue;
         QString value = config.GetValue("Settings/"+settingsToSave[ix],QString());
         if (!value.isEmpty())
             gCoreContext->OverrideSettingForSession(settingsToSave[ix], value);
@@ -1522,6 +1536,8 @@ bool MythContext::Init(const bool gui,
         return false;
     }
 
+    SetDisableEventPopup(true);
+
     if (app_binary_version != MYTH_BINARY_VERSION)
     {
         LOG(VB_GENERAL, LOG_EMERG,
@@ -1582,6 +1598,13 @@ bool MythContext::Init(const bool gui,
         return false;
     }
 
+    SetDisableEventPopup(false);
+    saveSettingsCache();
+    if (d->m_settingsCacheDirty)
+    {
+        DestroyMythMainWindow();
+        d->m_settingsCacheDirty = false;
+    }
     gCoreContext->ActivateSettingsCache(true);
 
     return true;

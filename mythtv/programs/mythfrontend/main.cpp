@@ -28,6 +28,7 @@ using namespace std;
 #include "mythsystemlegacy.h"
 #include "tv.h"
 #include "proglist.h"
+#include "prevreclist.h"
 #include "progfind.h"
 #include "scheduleeditor.h"
 #include "manualschedule.h"
@@ -546,6 +547,16 @@ static void startPlayback(void)
 static void startPrevious(void)
 {
     MythScreenStack *mainStack = GetMythMainWindow()->GetMainStack();
+    PrevRecordedList *pl = new PrevRecordedList(mainStack);
+    if (pl->Create())
+        mainStack->AddScreen(pl);
+    else
+        delete pl;
+}
+
+static void startPreviousOld(void)
+{
+    MythScreenStack *mainStack = GetMythMainWindow()->GetMainStack();
     ProgLister *pl = new ProgLister(mainStack);
     if (pl->Create())
         mainStack->AddScreen(pl);
@@ -890,6 +901,8 @@ static void TVMenuCallback(void *data, QString &selection)
         startSearchTime();
     else if (sel == "tv_previous")
         startPrevious();
+    else if (sel == "tv_previous_old")
+        startPreviousOld();
     else if (sel == "settings appearance")
     {
         MythScreenStack *mainStack = GetMythMainWindow()->GetMainStack();
@@ -1624,17 +1637,17 @@ static int internal_media_init()
     REG_MEDIAPLAYER("Internal", QT_TRANSLATE_NOOP("MythControls",
         "MythTV's native media player."), internal_play_media);
     REG_MEDIA_HANDLER(QT_TRANSLATE_NOOP("MythControls",
-        "MythDVD DVD Media Handler"), "", "", handleDVDMedia,
+        "MythDVD DVD Media Handler"), "", handleDVDMedia,
         MEDIATYPE_DVD, QString::null);
     REG_MEDIA_HANDLER(QT_TRANSLATE_NOOP("MythControls",
-        "MythImage Media Handler 1/2"), "", "", handleGalleryMedia,
+        "MythImage Media Handler 1/2"), "", handleGalleryMedia,
         MEDIATYPE_DATA | MEDIATYPE_MIXED, QString::null);
 
     QStringList extensions(ImageAdapterBase::SupportedImages()
                            + ImageAdapterBase::SupportedVideos());
 
     REG_MEDIA_HANDLER(QT_TRANSLATE_NOOP("MythControls",
-        "MythImage Media Handler 2/2"), "", "", handleGalleryMedia,
+        "MythImage Media Handler 2/2"), "", handleGalleryMedia,
         MEDIATYPE_MGALLERY | MEDIATYPE_MVIDEO, extensions.join(","));
     return 0;
 }
@@ -1767,6 +1780,10 @@ int main(int argc, char **argv)
     bool bPromptForBackend    = false;
     bool bBypassAutoDiscovery = false;
 
+#if CONFIG_OMX_RPI
+    setenv("QT_XCB_GL_INTEGRATION","none",0);
+#endif
+
 #ifdef Q_OS_ANDROID
     // extra for 0 termination
     char *newargv[argc+4+1];
@@ -1868,9 +1885,11 @@ int main(int argc, char **argv)
     gContext = new MythContext(MYTH_BINARY_VERSION, true);
     gCoreContext->SetAsFrontend(true);
 
+    cmdline.ApplySettingsOverride();
     if (!gContext->Init(true, bPromptForBackend, bBypassAutoDiscovery))
     {
         LOG(VB_GENERAL, LOG_ERR, "Failed to init MythContext, exiting.");
+        gCoreContext->SetExiting(true);
         return GENERIC_EXIT_NO_MYTHCONTEXT;
     }
 
@@ -1973,9 +1992,9 @@ int main(int argc, char **argv)
 
     MythMainWindow *mainWindow = GetMythMainWindow();
 #if CONFIG_DARWIN
-    mainWindow->Init(QT_PAINTER);
+    mainWindow->Init(QT_PAINTER, false);
 #else
-    mainWindow->Init();
+    mainWindow->Init(QString(), false);
 #endif
     mainWindow->setWindowTitle(qApp->translate("(MythFrontendMain)",
                                                "MythTV Frontend",
@@ -2127,6 +2146,7 @@ int main(int argc, char **argv)
     if (ret==0)
         gContext-> saveSettingsCache();
 
+    DestroyMythUI();
     PreviewGeneratorQueue::TeardownPreviewGeneratorQueue();
 
     delete housekeeping;

@@ -349,6 +349,8 @@ bool MythCoreContext::ConnectToMasterServer(bool blockingClient,
                 "to itself!");
         return false;
     }
+    if (IsExiting())
+        return false;
 
     QString server = GetMasterServerIP();
     if (server.isEmpty())
@@ -409,7 +411,7 @@ bool MythCoreContext::ConnectToMasterServer(bool blockingClient,
 
 MythSocket *MythCoreContext::ConnectCommandSocket(
     const QString &hostname, int port, const QString &announce,
-    bool *p_proto_mismatch, bool gui, int maxConnTry, int setup_timeout)
+    bool *p_proto_mismatch, int maxConnTry, int setup_timeout)
 {
     MythSocket *serverSock = NULL;
 
@@ -937,7 +939,6 @@ double MythCoreContext::GetFloatSettingOnHost(const QString &key,
 }
 
 /**
- * \fn QString GetMasterServerIP(void)
  * Returns the Master Backend IP address
  * If the address is an IPv6 address, the scope Id is removed.
  * If no master server address has been defined in the database, return localhost
@@ -952,7 +953,6 @@ QString MythCoreContext::GetMasterServerIP(void)
 }
 
 /**
- * \fn int GetMasterServerPort(void)
  * Returns the Master Backend control port
  * If no master server port has been defined in the database, return the default
  * 6543
@@ -966,7 +966,6 @@ int MythCoreContext::GetMasterServerPort(void)
 }
 
 /**
- * \fn int GetMasterServerStatusPort(void)
  * Returns the Master Backend status port
  * If no master server status port has been defined in the database,
  * return the default 65434
@@ -979,7 +978,6 @@ int MythCoreContext::GetMasterServerStatusPort(void)
 }
 
 /**
- * \fn QString GetBackendServerIP(void)
  * Returns the IP address of the locally defined backend IP.
  * See GetBackendServerIP(host)
  */
@@ -989,7 +987,6 @@ QString MythCoreContext::GetBackendServerIP(void)
 }
 
 /**
- * \fn QString GetBackendServerIP(const QString &host)
  * Returns the IP address of backend "host"
  * If an IPv6 address has been defined, will use it whenever possible, unless
  * the IPv6 address is a localhost address, in which case the IPv4 address will
@@ -1004,7 +1001,6 @@ QString MythCoreContext::GetBackendServerIP(const QString &host)
 }
 
 /**
- * \fn QStringGetBackendServerIP4(void)
  * Returns the IPv4 address defined for the current host
  * see GetBackendServerIP4(host)
  */
@@ -1014,9 +1010,9 @@ QString MythCoreContext::GetBackendServerIP4(void)
 }
 
 /**
- * \fn QString GetBackendServerIP4(const QString &host)
  * Returns the IPv4 address defined for the backend "host".
- * returns an empty string if the defined IP is invalid
+ * \param host The name of the host to lookup
+ * \return An empty string if the defined IP is invalid
  */
 QString MythCoreContext::GetBackendServerIP4(const QString &host)
 {
@@ -1024,7 +1020,6 @@ QString MythCoreContext::GetBackendServerIP4(const QString &host)
 }
 
 /**
- * \fn QString GetBackendServerIP6(void)
  * Returns the IPv6 address defined for the current host
  * see GetBackendServerIP6(host)
  */
@@ -1034,7 +1029,6 @@ QString MythCoreContext::GetBackendServerIP6(void)
 }
 
 /**
- * \fn QString GetBackendServerIP6(const QString &host)
  * Returns the IPv6 address defined for the backend "host".
  * returns an empty string if the defined IP is invalid.
  * The IP address returned doesn't contain a scope Id
@@ -1045,7 +1039,6 @@ QString MythCoreContext::GetBackendServerIP6(const QString &host)
 }
 
 /**
- * \fn int GetBackendServerPort(void)
  * Returns the locally defined backend control port
  */
 int MythCoreContext::GetBackendServerPort(void)
@@ -1054,7 +1047,6 @@ int MythCoreContext::GetBackendServerPort(void)
 }
 
 /**
- * \fn vint GetBackendServerPort(const QString &host)
  * Returns the backend "hosts"'s control port
  */
 int MythCoreContext::GetBackendServerPort(const QString &host)
@@ -1063,7 +1055,6 @@ int MythCoreContext::GetBackendServerPort(const QString &host)
 }
 
 /**
- * \fn int GetBackendStatusPort(void)
  * Returns the locally defined backend status port
  */
 int MythCoreContext::GetBackendStatusPort(void)
@@ -1072,7 +1063,6 @@ int MythCoreContext::GetBackendStatusPort(void)
 }
 
 /**
- * \fn int GetBackendStatusPort(const QString &host)
  * Returns the backend "hosts"'s status port
  */
 int MythCoreContext::GetBackendStatusPort(const QString &host)
@@ -1081,7 +1071,6 @@ int MythCoreContext::GetBackendStatusPort(const QString &host)
 }
 
 /**
- * \fn void GetScopeForAddress(QHostAddress &addr)
  * Return the cached scope Id for the given address.
  * If unknown returns false, else returns true and set scope Id to given address
  */
@@ -1100,8 +1089,10 @@ bool MythCoreContext::GetScopeForAddress(QHostAddress &addr) const
 }
 
 /**
- * \fn void SetScopeForAddress(QHostAddress &addr)
- * Record the scope Id of the given IP address
+ * Record the scope Id of the given IP address.
+ *
+ * \param addr A QHostAddress that contains both the host address and
+ *        the scope to record.
  */
 void MythCoreContext::SetScopeForAddress(const QHostAddress &addr)
 {
@@ -1113,8 +1104,9 @@ void MythCoreContext::SetScopeForAddress(const QHostAddress &addr)
 }
 
 /**
- * \fn void SetScopeForAddress(QHostAddress &addr, int scope)
- * This is an overloaded function.
+ * Record the scope Id of the given IP address
+ * \param addr A QHostAddress containing the host address to record.
+ * \param scope The scope value to record.
  */
 void MythCoreContext::SetScopeForAddress(const QHostAddress &addr, int scope)
 {
@@ -1126,7 +1118,6 @@ void MythCoreContext::SetScopeForAddress(const QHostAddress &addr, int scope)
 }
 
 /**
- * \fn QString resolveSettingAddress(const QString &name, const QString &host, int type)
  * Retrieve IP setting "name" for "host". If host is empty retrieve for local machine.
  * The value returned for the given setting name, will be returned if it's an IP address
  * or resolved otherwise.
@@ -1156,7 +1147,6 @@ QString MythCoreContext::resolveSettingAddress(const QString &name,
 }
 
 /**
- * \fn QString resolveAddress(const QString &host, int type)
  * if host is an IP address, it will be returned
  * or resolved otherwise.
  * If host is empty, an empty string will be returned,
@@ -1329,6 +1319,24 @@ bool MythCoreContext::IsUIThread(void)
     return is_current_thread(d->m_UIThread);
 }
 
+/**
+ *  \brief Send a message to the backend and wait for a response.
+ *
+ *  \param strlist      A QStringList used for both sending commands
+ *                      to the backend and receiving responses from
+ *                      the backend.
+ *  \param quickTimeout If true, the short timeout is used while
+ *                      waiting for a response. If false (the default)
+ *                      then the long timeout is used.
+ *  \param block        If true (the default) and the request sent to
+ *                      the backend times out, this function will
+ *                      attempt to reconnect and reissue the
+ *                      request. If false, this function will not
+ *                      attempt to reconnect to the backend.
+ *
+ *  \sa kShortTimeout
+ *  \sa kLongTimeout
+ */
 bool MythCoreContext::SendReceiveStringList(
     QStringList &strlist, bool quickTimeout, bool block)
 {
@@ -1377,12 +1385,15 @@ bool MythCoreContext::SendReceiveStringList(
                 d->m_eventSock = NULL;
             }
 
-            ConnectToMasterServer(d->m_blockingClient);
-
-            if (d->m_serverSock)
+            if (block)
             {
-                ok = d->m_serverSock->SendReceiveStringList(
-                    strlist, 0, timeout);
+                ConnectToMasterServer(d->m_blockingClient);
+
+                if (d->m_serverSock)
+                {
+                    ok = d->m_serverSock->SendReceiveStringList(
+                        strlist, 0, timeout);
+                }
             }
         }
 

@@ -33,27 +33,20 @@ class SERVICE_PUBLIC FrontendList : public QObject
 
     Q_PROPERTY( QVariantList Frontends READ Frontends DESIGNABLE true )
 
-    PROPERTYIMP_RO_REF( QVariantList, Frontends )
+    PROPERTYIMP_RO_REF( QVariantList, Frontends );
 
     public:
 
         static inline void InitializeCustomTypes();
-
-    public:
 
         FrontendList(QObject *parent = 0)
             : QObject( parent )
         {
         }
 
-        FrontendList( const FrontendList &src )
+        void Copy( const FrontendList *src )
         {
-            Copy( src );
-        }
-
-        void Copy( const FrontendList &src )
-        {
-            CopyListContents< Frontend >( this, m_Frontends, src.m_Frontends );
+            CopyListContents< Frontend >( this, m_Frontends, src->m_Frontends );
         }
 
         Frontend *AddNewFrontend()
@@ -67,22 +60,17 @@ class SERVICE_PUBLIC FrontendList : public QObject
             return pObject;
         }
 
+    private:
+        Q_DISABLE_COPY(FrontendList);
 };
 
-} // namespace DTC
-
-Q_DECLARE_METATYPE( DTC::FrontendList  )
-Q_DECLARE_METATYPE( DTC::FrontendList* )
-
-namespace DTC
-{
 inline void FrontendList::InitializeCustomTypes()
 {
-    qRegisterMetaType< FrontendList  >();
     qRegisterMetaType< FrontendList* >();
 
     Frontend::InitializeCustomTypes();
 }
-}
+
+} // namespace DTC
 
 #endif

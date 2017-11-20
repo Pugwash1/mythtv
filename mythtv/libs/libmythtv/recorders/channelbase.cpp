@@ -400,6 +400,8 @@ bool ChannelBase::ChangeInternalChannel(const QString &freqid,
     device = NULL;
     return true;
 #else
+    Q_UNUSED(freqid);
+    Q_UNUSED(inputid);
     return false;
 #endif
 }
@@ -534,7 +536,7 @@ int ChannelBase::GetChanID() const
     return id;
 }
 
-/** \fn ChannelBase::InitializeInputs(void)
+/**
  *  \brief Fills in input map from DB
  */
 bool ChannelBase::InitializeInput(void)
@@ -626,9 +628,8 @@ void ChannelBase::Renumber(uint sourceid,
     StoreInputChannels();
 }
 
-/** \fn ChannelBase::StoreInputChannels(void)
+/**
  *  \brief Sets starting channel for the each input in the input map.
- *  \param input Map from cardinputid to input params.
  */
 void ChannelBase::StoreInputChannels(void)
 {
@@ -702,6 +703,8 @@ ChannelBase *ChannelBase::CreateChannel(
     {
 #ifdef USING_FIREWIRE
         channel = new FirewireChannel(tvrec, genOpt.videodev, fwOpt);
+#else
+        Q_UNUSED(fwOpt);
 #endif
     }
     else if (genOpt.inputtype == "HDHOMERUN")

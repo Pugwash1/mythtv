@@ -25,7 +25,7 @@ class SERVICE_PUBLIC ChannelGroupList : public QObject
 
     Q_PROPERTY( QVariantList ChannelGroups READ ChannelGroups DESIGNABLE true )
 
-    PROPERTYIMP_RO_REF( QVariantList, ChannelGroups )
+    PROPERTYIMP_RO_REF( QVariantList, ChannelGroups );
 
     public:
 
@@ -36,14 +36,9 @@ class SERVICE_PUBLIC ChannelGroupList : public QObject
         {
         }
 
-        ChannelGroupList( const ChannelGroupList &src )
+        void Copy( const ChannelGroupList *src )
         {
-            Copy( src );
-        }
-
-        void Copy( const ChannelGroupList &src )
-        {
-            CopyListContents< ChannelGroup >( this, m_ChannelGroups, src.m_ChannelGroups );
+            CopyListContents< ChannelGroup >( this, m_ChannelGroups, src->m_ChannelGroups );
         }
 
         ChannelGroup *AddNewChannelGroup()
@@ -57,22 +52,17 @@ class SERVICE_PUBLIC ChannelGroupList : public QObject
             return pObject;
         }
 
+    private:
+        Q_DISABLE_COPY(ChannelGroupList);
 };
 
-} // namespace DTC
-
-Q_DECLARE_METATYPE( DTC::ChannelGroupList  )
-Q_DECLARE_METATYPE( DTC::ChannelGroupList* )
-
-namespace DTC
-{
 inline void ChannelGroupList::InitializeCustomTypes()
 {
-    qRegisterMetaType< ChannelGroupList   >();
     qRegisterMetaType< ChannelGroupList*  >();
 
     ChannelGroup::InitializeCustomTypes();
 }
-}
+
+} // namespace DTC
 
 #endif

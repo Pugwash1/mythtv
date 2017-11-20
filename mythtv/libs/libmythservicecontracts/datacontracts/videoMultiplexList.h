@@ -43,13 +43,11 @@ class SERVICE_PUBLIC VideoMultiplexList : public QObject
     PROPERTYIMP       ( QString     , Version         )
     PROPERTYIMP       ( QString     , ProtoVer        )
 
-    PROPERTYIMP_RO_REF( QVariantList, VideoMultiplexes )
+    PROPERTYIMP_RO_REF( QVariantList, VideoMultiplexes );
 
     public:
 
         static inline void InitializeCustomTypes();
-
-    public:
 
         VideoMultiplexList(QObject *parent = 0)
             : QObject( parent ),
@@ -61,18 +59,13 @@ class SERVICE_PUBLIC VideoMultiplexList : public QObject
         {
         }
 
-        VideoMultiplexList( const VideoMultiplexList &src )
+        void Copy( const VideoMultiplexList *src )
         {
-            Copy( src );
-        }
+            m_AsOf          = src->m_AsOf           ;
+            m_Version       = src->m_Version        ;
+            m_ProtoVer      = src->m_ProtoVer       ;
 
-        void Copy( const VideoMultiplexList &src )
-        {
-            m_AsOf          = src.m_AsOf           ;
-            m_Version       = src.m_Version        ;
-            m_ProtoVer      = src.m_ProtoVer       ;
-
-            CopyListContents< VideoMultiplex >( this, m_VideoMultiplexes, src.m_VideoMultiplexes );
+            CopyListContents< VideoMultiplex >( this, m_VideoMultiplexes, src->m_VideoMultiplexes );
         }
 
         VideoMultiplex *AddNewVideoMultiplex()
@@ -86,22 +79,17 @@ class SERVICE_PUBLIC VideoMultiplexList : public QObject
             return pObject;
         }
 
+    private:
+        Q_DISABLE_COPY(VideoMultiplexList);
 };
 
-} // namespace DTC
-
-Q_DECLARE_METATYPE( DTC::VideoMultiplexList  )
-Q_DECLARE_METATYPE( DTC::VideoMultiplexList* )
-
-namespace DTC
-{
 inline void VideoMultiplexList::InitializeCustomTypes()
 {
-    qRegisterMetaType< VideoMultiplexList   >();
     qRegisterMetaType< VideoMultiplexList*  >();
 
     VideoMultiplex::InitializeCustomTypes();
 }
-}
+
+} // namespace DTC
 
 #endif

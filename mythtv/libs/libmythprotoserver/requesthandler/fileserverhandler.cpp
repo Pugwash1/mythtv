@@ -216,10 +216,13 @@ bool FileServerHandler::HandleAnnounce(MythSocket *socket,
     {
       case 6:
         timeout_ms      = commands[5].toInt();
+        [[clang::fallthrough]];
       case 5:
         usereadahead    = commands[4].toInt();
+        [[clang::fallthrough]];
       case 4:
         writemode       = commands[3].toInt();
+        [[clang::fallthrough]];
       default:
         hostname        = commands[2];
     }
@@ -557,8 +560,7 @@ QList<FileSystemInfo> FileServerHandler::QueryAllFileSystems(void)
 
 /**
  * \addtogroup myth_network_protocol
- * \par
- * QUERY_FILE_EXISTS \e filename \e storagegroup
+ * \par QUERY_FILE_EXISTS \e filename \e storagegroup
  */
 bool FileServerHandler::HandleQueryFileExists(SocketHandler *socket,
                                               QStringList &slist)
@@ -642,9 +644,11 @@ bool FileServerHandler::HandleQueryFileHash(SocketHandler *socket,
       case 4:
         if (!slist[3].isEmpty())
             hostname = slist[3];
+        [[clang::fallthrough]];
       case 3:
         if (!slist[2].isEmpty())
             storageGroup = slist[2];
+        [[clang::fallthrough]];
       case 2:
         filename = slist[1];
         if (filename.isEmpty() ||

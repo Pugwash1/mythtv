@@ -55,13 +55,11 @@ class SERVICE_PUBLIC LogMessage : public QObject
     PROPERTYIMP( QString  , Function    )
     PROPERTYIMP( QDateTime, Time        )
     PROPERTYIMP( QString  , Level       )
-    PROPERTYIMP( QString  , Message     )
+    PROPERTYIMP( QString  , Message     );
 
     public:
 
         static inline void InitializeCustomTypes();
-
-    public:
 
         LogMessage(QObject *parent = 0)
             : QObject       ( parent ),
@@ -79,39 +77,30 @@ class SERVICE_PUBLIC LogMessage : public QObject
         {
         }
 
-        LogMessage( const LogMessage &src )
+        void Copy( const LogMessage *src )
         {
-            Copy( src );
+            m_HostName        = src->m_HostName       ;
+            m_Application     = src->m_Application    ;
+            m_PID             = src->m_PID            ;
+            m_TID             = src->m_TID            ;
+            m_Thread          = src->m_Thread         ;
+            m_Filename        = src->m_Filename       ;
+            m_Line            = src->m_Line           ;
+            m_Function        = src->m_Function       ;
+            m_Time            = src->m_Time           ;
+            m_Level           = src->m_Level          ;
+            m_Message         = src->m_Message        ;
         }
 
-        void Copy( const LogMessage &src )
-        {
-            m_HostName        = src.m_HostName       ;
-            m_Application     = src.m_Application    ;
-            m_PID             = src.m_PID            ;
-            m_TID             = src.m_TID            ;
-            m_Thread          = src.m_Thread         ;
-            m_Filename        = src.m_Filename       ;
-            m_Line            = src.m_Line           ;
-            m_Function        = src.m_Function       ;
-            m_Time            = src.m_Time           ;
-            m_Level           = src.m_Level          ;
-            m_Message         = src.m_Message        ;
-        }
+    private:
+        Q_DISABLE_COPY(LogMessage);
 };
 
-} // namespace DTC
-
-Q_DECLARE_METATYPE( DTC::LogMessage )
-Q_DECLARE_METATYPE( DTC::LogMessage* )
-
-namespace DTC
-{
 inline void LogMessage::InitializeCustomTypes()
 {
-    qRegisterMetaType< LogMessage  >();
     qRegisterMetaType< LogMessage* >();
 }
-}
+
+} // namespace DTC
 
 #endif

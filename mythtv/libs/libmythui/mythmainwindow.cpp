@@ -317,12 +317,17 @@ int MythMainWindowPrivate::TranslateKeyNum(QKeyEvent* e)
         // if modifiers have been pressed, rebuild keynum
         if ((modifiers = e->modifiers()) != Qt::NoModifier)
         {
-            int modnum = (((modifiers & Qt::ShiftModifier) &&
-                            (keynum > 0x7f) &&
-                            (keynum != Qt::Key_Backtab)) ? Qt::SHIFT : 0) |
-                         ((modifiers & Qt::ControlModifier) ? Qt::CTRL : 0) |
-                         ((modifiers & Qt::MetaModifier) ? Qt::META : 0) |
-                         ((modifiers & Qt::AltModifier) ? Qt::ALT : 0);
+            int modnum = Qt::NoModifier;
+            if ((modifiers & Qt::ShiftModifier) &&
+                (keynum > 0x7f) &&
+                (keynum != Qt::Key_Backtab))
+                modnum |= Qt::SHIFT;
+            if (modifiers & Qt::ControlModifier)
+                modnum |= Qt::CTRL;
+            if (modifiers & Qt::MetaModifier)
+                modnum |= Qt::META;
+            if (modifiers & Qt::AltModifier)
+                modnum |= Qt::ALT;
             modnum &= ~Qt::UNICODE_ACCEL;
             return (keynum |= modnum);
         }
@@ -1013,8 +1018,13 @@ bool MythMainWindow::event(QEvent *e)
     return QWidget::event(e);
 }
 
-void MythMainWindow::Init(QString forcedpainter)
+void MythMainWindow::Init(QString forcedpainter, bool mayReInit)
 {
+    d->m_useDB = ! gCoreContext->GetDB()->SuppressDBMessages();
+
+    if ( !(mayReInit || d->firstinit) )
+        return;
+
     GetMythUI()->GetScreenSettings(d->xbase, d->screenwidth, d->wmult,
                                    d->ybase, d->screenheight, d->hmult);
 
@@ -2202,9 +2212,9 @@ bool MythMainWindow::eventFilter(QObject *, QEvent *e)
                         QCoreApplication::postEvent(this, key);
                     else
                         QCoreApplication::postEvent(key_target, key);
-                }
 
-                return true;
+                    return true;
+                }
             }
 #endif
 

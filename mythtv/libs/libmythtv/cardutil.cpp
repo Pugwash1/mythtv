@@ -23,6 +23,7 @@
 #include "mythlogging.h"
 #include "inputinfo.h"
 #include "mythmiscutil.h" // for ping()
+#include "mythdownloadmanager.h"
 
 #ifdef USING_DVB
 #include "dvbtypes.h"
@@ -146,9 +147,82 @@ bool CardUtil::IsCableCardPresent(uint inputid,
     else if (inputType == "CETON")
     {
 #ifdef USING_CETON
-        // TODO FIXME implement detection of Cablecard presence
-        LOG(VB_GENERAL, LOG_INFO, "Cardutil: TODO Ceton Is Cablecard Present?");
-        return true;
+        QString device = GetVideoDevice(inputid);
+
+        QStringList parts = device.split("-");
+        if (parts.size() != 2)
+        {
+            LOG(VB_GENERAL, LOG_ERR,
+                QString("CardUtil: Ceton invalid device id %1").arg(device));
+            return false;
+        }
+
+        QString ip_address = parts.at(0);
+
+        QStringList tuner_parts = parts.at(1).split(".");
+        if (tuner_parts.size() != 2)
+        {
+            LOG(VB_GENERAL, LOG_ERR, LOC +
+                QString("CardUtil: Ceton invalid device id %1").arg(device));
+            return false;
+        }
+
+        uint tuner = tuner_parts.at(1).toUInt();
+
+#if QT_VERSION < QT_VERSION_CHECK(5, 0, 0)
+        QUrl params;
+#else
+        QUrlQuery params;
+#endif
+        params.addQueryItem("i", QString::number(tuner));
+        params.addQueryItem("s", "cas");
+        params.addQueryItem("v", "CardStatus");
+
+        QUrl url;
+        url.setScheme("http");
+        url.setHost(ip_address);
+        url.setPath("/get_var.json");
+#if QT_VERSION < QT_VERSION_CHECK(5, 0, 0)
+        url.setEncodedQuery(params.encodedQuery());
+#else
+        url.setQuery(params);
+#endif
+
+        QNetworkRequest *request = new QNetworkRequest();
+        request->setAttribute(QNetworkRequest::CacheLoadControlAttribute,
+                              QNetworkRequest::AlwaysNetwork);
+        request->setUrl(url);
+
+        QByteArray data;
+        MythDownloadManager *manager = GetMythDownloadManager();
+
+        if (!manager->download(request, &data))
+        {
+            LOG(VB_GENERAL, LOG_ERR,
+                QString("CardUtil: Ceton http request failed %1").arg(device));
+            return false;
+        }
+
+        QString response = QString(data);
+
+        QRegExp regex("^\\{ \"?result\"?: \"(.*)\" \\}$");
+        if (regex.indexIn(response) == -1)
+        {
+            LOG(VB_GENERAL, LOG_ERR,
+                QString("CardUtil: Ceton unexpected http response: %1").arg(response));
+            return false;
+        }
+
+        QString result = regex.cap(1);
+
+        if (result == "Inserted")
+        {
+            LOG(VB_GENERAL, LOG_DEBUG, "Cardutil: Ceton CableCARD present.");
+            return true;
+        }
+
+        LOG(VB_GENERAL, LOG_DEBUG, "Cardutil: Ceton CableCARD not present.");
+        return false;
 #else
         return false;
 #endif
@@ -377,16 +451,25 @@ QStringList CardUtil::GetVideoDevices(const QString &rawtype, QString hostname)
     return list;
 }
 
+QMap <QString,QStringList> CardUtil::videoDeviceCache;
+
+void CardUtil::ClearVideoDeviceCache()
+{
+    videoDeviceCache.clear();
+}
+
+
 QStringList CardUtil::ProbeVideoDevices(const QString &rawtype)
 {
+    if (videoDeviceCache.contains(rawtype))
+        return videoDeviceCache[rawtype];
+
     QStringList devs;
 
     if (rawtype.toUpper() == "DVB")
     {
         QDir dir("/dev/dvb", "adapter*", QDir::Name, QDir::Dirs);
         const QFileInfoList il = dir.entryInfoList();
-        if (il.isEmpty())
-            return devs;
 
         QFileInfoList::const_iterator it = il.begin();
 
@@ -406,8 +489,6 @@ QStringList CardUtil::ProbeVideoDevices(const QString &rawtype)
     {
         QDir dir("/dev/", "asirx*", QDir::Name, QDir::System);
         const QFileInfoList il = dir.entryInfoList();
-        if (il.isEmpty())
-            return devs;
 
         QFileInfoList::const_iterator it = il.begin();
         for (; it != il.end(); ++it)
@@ -435,7 +516,6 @@ QStringList CardUtil::ProbeVideoDevices(const QString &rawtype)
         if (result == -1)
         {
             LOG(VB_GENERAL, LOG_ERR, "Error finding HDHomerun devices");
-            return devs;
         }
 
         if (result >= max_count)
@@ -483,6 +563,7 @@ QStringList CardUtil::ProbeVideoDevices(const QString &rawtype)
                                      .arg(rawtype));
     }
 
+    videoDeviceCache.insert(rawtype,devs);
     return devs;
 }
 
@@ -500,7 +581,7 @@ QString CardUtil::ProbeDVBType(const QString &device)
     int fd_frontend = open(dev.constData(), O_RDWR | O_NONBLOCK);
     if (fd_frontend < 0)
     {
-        LOG(VB_GENERAL, LOG_ERR, QString("Can't open DVB frontend (%1) for %2.")
+        LOG(VB_GENERAL, LOG_ERR, QString("Can't open DVB frontend (%1) for %2." + ENO)
                 .arg(dvbdev).arg(device));
         return ret;
     }
@@ -515,7 +596,6 @@ QString CardUtil::ProbeDVBType(const QString &device)
                                          .arg(dvbdev) + ENO);
         return ret;
     }
-    close(fd_frontend);
 
     DTVTunerType type(info.type);
 #if HAVE_FE_CAN_2G_MODULATION
@@ -527,6 +607,39 @@ QString CardUtil::ProbeDVBType(const QString &device)
             type = DTVTunerType::kTunerTypeDVBT2;
     }
 #endif // HAVE_FE_CAN_2G_MODULATION
+
+#if DVB_API_VERSION >=5
+    unsigned int i;
+    struct dtv_property prop;
+    struct dtv_properties cmd;
+
+    memset(&prop, 0, sizeof(prop));
+    prop.cmd = DTV_ENUM_DELSYS;
+    cmd.num = 1;
+    cmd.props = &prop;
+
+    if (ioctl(fd_frontend, FE_GET_PROPERTY, &cmd) == 0)
+    {
+        for (i = 0; i < prop.u.buffer.len; i++)
+        {
+            switch (prop.u.buffer.data[i])
+            {
+                // TODO: not supported. you can have DVBC and DVBT on the same card
+                // The following are backwards compatible so its ok
+                case SYS_DVBS2:
+                    type = DTVTunerType::kTunerTypeDVBS2;
+                    break;
+                case SYS_DVBT2:
+                    type = DTVTunerType::kTunerTypeDVBT2;
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+#endif
+    close(fd_frontend);
+
     ret = (type.toString() != "UNKNOWN") ? type.toString().toUpper() : ret;
 #endif // USING_DVB
 
@@ -664,6 +777,7 @@ bool set_on_input(const QString &to_set, uint inputid, const QString &value)
  *         hostname. The result is ordered from smallest to largest.
  *  \param videodevice Video device we want input ids for
  *  \param rawtype     Input type as used in DB or empty string for any type
+ *  \param inputname   The name of the input card.
  *  \param hostname    Host on which device resides, only
  *                     required if said host is not the localhost
  */
@@ -1139,13 +1253,16 @@ uint CardUtil::GetSourceID(uint inputid)
     return 0;
 }
 
+// Is this intentionally leaving out the hostname when updating the
+// capturecard table? The hostname value does get set when inserting
+// into the capturecard table. (Code written in 2011.)
 int CardUtil::CreateCardInput(const uint inputid,
                               const uint sourceid,
                               const QString &inputname,
                               const QString &externalcommand,
                               const QString &changer_device,
                               const QString &changer_model,
-                              const QString &hostname,
+                              const QString &/*hostname*/,
                               const QString &tunechan,
                               const QString &startchan,
                               const QString &displayname,
@@ -1848,7 +1965,6 @@ QString CardUtil::GetDeviceLabel(uint inputid)
 }
 
 void CardUtil::GetDeviceInputNames(
-    uint                inputid,
     const QString      &device,
     const QString      &inputtype,
     QStringList        &inputs)
@@ -2440,7 +2556,8 @@ bool CardUtil::SetASIMode(uint device_num, uint mode, QString *error)
     }
     return ok;
 #else
-    (void) device_num;
+    Q_UNUSED(device_num);
+    Q_UNUSED(mode);
     if (error)
         *error = "Not compiled with ASI support.";
     return false;

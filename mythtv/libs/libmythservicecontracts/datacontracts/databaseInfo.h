@@ -42,13 +42,11 @@ class SERVICE_PUBLIC DatabaseInfo : public QObject
     PROPERTYIMP( QString, Name          )
     PROPERTYIMP( QString, Type          )
     PROPERTYIMP( bool   , LocalEnabled  )
-    PROPERTYIMP( QString, LocalHostName )
+    PROPERTYIMP( QString, LocalHostName );
 
     public:
 
         static inline void InitializeCustomTypes();
-
-    public:
 
         DatabaseInfo(QObject *parent = 0) 
             : QObject       ( parent ),
@@ -57,40 +55,31 @@ class SERVICE_PUBLIC DatabaseInfo : public QObject
               m_LocalEnabled( false  ) 
         {
         }
-        
-        DatabaseInfo( const DatabaseInfo &src ) 
+
+        void Copy( const DatabaseInfo *src )
         {
-            Copy( src );
+            m_Host         = src->m_Host         ;
+            m_Ping         = src->m_Ping         ;
+            m_Port         = src->m_Port         ;
+            m_UserName     = src->m_UserName     ;
+            m_Password     = src->m_Password     ;
+            m_Name         = src->m_Name         ;
+            m_Type         = src->m_Type         ;
+            m_LocalEnabled = src->m_LocalEnabled ;
+            m_LocalHostName= src->m_LocalHostName;
         }
 
-        void Copy( const DatabaseInfo &src ) 
-        {
-            m_Host         = src.m_Host         ;
-            m_Ping         = src.m_Ping         ;
-            m_Port         = src.m_Port         ;
-            m_UserName     = src.m_UserName     ;
-            m_Password     = src.m_Password     ;
-            m_Name         = src.m_Name         ;
-            m_Type         = src.m_Type         ;
-            m_LocalEnabled = src.m_LocalEnabled ;
-            m_LocalHostName= src.m_LocalHostName;
-        }
+    private:
+        Q_DISABLE_COPY(DatabaseInfo);
 };
 
 typedef DatabaseInfo * DatabaseInfoPtr;
 
-} // namespace DTC
-
-Q_DECLARE_METATYPE( DTC::DatabaseInfo  )
-Q_DECLARE_METATYPE( DTC::DatabaseInfo* )
-
-namespace DTC
-{
 inline void DatabaseInfo::InitializeCustomTypes()
 {
-    qRegisterMetaType< DatabaseInfo   >();
     qRegisterMetaType< DatabaseInfo*  >();
 }
-}
+
+} // namespace DTC
 
 #endif

@@ -321,7 +321,7 @@ ButtonStandardSetting::ButtonStandardSetting(const QString &label)
     setLabel(label);
 }
 
-void ButtonStandardSetting::edit(MythScreenType *screen)
+void ButtonStandardSetting::edit(MythScreenType */*screen*/)
 {
     emit clicked();
 }
@@ -479,6 +479,9 @@ void MythUIFileBrowserSetting::updateButton(MythUIButtonListItem *item)
 *******************************************************************************/
 /**
  * Create a Setting Widget to select the value from a list
+ * \param _storage An object that knows how to get/set the value for
+ *                 this item from/to a database.  This should be
+ *                 created with a call to XXXStorage.
  * \param rw if set to true, the user can input it's own value
  */
 MythUIComboBoxSetting::MythUIComboBoxSetting(Storage *_storage, bool rw):
@@ -646,18 +649,37 @@ int MythUIComboBoxSetting::size(void) const
                             SpinBox Setting
 *******************************************************************************/
 MythUISpinBoxSetting::MythUISpinBoxSetting(Storage *_storage, int min, int max,
-                                           int step, bool allow_single_step,
+                                           int step, int pageMultiple,
                                            const QString &special_value_text)
     : StandardSetting(_storage),
       m_min(min),
       m_max(max),
       m_step(step),
-      m_allow_single_step(allow_single_step),
+      m_pageMultiple(pageMultiple),
       m_special_value_text(special_value_text)
 {
     //we default to 0 unless 0 is out of range
     if (m_min > 0 || m_max < 0)
         m_settingValue = QString::number(m_min);
+
+    // The setings pages were coded to assume a parameter true/false
+    // meaning allow_single_step. Many pages use this but it was not
+    // implemented. It is difficult to implement using the current
+    // UI widget design. So I have changed it so you can specify
+    // the size of pageup / pagedown increments as an integer instead
+    // For compatibility with callers still using true to indicate
+    // allowing single step, the code will set the step size as 1 and
+    // the pageup / pagedown as the requested step.
+
+    if (m_pageMultiple == 1)
+    {
+        m_pageMultiple = step;
+        m_step = 1;
+    }
+    if (m_pageMultiple == 0)
+    {
+        m_pageMultiple = 5;
+    }
 }
 
 void MythUISpinBoxSetting::updateButton(MythUIButtonListItem *item)
@@ -690,7 +712,7 @@ void MythUISpinBoxSetting::edit(MythScreenType * screen)
 
     if (settingdialog->Create())
     {
-        settingdialog->SetRange(m_min, m_max, m_step);
+        settingdialog->SetRange(m_min, m_max, m_step, m_pageMultiple);
         if (!m_special_value_text.isEmpty())
             settingdialog->AddSelection(m_special_value_text, m_min);
         settingdialog->SetValue(m_settingValue);
@@ -757,7 +779,7 @@ void MythUICheckBoxSetting::edit(MythScreenType * screen)
     QCoreApplication::postEvent(screen, dce);
 }
 
-void MythUICheckBoxSetting::resultEdit(DialogCompletionEvent *dce)
+void MythUICheckBoxSetting::resultEdit(DialogCompletionEvent */*dce*/)
 {
     setValue(!boolValue());
 }
@@ -776,7 +798,8 @@ StandardSettingDialog::StandardSettingDialog(MythScreenStack *parent,
     m_selectedSettingHelp(0),
     m_menuPopup(0),
     m_settingsTree(groupSettings),
-    m_currentGroupSetting(0)
+    m_currentGroupSetting(0),
+    m_loaded(false)
 {
 }
 

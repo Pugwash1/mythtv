@@ -219,6 +219,7 @@ static int has_codec_parameters(AVStream *st)
             break;
         case AVMEDIA_TYPE_DATA:
             if(avctx->codec_id == AV_CODEC_ID_NONE) return 1;
+            [[clang::fallthrough]];
         default:
             break;
     }
@@ -246,6 +247,7 @@ static bool force_sw_decode(AVCodecContext *avctx)
                 default:
                     break;
             }
+            break;
         default:
             break;
     }
@@ -429,9 +431,10 @@ AvFormatDecoder::AvFormatDecoder(MythPlayer *parent,
     cc608_build_parity_table(cc608_parity_table);
 
     SetIdrOnlyKeyframes(true);
+    m_audioReadAhead = gCoreContext->GetNumSetting("AudioReadAhead", 100);
 
-    LOG(VB_PLAYBACK, LOG_DEBUG, LOC + QString("PlayerFlags: 0x%1")
-        .arg(playerFlags, 0, 16));
+    LOG(VB_PLAYBACK, LOG_INFO, LOC + QString("PlayerFlags: 0x%1, AudioReadAhead: %2 msec")
+        .arg(playerFlags, 0, 16).arg(m_audioReadAhead));
 }
 
 AvFormatDecoder::~AvFormatDecoder()
@@ -1011,7 +1014,9 @@ int AvFormatDecoder::FindStreamInfo(void)
  *
  *  \param rbuffer pointer to a valid ringuffer.
  *  \param novideo if true then no video is sought in ScanSreams.
- *  \param testbuf this parameter is not used by AvFormatDecoder.
+ *  \param testbuf Temporary buffer for probing the input.
+ *  \param testbufsize The size of the test buffer. The minimum of this value
+ *                     or kDecoderProbeBufferSize will be used.
  */
 int AvFormatDecoder::OpenFile(RingBuffer *rbuffer, bool novideo,
                               char testbuf[kDecoderProbeBufferSize],
@@ -1426,7 +1431,7 @@ float AvFormatDecoder::normalized_fps(AVStream *stream, AVCodecContext *enc)
 
 #ifdef USING_VDPAU
 static enum AVPixelFormat get_format_vdpau(struct AVCodecContext *avctx,
-                                           const enum AVPixelFormat *fmt)
+                                           const enum AVPixelFormat *valid_fmts)
 {
     AvFormatDecoder *nd = (AvFormatDecoder *)(avctx->opaque);
     if (nd && nd->GetPlayer())
@@ -1439,7 +1444,15 @@ static enum AVPixelFormat get_format_vdpau(struct AVCodecContext *avctx,
                 render_wrapper_vdpau;
         }
     }
-    return avctx->hwaccel_context ? AV_PIX_FMT_VDPAU : AV_PIX_FMT_YUV420P;
+
+    while (*valid_fmts != AV_PIX_FMT_NONE) {
+        if (avctx->hwaccel_context and (*valid_fmts == AV_PIX_FMT_VDPAU))
+            return AV_PIX_FMT_VDPAU;
+        if (not avctx->hwaccel_context and (*valid_fmts == AV_PIX_FMT_YUV420P))
+            return AV_PIX_FMT_YUV420P;
+        valid_fmts++;
+    }
+    return AV_PIX_FMT_NONE;
 }
 #endif
 
@@ -1449,10 +1462,8 @@ static enum AVPixelFormat get_format_dxva2(struct AVCodecContext *,
                                            const enum AVPixelFormat *) MUNUSED;
 
 enum AVPixelFormat get_format_dxva2(struct AVCodecContext *avctx,
-                                    const enum AVPixelFormat *fmt)
+                                    const enum AVPixelFormat *valid_fmts)
 {
-    if (!fmt)
-        return AV_PIX_FMT_NONE;
     AvFormatDecoder *nd = (AvFormatDecoder *)(avctx->opaque);
     if (nd && nd->GetPlayer())
     {
@@ -1460,7 +1471,15 @@ enum AVPixelFormat get_format_dxva2(struct AVCodecContext *avctx,
         avctx->hwaccel_context =
             (dxva_context*)nd->GetPlayer()->GetDecoderContext(NULL, dummy[0]);
     }
-    return avctx->hwaccel_context ? AV_PIX_FMT_DXVA2_VLD : AV_PIX_FMT_YUV420P;
+
+    while (*valid_fmts != AV_PIX_FMT_NONE) {
+        if (avctx->hwaccel_context and (*valid_fmts == AV_PIX_FMT_DXVA2_VLD))
+            return AV_PIX_FMT_DXVA2_VLD;
+        if (not avctx->hwaccel_context and (*valid_fmts == AV_PIX_FMT_YUV420P))
+            return AV_PIX_FMT_YUV420P;
+        valid_fmts++;
+    }
+    return AV_PIX_FMT_NONE;
 }
 #endif
 
@@ -1477,10 +1496,8 @@ static enum AVPixelFormat get_format_vaapi(struct AVCodecContext *,
                                          const enum AVPixelFormat *) MUNUSED;
 
 enum AVPixelFormat get_format_vaapi(struct AVCodecContext *avctx,
-                                         const enum AVPixelFormat *fmt)
+                                         const enum AVPixelFormat *valid_fmts)
 {
-    if (!fmt)
-        return AV_PIX_FMT_NONE;
     AvFormatDecoder *nd = (AvFormatDecoder *)(avctx->opaque);
     if (nd && nd->GetPlayer())
     {
@@ -1488,7 +1505,15 @@ enum AVPixelFormat get_format_vaapi(struct AVCodecContext *avctx,
         avctx->hwaccel_context =
             (vaapi_context*)nd->GetPlayer()->GetDecoderContext(NULL, dummy[0]);
     }
-    return avctx->hwaccel_context ? AV_PIX_FMT_VAAPI_VLD : AV_PIX_FMT_YUV420P;
+
+    while (*valid_fmts != AV_PIX_FMT_NONE) {
+        if (avctx->hwaccel_context and (*valid_fmts == AV_PIX_FMT_VAAPI_VLD))
+            return AV_PIX_FMT_VAAPI_VLD;
+        if (not avctx->hwaccel_context and (*valid_fmts == AV_PIX_FMT_YUV420P))
+            return AV_PIX_FMT_YUV420P;
+        valid_fmts++;
+    }
+    return AV_PIX_FMT_NONE;
 }
 #endif
 
@@ -1532,11 +1557,6 @@ void AvFormatDecoder::InitVideoCodec(AVStream *stream, AVCodecContext *enc,
     if (selectedStream)
     {
         directrendering = true;
-        if (!gCoreContext->GetNumSetting("DecodeExtraAudio", 0) &&
-            !(CODEC_IS_HWACCEL(codec, enc) || codec_is_vdpau(video_codec_id)))
-        {
-            SetLowBuffers(false);
-        }
     }
 
     AVDictionaryEntry *metatag =
@@ -1636,7 +1656,11 @@ void AvFormatDecoder::InitVideoCodec(AVStream *stream, AVCodecContext *enc,
         }
 
         m_parent->SetKeyframeDistance(keyframedist);
-        m_parent->SetVideoParams(width, height, fps, kScan_Detect);
+        AVCodec *codec = avcodec_find_decoder(enc->codec_id);
+        QString codecName;
+        if (codec)
+            codecName = codec->name;
+        m_parent->SetVideoParams(width, height, fps, kScan_Detect, codecName);
         if (LCD *lcd = LCD::Get())
         {
             LCDVideoFormatSet video_format;
@@ -2335,11 +2359,18 @@ int AvFormatDecoder::ScanStreams(bool novideo)
             uint height = max(dim.height(), 16);
             QString dec = "ffmpeg";
             uint thread_count = 1;
-
+            AVCodec *codec1 = avcodec_find_decoder(enc->codec_id);
+            QString codecName;
+            if (codec1)
+                codecName = codec1->name;
+            if (enc->framerate.den && enc->framerate.num)
+                fps = float(enc->framerate.num) / float(enc->framerate.den);
+            else
+                fps = 0;
             if (!is_db_ignored)
             {
                 VideoDisplayProfile vdp;
-                vdp.SetInput(QSize(width, height));
+                vdp.SetInput(QSize(width, height),fps,codecName);
                 dec = vdp.GetDecoder();
                 thread_count = vdp.GetMaxCPUs();
                 bool skip_loop_filter = vdp.IsSkipLoopEnabled();
@@ -2826,7 +2857,7 @@ void release_avf_buffer(void *opaque, uint8_t *data)
 }
 
 #ifdef USING_VDPAU
-int get_avf_buffer_vdpau(struct AVCodecContext *c, AVFrame *pic, int flags)
+int get_avf_buffer_vdpau(struct AVCodecContext *c, AVFrame *pic, int /*flags*/)
 {
     AvFormatDecoder *nd = (AvFormatDecoder *)(c->opaque);
     VideoFrame *frame   = nd->GetPlayer()->GetNextVideoFrame();
@@ -2899,7 +2930,7 @@ int render_wrapper_vdpau(struct AVCodecContext *s, AVFrame *src,
 #endif // USING_VDPAU
 
 #ifdef USING_DXVA2
-int get_avf_buffer_dxva2(struct AVCodecContext *c, AVFrame *pic, int flags)
+int get_avf_buffer_dxva2(struct AVCodecContext *c, AVFrame *pic, int /*flags*/)
 {
     AvFormatDecoder *nd = (AvFormatDecoder *)(c->opaque);
     VideoFrame *frame = nd->GetPlayer()->GetNextVideoFrame();
@@ -2925,7 +2956,7 @@ int get_avf_buffer_dxva2(struct AVCodecContext *c, AVFrame *pic, int flags)
 #endif
 
 #ifdef USING_VAAPI
-int get_avf_buffer_vaapi(struct AVCodecContext *c, AVFrame *pic, int flags)
+int get_avf_buffer_vaapi(struct AVCodecContext *c, AVFrame *pic, int /*flags*/)
 {
     AvFormatDecoder *nd = (AvFormatDecoder *)(c->opaque);
     VideoFrame *frame = nd->GetPlayer()->GetNextVideoFrame();
@@ -4878,7 +4909,10 @@ bool AvFormatDecoder::GetFrame(DecodeType decodetype)
             }
             else if ((decodetype & kDecodeAV) == kDecodeAV &&
                      (storedPackets.count() < max_video_queue_size) &&
-                     lastapts < (lowbuffers ? lastvpts + 100 : lastvpts) &&
+                     // buffer audio to prevent audio buffer
+                     // underruns in case you are setting negative values
+                     // in Adjust Audio Sync.
+                     lastapts < lastvpts + m_audioReadAhead &&
                      !ringBuffer->IsInStillFrame())
             {
                 storevideoframes = true;

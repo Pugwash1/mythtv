@@ -150,7 +150,7 @@ class MTV_PUBLIC MythPlayer
     void SetPlayerInfo(TV *tv, QWidget *widget, PlayerContext *ctx);
     void SetLength(int len)                   { totalLength = len; }
     void SetFramesPlayed(uint64_t played);
-    void SetVideoFilters(const QString &override);
+    void SetVideoFilters(const QString &overridefilter);
     void SetEof(EofState eof);
     void SetPIPActive(bool is_active)         { pip_active = is_active; }
     void SetPIPVisible(bool is_visible)       { pip_visible = is_visible; }
@@ -160,7 +160,7 @@ class MTV_PUBLIC MythPlayer
     void SetWatched(bool forceWatched = false);
     void SetKeyframeDistance(int keyframedistance);
     void SetVideoParams(int w, int h, double fps,
-                        FrameScanType scan = kScan_Ignore);
+           FrameScanType scan = kScan_Ignore, QString codecName = QString());
     void SetFileLength(int total, int frames);
     void SetDuration(int duration);
     void SetVideoResize(const QRect &videoRect);
@@ -235,8 +235,8 @@ class MTV_PUBLIC MythPlayer
 
     // Non-const gets
     virtual char *GetScreenGrabAtFrame(uint64_t frameNum, bool absolute,
-                                       int &buflen, int &vw, int &vh, float &ar);
-    virtual char *GetScreenGrab(int secondsin, int &buflen,
+                                       int &bufflen, int &vw, int &vh, float &ar);
+    virtual char *GetScreenGrab(int secondsin, int &bufflen,
                                 int &vw, int &vh, float &ar);
     InteractiveTV *GetInteractiveTV(void);
 
@@ -252,8 +252,7 @@ class MTV_PUBLIC MythPlayer
 
     // Transcode stuff
     void InitForTranscode(bool copyaudio, bool copyvideo);
-    bool TranscodeGetNextFrame(frm_dir_map_t::iterator &dm_iter,
-                               int &did_ff, bool &is_key, bool honorCutList);
+    bool TranscodeGetNextFrame(int &did_ff, bool &is_key, bool honorCutList);
     bool WriteStoredData(
         RingBuffer *outRingBuffer, bool writevideo, long timecodeOffset);
     long UpdateStoredFrameNum(long curFrameNum);
@@ -381,8 +380,8 @@ class MTV_PUBLIC MythPlayer
 
     // Non-public sets
     virtual void SetBookmark(bool clear = false);
-    bool AddPIPPlayer(MythPlayer *pip, PIPLocation loc, uint timeout);
-    bool RemovePIPPlayer(MythPlayer *pip, uint timeout);
+    bool AddPIPPlayer(MythPlayer *pip, PIPLocation loc);
+    bool RemovePIPPlayer(MythPlayer *pip);
     void NextScanType(void)
         { SetScanType((FrameScanType)(((int)m_scan + 1) & 0x3)); }
     void SetScanType(FrameScanType);
@@ -617,7 +616,6 @@ class MTV_PUBLIC MythPlayer
     int64_t AVSyncGetAudiotime(void);
     void  SetFrameInterval(FrameScanType scan, double speed);
     void  FallbackDeint(void);
-    void  CheckExtraAudioDecode(void);
 
     // Private LiveTV stuff
     void  SwitchToProgram(void);
@@ -725,6 +723,8 @@ class MTV_PUBLIC MythPlayer
     bool     m_scan_initialized;
     /// Video (input) Number of frames between key frames (often inaccurate)
     uint     keyframedist;
+    /// Codec Name - used by playback profile
+    QString  m_codecName;
 
     // Buffering
     bool     buffering;

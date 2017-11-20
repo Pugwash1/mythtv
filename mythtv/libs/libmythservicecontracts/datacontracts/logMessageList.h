@@ -30,32 +30,25 @@ class SERVICE_PUBLIC LogMessageList : public QObject
 
     PROPERTYIMP_RO_REF( QVariantList, HostNames    )
     PROPERTYIMP_RO_REF( QVariantList, Applications )
-    PROPERTYIMP_RO_REF( QVariantList, LogMessages  )
+    PROPERTYIMP_RO_REF( QVariantList, LogMessages  );
 
     public:
 
         static inline void InitializeCustomTypes();
-
-    public:
 
         LogMessageList(QObject *parent = 0)
             : QObject( parent )
         {
         }
 
-        LogMessageList( const LogMessageList &src )
-        {
-            Copy( src );
-        }
-
-        void Copy( const LogMessageList &src )
+        void Copy( const LogMessageList *src )
         {
             CopyListContents< LabelValue >( this, m_HostNames,
-                                            src.m_HostNames );
+                                            src->m_HostNames );
             CopyListContents< LabelValue >( this, m_Applications,
-                                            src.m_Applications );
+                                            src->m_Applications );
             CopyListContents< LogMessage >( this, m_LogMessages,
-                                            src.m_LogMessages );
+                                            src->m_LogMessages );
         }
 
         LabelValue *AddNewHostName()
@@ -91,23 +84,17 @@ class SERVICE_PUBLIC LogMessageList : public QObject
             return pObject;
         }
 
+    private:
+        Q_DISABLE_COPY(LogMessageList);
 };
 
-} // namespace DTC
-
-Q_DECLARE_METATYPE( DTC::LogMessageList  )
-Q_DECLARE_METATYPE( DTC::LogMessageList* )
-
-namespace DTC
-{
 inline void LogMessageList::InitializeCustomTypes()
 {
-    qRegisterMetaType< LogMessageList   >();
     qRegisterMetaType< LogMessageList*  >();
 
-    LabelValue::InitializeCustomTypes();
     LogMessage::InitializeCustomTypes();
 }
-}
+
+} // namespace DTC
 
 #endif
