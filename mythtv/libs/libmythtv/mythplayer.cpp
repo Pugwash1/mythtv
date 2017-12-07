@@ -54,8 +54,8 @@ using namespace std;
 #include "ringbuffer.h"                 // for RingBuffer, etc
 #include "tv_actions.h"                 // for ACTION_BIGJUMPFWD, etc
 
-extern "C" {
 #include "vsync.h"
+extern "C" {
 #include "libavcodec/avcodec.h"
 }
 
@@ -816,7 +816,6 @@ void MythPlayer::SetVideoParams(int width, int height, double fps,
         if (ffrew_skip != 0 && ffrew_skip != 1)
         {
             UpdateFFRewSkip();
-            videosync->setFrameInterval(frame_interval);
         }
         else
         {
@@ -1813,7 +1812,21 @@ void MythPlayer::InitAVSync(void)
         SetFrameInterval(m_scan, 1.0 / (video_frame_rate * play_speed));
 
         // try to get preferential scheduling, but ignore if we fail to.
-        myth_nice(-19);
+        if (gCoreContext->GetNumSetting("RealtimePriority", 1))
+        {
+           if (myth_realtime(1))
+           {
+               LOG(VB_GENERAL, LOG_INFO, "Using realtime priority for video timing thread");
+           }
+           else
+           {
+               LOG(VB_GENERAL, LOG_WARNING, "Failed to set realtime priority for video timing thread");
+           }
+        }
+        else
+        {
+            myth_nice(-19);
+        }
     }
 }
 
@@ -1876,7 +1889,7 @@ void MythPlayer::AVSync(VideoFrame *buffer, bool limit_delay)
 
     if (avsync_predictor_enabled)
     {
-        avsync_predictor += frame_interval;
+        avsync_predictor += frame_interval + avsync_adjustment + repeat_delay;
         if (avsync_predictor >= refreshrate)
         {
             int refreshperiodsinframe = avsync_predictor/refreshrate;
@@ -1942,8 +1955,7 @@ void MythPlayer::AVSync(VideoFrame *buffer, bool limit_delay)
             LOG(VB_PLAYBACK | VB_TIMESTAMP, LOG_INFO,
                 LOC + QString("AVSync waitforframe %1 %2")
                     .arg(avsync_adjustment).arg(m_double_framerate));
-            vsync_delay_clock = videosync->WaitForFrame
-                                (frameDelay + avsync_adjustment + repeat_delay);
+            vsync_delay_clock = videosync->WaitForFrame(frameDelay, avsync_adjustment + repeat_delay);
         }
         else
         {
@@ -1980,8 +1992,7 @@ void MythPlayer::AVSync(VideoFrame *buffer, bool limit_delay)
             osdLock.unlock();
             // Display the second field
             if (!player_ctx->IsPBP() || player_ctx->IsPrimaryPBP())
-                vsync_delay_clock = videosync->WaitForFrame(frameDelay +
-                                                        avsync_adjustment);
+                vsync_delay_clock = videosync->WaitForFrame(frameDelay, avsync_adjustment);
             videoOutput->Show(ps);
         }
 
@@ -1994,7 +2005,7 @@ void MythPlayer::AVSync(VideoFrame *buffer, bool limit_delay)
     }
     else
     {
-        vsync_delay_clock = videosync->WaitForFrame(frameDelay);
+        vsync_delay_clock = videosync->WaitForFrame(frameDelay, 0);
         //currentaudiotime = AVSyncGetAudiotime();
     }
 
@@ -2436,11 +2447,11 @@ void MythPlayer::VideoStart(void)
 
     if (player_ctx->IsPIP() && FlagIsSet(kVideoIsNull))
     {
-        videosync = new DummyVideoSync(videoOutput, fr_int, 0, false);
+        videosync = new DummyVideoSync(videoOutput, 0);
     }
     else if (FlagIsSet(kVideoIsNull))
     {
-        videosync = new USleepVideoSync(videoOutput, fr_int, 0, false);
+        videosync = new USleepVideoSync(videoOutput, 0);
     }
     else if (videoOutput)
     {
@@ -2451,8 +2462,7 @@ void MythPlayer::VideoStart(void)
 
         m_double_process = videoOutput->IsExtraProcessingRequired();
 
-        videosync = VideoSync::BestMethod(
-            videoOutput, (uint)fr_int, (uint)rf_int, m_double_framerate);
+        videosync = VideoSync::BestMethod(videoOutput, (uint)rf_int);
 
         // Make sure video sync can do it
         if (videosync != NULL && m_double_framerate)
@@ -2468,8 +2478,7 @@ void MythPlayer::VideoStart(void)
     }
     if (!videosync)
     {
-        videosync = new BusyWaitVideoSync(
-            videoOutput, fr_int, rf_int, m_double_framerate);
+        videosync = new BusyWaitVideoSync(videoOutput, rf_int);
     }
 
     InitAVSync();
@@ -3737,7 +3746,6 @@ void MythPlayer::ChangeSpeed(void)
     normal_speed = next_normal_speed;
 
     bool skip_changed = UpdateFFRewSkip();
-    videosync->setFrameInterval(frame_interval);
 
     if (skip_changed && videoOutput)
     {

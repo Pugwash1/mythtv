@@ -19,6 +19,8 @@ class ExternalChannel;
 
 class ExternIO
 {
+    enum constants { kMaxErrorCnt = 5 };
+
   public:
     ExternIO(const QString & app, const QStringList & args);
     ~ExternIO(void);
@@ -45,8 +47,12 @@ class ExternIO
     pid_t   m_pid;
     QString m_error;
 
-    int     m_bufsize;
-    char   *m_buffer;
+    int         m_bufsize;
+    char       *m_buffer;
+
+    QString     m_status_buf;
+    QTextStream m_status;
+    int         m_errcnt;
 };
 
 // Note : This class always uses a TS reader.
@@ -81,9 +87,6 @@ class ExternalStreamHandler : public StreamHandler
 
     void PurgeBuffer(void);
 
-    QString ErrorString(void) const { return m_error; }
-    void ClearError(void) { m_error.clear(); _error = false; }
-
     bool ProcessCommand(const QString & cmd, uint timeout,
                         QString & result);
 
@@ -96,7 +99,6 @@ class ExternalStreamHandler : public StreamHandler
     ExternIO      *m_IO;
     QStringList    m_args;
     QString        m_app;
-    QString        m_error;
     bool           m_tsopen;
     int            m_io_errcnt;
     bool           m_poll_mode;
