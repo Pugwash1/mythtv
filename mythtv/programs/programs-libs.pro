@@ -2,7 +2,7 @@
 win32-msvc*:INCLUDEPATH -= $$SRC_PATH_BARE/../platform/win32/msvc/external/pthreads.2
 
 INCLUDEPATH += ../.. ../../libs/ ../../libs/libmyth ../../libs/libmyth/audio
-INCLUDEPATH +=  ../../libs/libmythtv ../../external/FFmpeg
+INCLUDEPATH +=  ../../libs/libmythtv ../.. ../../external/FFmpeg
 INCLUDEPATH += ../../libs/libmythupnp ../../libs/libmythui ../../libs/libmythmetadata
 INCLUDEPATH += ../../libs/libmythlivemedia ../../libs/libmythbase
 
@@ -41,6 +41,13 @@ LIBS += -L../../libs/libmythupnp
 LIBS += -L../../libs/libmythmetadata
 LIBS += -L../../libs/libmythservicecontracts
 LIBS += -L../../libs/libmythprotoserver
+
+# Insist that /usr/local/lib come after all the libraries provided
+# in the MythTV sources.
+contains (QMAKE_LIBDIR_POST, /usr/local/lib) {
+  QMAKE_LIBDIR_POST -= /usr/local/lib
+  LIBS += -L/usr/local/lib
+}
 
 LIBS += -lmythswscale
 LIBS += -lmythavformat
@@ -91,7 +98,7 @@ win32 {
 DEPENDPATH += ../.. ../../libs ../../libs/libmyth ../../libs/libmyth/audio
 DEPENDPATH += ../../libs/libmythtv
 DEPENDPATH += ../../libs/libmythtv/mpeg ../../libs/libmythtv/vbitext
-DEPENDPATH += ../../external/FFmpeg
+DEPENDPATH += ../.. ../../external/FFmpeg
 DEPENDPATH += ../../libs/libmythupnp ../../libs/libmythui
 DEPENDPATH += ../../libs/libmythlivemedia ../../libmythbase
 DEPENDPATH +=../../libs/libmythservicecontracts ../../libs/libmythprotoserver

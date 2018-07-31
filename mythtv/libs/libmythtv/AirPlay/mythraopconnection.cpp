@@ -1686,11 +1686,9 @@ void MythRAOPConnection::DestroyDecoder(void)
 {
     if (m_codeccontext)
     {
-        avcodec_close(m_codeccontext);
-        av_free(m_codeccontext);
+        avcodec_free_context(&m_codeccontext);
     }
     m_codec = NULL;
-    m_codeccontext = NULL;
 }
 
 bool MythRAOPConnection::OpenAudioDevice(void)
@@ -1698,7 +1696,7 @@ bool MythRAOPConnection::OpenAudioDevice(void)
     CloseAudioDevice();
 
     QString passthru = gCoreContext->GetNumSetting("PassThruDeviceOverride", false)
-                        ? gCoreContext->GetSetting("PassThruOutputDevice") : QString::null;
+                        ? gCoreContext->GetSetting("PassThruOutputDevice") : QString();
     QString device = gCoreContext->GetSetting("AudioOutputDevice");
 
     m_audio = AudioOutput::OpenAudio(device, passthru, FORMAT_S16, m_channels,

@@ -18,7 +18,6 @@ class MythPainter;
 class MythImage;
 class QImage;
 class QWidget;
-class Settings;
 class QPixmap;
 class QSize;
 
@@ -64,8 +63,6 @@ class MUI_PUBLIC MythUIHelper
     void IncludeInCacheSize(MythImage *im);
     void ExcludeFromCacheSize(MythImage *im);
 
-    Settings *qtconfig(void);
-
     bool IsScreenSetup(void);
     bool IsTopScreenInitialized(void);
 
@@ -83,15 +80,11 @@ class MUI_PUBLIC MythUIHelper
     static void ParseGeometryOverride(const QString &geometry);
     bool IsGeometryOverridden(void);
 
-    QPixmap *LoadScalePixmap(QString filename) MDEPRECATED;
-    QImage *LoadScaleImage(QString filename) MDEPRECATED;
     /// Returns a reference counted image from the cache.
     /// \note The reference count is set for one use call DecrRef() to delete.
     MythImage *LoadCacheImage(QString srcfile, QString label,
                               MythPainter *painter,
                               ImageCacheMode cacheMode = kCacheNormal);
-
-    void ThemeWidget(QWidget *widget);
 
     QString FindThemeDir(const QString &themename, bool doFallback = true);
     QString FindMenuThemeDir(const QString &menuname);
@@ -148,7 +141,6 @@ class MUI_PUBLIC MythUIHelper
    ~MythUIHelper();
 
   private:
-    void SetPalette(QWidget *widget);
     void InitializeScreenSettings(void);
 
     void ClearOldImageCache(void);

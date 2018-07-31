@@ -65,7 +65,7 @@ ASIStreamHandler *ASIStreamHandler::Get(const QString &devname,
     return _handlers[devkey];
 }
 
-void ASIStreamHandler::Return(ASIStreamHandler * & ref)
+void ASIStreamHandler::Return(ASIStreamHandler * & ref, int recorder_id)
 {
     QMutexLocker locker(&_handlers_lock);
 
@@ -351,5 +351,36 @@ void ASIStreamHandler::Close(void)
 
 void ASIStreamHandler::PriorityEvent(int fd)
 {
-    // TODO report on buffer overruns, etc.
+    int val;
+    if(ioctl(fd, ASI_IOC_RXGETEVENTS, &val) < 0)
+    {
+        LOG(VB_GENERAL, LOG_ERR, LOC + QString("Failed to open device %1: ")
+            .arg(_device) + ENO);
+        //TODO: Handle error
+        return;
+    }
+    if(val & ASI_EVENT_RX_BUFFER)
+        LOG(VB_RECORD, LOG_ERR, LOC +
+            QString("Driver receive buffer queue overrun detected %1")
+            .arg(_device));
+    if(val & ASI_EVENT_RX_FIFO)
+        LOG(VB_RECORD, LOG_ERR, LOC +
+            QString("Driver receive FIFO overrun detected %1")
+            .arg(_device));
+    if(val & ASI_EVENT_RX_CARRIER)
+        LOG(VB_RECORD, LOG_NOTICE, LOC +
+            QString("Carrier Status change detected %1")
+            .arg(_device));
+    if(val & ASI_EVENT_RX_LOS)
+        LOG(VB_RECORD, LOG_ERR, LOC +
+            QString("Loss of Packet Sync detected %1")
+            .arg(_device));
+    if(val & ASI_EVENT_RX_AOS)
+        LOG(VB_RECORD, LOG_NOTICE, LOC +
+            QString("Acquisition of Sync detected %1")
+            .arg(_device));
+    if(val & ASI_EVENT_RX_DATA)
+        LOG(VB_RECORD, LOG_NOTICE, LOC +
+            QString("Receive data status change detected %1")
+            .arg(_device));
 }

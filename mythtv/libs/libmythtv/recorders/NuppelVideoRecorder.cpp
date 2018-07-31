@@ -43,6 +43,7 @@ extern "C" {
 
 extern "C" {
 #include "libswscale/swscale.h"
+#include "libavutil/imgutils.h"
 }
 
 #ifdef USING_V4L2
@@ -269,12 +270,8 @@ NuppelVideoRecorder::~NuppelVideoRecorder(void)
     if (mpa_vidcodec)
     {
         QMutexLocker locker(avcodeclock);
-        avcodec_close(mpa_vidctx);
+        avcodec_free_context(&mpa_vidctx);
     }
-
-    if (mpa_vidctx)
-        av_free(mpa_vidctx);
-    mpa_vidctx = NULL;
 
     if (videoFilters)
         delete videoFilters;
@@ -323,23 +320,23 @@ void NuppelVideoRecorder::SetOption(const QString &opt, int value)
     else if (opt == "mpeg4option4mv")
     {
         if (value)
-            mp4opts |= CODEC_FLAG_4MV;
+            mp4opts |= AV_CODEC_FLAG_4MV;
         else
-            mp4opts &= ~CODEC_FLAG_4MV;
+            mp4opts &= ~AV_CODEC_FLAG_4MV;
     }
     else if (opt == "mpeg4optionidct")
     {
         if (value)
-            mp4opts |= CODEC_FLAG_INTERLACED_DCT;
+            mp4opts |= AV_CODEC_FLAG_INTERLACED_DCT;
         else
-            mp4opts &= ~CODEC_FLAG_INTERLACED_DCT;
+            mp4opts &= ~AV_CODEC_FLAG_INTERLACED_DCT;
     }
     else if (opt == "mpeg4optionime")
     {
         if (value)
-            mp4opts |= CODEC_FLAG_INTERLACED_ME;
+            mp4opts |= AV_CODEC_FLAG_INTERLACED_ME;
         else
-            mp4opts &= ~CODEC_FLAG_INTERLACED_ME;
+            mp4opts &= ~AV_CODEC_FLAG_INTERLACED_ME;
     }
     else if (opt == "hardwaremjpegquality")
         hmjpg_quality = value;
@@ -383,7 +380,7 @@ void NuppelVideoRecorder::SetOptionsFromProfile(RecordingProfile *profile,
     SetOption("vbiformat", gCoreContext->GetSetting("VbiFormat"));
     SetOption("audiodevice", audiodev);
 
-    QString setting = QString::null;
+    QString setting;
     const StandardSetting *tmp = profile->byName("videocodec");
     if (tmp)
         setting = tmp->getValue();
@@ -446,7 +443,7 @@ void NuppelVideoRecorder::SetOptionsFromProfile(RecordingProfile *profile,
         SetIntOption(profile, "rtjpeglumafilter");
     }
 
-    setting = QString::null;
+    setting.clear();
     if ((tmp = profile->byName("audiocodec")))
         setting = tmp->getValue();
 
@@ -524,12 +521,8 @@ bool NuppelVideoRecorder::SetupAVCodecVideo(void)
     if (mpa_vidcodec)
     {
         QMutexLocker locker(avcodeclock);
-        avcodec_close(mpa_vidctx);
+        avcodec_free_context(&mpa_vidctx);
     }
-
-    if (mpa_vidctx)
-        av_free(mpa_vidctx);
-    mpa_vidctx = NULL;
 
     QByteArray vcodec = videocodec.toLatin1();
     mpa_vidcodec = avcodec_find_encoder_by_name(vcodec.constData());
@@ -589,6 +582,8 @@ bool NuppelVideoRecorder::SetupAVCodecVideo(void)
                    break;
     }
 
+    AVDictionary *opts = NULL;
+
     mpa_vidctx->bit_rate = usebitrate;
     mpa_vidctx->bit_rate_tolerance = usebitrate * 100;
     mpa_vidctx->qmin = maxquality;
@@ -600,25 +595,26 @@ bool NuppelVideoRecorder::SetupAVCodecVideo(void)
     mpa_vidctx->qblur = 0.5;
     mpa_vidctx->max_b_frames = 0;
     mpa_vidctx->b_quant_factor = 0;
-    mpa_vidctx->rc_strategy = 2;
-    mpa_vidctx->b_frame_strategy = 0;
+    av_dict_set(&opts, "rc_strategy", "2", 0);
+    av_dict_set(&opts, "b_strategy", "0", 0);
     mpa_vidctx->gop_size = 30;
     mpa_vidctx->rc_max_rate = 0;
     mpa_vidctx->rc_min_rate = 0;
     mpa_vidctx->rc_buffer_size = 0;
-    mpa_vidctx->rc_buffer_aggressivity = 1.0;
+    // mpa_vidctx->rc_buffer_aggressivity = 1.0;
+    // rc_buf_aggressivity is now "currently useless"
     mpa_vidctx->rc_override_count = 0;
-    mpa_vidctx->rc_initial_cplx = 0;
+    av_dict_set(&opts, "rc_init_cplx", "0", 0);
     mpa_vidctx->dct_algo = FF_DCT_AUTO;
     mpa_vidctx->idct_algo = FF_IDCT_AUTO;
-    mpa_vidctx->prediction_method = FF_PRED_LEFT;
+    av_dict_set_int(&opts, "pred", FF_PRED_LEFT, 0);
     if (videocodec.toLower() == "huffyuv" || videocodec.toLower() == "mjpeg")
         mpa_vidctx->strict_std_compliance = FF_COMPLIANCE_UNOFFICIAL;
     mpa_vidctx->thread_count = encoding_thread_count;
 
     QMutexLocker locker(avcodeclock);
 
-    if (avcodec_open2(mpa_vidctx, mpa_vidcodec, NULL) < 0)
+    if (avcodec_open2(mpa_vidctx, mpa_vidcodec, &opts) < 0)
     {
         LOG(VB_GENERAL, LOG_ERR, LOC + QString("Unable to open FFMPEG/%1 codec")
                 .arg(videocodec));
@@ -1613,7 +1609,7 @@ void NuppelVideoRecorder::DoV4L2(void)
     // setup pixel format conversions for YUYV and UYVY
     uint8_t *output_buffer = NULL;
     struct SwsContext *convert_ctx = NULL;
-    AVPicture img_out;
+    AVFrame img_out;
     if (v4l2_pixelformat == V4L2_PIX_FMT_YUYV ||
         v4l2_pixelformat == V4L2_PIX_FMT_UYVY)
     {
@@ -1640,7 +1636,8 @@ void NuppelVideoRecorder::DoV4L2(void)
             return;
         }
 
-        avpicture_fill(&img_out, output_buffer, AV_PIX_FMT_YUV420P, width, height);
+        av_image_fill_arrays(img_out.data, img_out.linesize,
+            output_buffer, AV_PIX_FMT_YUV420P, width, height, IMAGE_ALIGN);
     }
 
     while (IsRecordingRequested() && !IsErrored())
@@ -1743,16 +1740,20 @@ again:
         {
             if (v4l2_pixelformat == V4L2_PIX_FMT_YUYV)
             {
-                AVPicture img_in;
-                avpicture_fill(&img_in, buffers[frame], AV_PIX_FMT_YUYV422, width, height);
+                AVFrame img_in;
+                av_image_fill_arrays(img_in.data, img_in.linesize,
+                    buffers[frame], AV_PIX_FMT_YUYV422, width, height,
+                    IMAGE_ALIGN);
                 sws_scale(convert_ctx, img_in.data, img_in.linesize,
                           0, height, img_out.data, img_out.linesize);
                 BufferIt(output_buffer, video_buffer_size);
             }
             else if (v4l2_pixelformat == V4L2_PIX_FMT_UYVY)
             {
-                AVPicture img_in;
-                avpicture_fill(&img_in, buffers[frame], AV_PIX_FMT_UYVY422, width, height);
+                AVFrame img_in;
+                av_image_fill_arrays(img_in.data, img_in.linesize,
+                    buffers[frame], AV_PIX_FMT_UYVY422, width, height,
+                    IMAGE_ALIGN);
                 sws_scale(convert_ctx, img_in.data, img_in.linesize,
                           0, height, img_out.data, img_out.linesize);
                 BufferIt(output_buffer, video_buffer_size);

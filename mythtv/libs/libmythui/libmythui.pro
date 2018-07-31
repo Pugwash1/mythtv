@@ -1,13 +1,10 @@
 include ( ../../settings.pro )
 
 QT += xml sql network opengl
-contains(QT_VERSION, ^4\\.[0-9]\\..*) {
-QT += webkit
-}
-contains(QT_VERSION, ^5\\.[0-9]\\..*):using_qtwebkit {
-QT += widgets
-QT += webkitwidgets
-android: QT += androidextras
+using_qtwebkit {
+    QT += widgets
+    QT += webkitwidgets
+    android: QT += androidextras
 }
 
 TEMPLATE = lib
@@ -18,7 +15,7 @@ INSTALLS = target
 
 INCLUDEPATH += ../libmythbase
 INCLUDEPATH += ../.. ../
-INCLUDEPATH += ../../external/FFmpeg
+INCLUDEPATH += ../.. ../../external/FFmpeg
 
 LIBS += -L../libmythbase -lmythbase-$$LIBVERSION
 
@@ -189,6 +186,10 @@ using_opengl {
     using_opengles {
         DEFINES += USING_OPENGLES
         HEADERS += mythrender_opengl2es.h
+        # For raspberry Pi Raspbian
+        exists(/opt/vc/lib/libbrcmEGL.so) {
+            LIBS += -L/opt/vc/include -lbrcmGLESv2 -lbrcmEGL
+        }
     }
     !using_opengles {
         SOURCES += mythrender_opengl1.cpp

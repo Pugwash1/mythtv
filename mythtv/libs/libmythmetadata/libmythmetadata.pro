@@ -1,9 +1,6 @@
 include ( ../../settings.pro )
 
-QT += network xml sql
-contains(QT_VERSION, ^5\\.[0-9]\\..*) {
-QT += widgets
-}
+QT += network xml sql widgets
 
 TEMPLATE = lib
 TARGET = mythmetadata-$$LIBVERSION
@@ -42,7 +39,8 @@ SOURCES += musicfilescanner.cpp metadatagrabber.cpp lyricsdata.cpp
 
 INCLUDEPATH += ../libmythbase ../libmythtv
 INCLUDEPATH += ../.. ../ ./ ../libmythui
-INCLUDEPATH += ../../external/FFmpeg ../libmyth  ../../external/libmythbluray/src
+INCLUDEPATH += ../.. ../../external/FFmpeg
+INCLUDEPATH += ../libmyth  ../../external/libmythbluray/src
 INCLUDEPATH += ../libmythservicecontracts
 
 # for TagLib
@@ -128,3 +126,10 @@ INCLUDEPATH += $$POSTINC
 include ( ../libs-targetfix.pro )
 
 LIBS += $$EXTRA_LIBS $$LATE_LIBS -lexiv2
+
+test_clean.commands = -cd test/ && $(MAKE) -f Makefile clean
+clean.depends = test_clean
+QMAKE_EXTRA_TARGETS += test_clean clean
+test_distclean.commands = -cd test/ && $(MAKE) -f Makefile distclean
+distclean.depends = test_distclean
+QMAKE_EXTRA_TARGETS += test_distclean distclean

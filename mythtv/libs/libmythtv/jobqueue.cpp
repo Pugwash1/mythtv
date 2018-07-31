@@ -726,6 +726,18 @@ bool JobQueue::GetJobInfoFromID(
     return result;
 }
 
+int JobQueue::GetJobTypeFromName(const QString &name)
+{
+    if (!JobNameToType.contains(name))
+    {
+        LOG(VB_GENERAL, LOG_ERR, QString("'%1' is an invalid Job Name.")
+            .arg(name));
+        return JOB_NONE;
+    }
+    else
+        return JobNameToType[name];
+}
+
 bool JobQueue::PauseJob(int jobID)
 {
     QString message = QString("GLOBAL_JOB PAUSE ID %1").arg(jobID);
@@ -885,8 +897,35 @@ bool JobQueue::DeleteAllJobs(uint chanid, const QDateTime &recstartts)
 
 bool JobQueue::DeleteJob(int jobID)
 {
+    return JobQueue::SafeDeleteJob(jobID, 0, 0, QDateTime());
+}
+
+bool JobQueue::SafeDeleteJob(int jobID, int jobType, int chanid,
+                             QDateTime recstartts)
+{
     if (jobID < 0)
         return false;
+
+    if (chanid)
+    {
+
+        int thisJob = GetJobID(jobType, chanid, recstartts);
+        QString msg;
+
+        if( thisJob != jobID)
+        {
+            msg = QString("JobType, chanid and starttime don't match jobID %1");
+            LOG(VB_JOBQUEUE, LOG_ERR, LOC + QString(msg).arg(jobID));
+            return false;
+        }
+
+        if (JobQueue::IsJobRunning(jobType, chanid, recstartts))
+        {
+            msg = QString("Can't remove running JobID %1");
+            LOG(VB_GENERAL, LOG_ERR, LOC + QString(msg).arg(jobID));
+            return false;
+        }
+    }
 
     MSqlQuery query(MSqlQuery::InitCon());
 
@@ -896,7 +935,7 @@ bool JobQueue::DeleteJob(int jobID)
 
     if (!query.exec())
     {
-        MythDB::DBError("Error in JobQueue::DeleteJob()", query);
+        MythDB::DBError("Error in JobQueue::SafeDeleteJob()", query);
         return false;
     }
 
@@ -1441,6 +1480,8 @@ bool JobQueue::AllowedToRun(JobQueueEntry job)
                                  break;
             case JOB_METADATA:   allowSetting = "JobAllowMetadata";
                                  break;
+            case JOB_PREVIEW:    allowSetting = "JobAllowPreview";
+                                 break;
             default:             return false;
         }
     }
@@ -1646,6 +1687,36 @@ void JobQueue::CleanupOldJobsInQueue()
         MythDB::DBError("JobQueue::CleanupOldJobsInQueue: Error deleting "
                         "old finished jobs.", delquery);
     }
+}
+
+bool JobQueue::InJobRunWindow(QDateTime jobstarttsRaw)
+{
+    if (!jobstarttsRaw.isValid())
+    {
+        jobstarttsRaw = QDateTime::currentDateTime();
+        LOG(VB_JOBQUEUE, LOG_INFO, LOC + QString("Invalid date/time passed, "
+                                                 "using %1").arg(
+                                                 jobstarttsRaw.toString()));
+    }
+
+    QString hostname(gCoreContext->GetHostName());
+
+    QTime windowStart(QTime::fromString(gCoreContext->GetSettingOnHost(
+                                    "JobQueueWindowStart", hostname, "00:00")));
+
+    QTime windowEnd(QTime::fromString(gCoreContext->GetSettingOnHost(
+                                    "JobQueueWindowEnd", hostname, "23:59")));
+
+    QTime scheduleTime(QTime::fromString(jobstarttsRaw.toString("hh:mm")));
+
+    if (scheduleTime < windowStart || scheduleTime > windowEnd)
+    {
+        LOG(VB_JOBQUEUE, LOG_ERR, LOC + "Time not within job queue window, " +
+                                        "job not queued");
+        return false;
+    }
+
+    return true;
 }
 
 void JobQueue::ProcessJob(JobQueueEntry job)

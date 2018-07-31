@@ -42,8 +42,10 @@ typedef struct libx265Context {
     const x265_api *api;
 
     float crf;
+    int   forced_idr;
     char *preset;
     char *tune;
+    char *profile;
     char *x265_opts;
 } libx265Context;
 
@@ -113,11 +115,22 @@ static av_cold int libx265_encode_init(AVCodecContext *avctx)
     ctx->params->sourceHeight    = avctx->height;
     ctx->params->bEnablePsnr     = !!(avctx->flags & AV_CODEC_FLAG_PSNR);
 
-    if ((avctx->color_primaries <= AVCOL_PRI_BT2020 &&
+    /* Tune the CTU size based on input resolution. */
+    if (ctx->params->sourceWidth < 64 || ctx->params->sourceHeight < 64)
+        ctx->params->maxCUSize = 32;
+    if (ctx->params->sourceWidth < 32 || ctx->params->sourceHeight < 32)
+        ctx->params->maxCUSize = 16;
+    if (ctx->params->sourceWidth < 16 || ctx->params->sourceHeight < 16) {
+        av_log(avctx, AV_LOG_ERROR, "Image size is too small (%dx%d).\n",
+               ctx->params->sourceWidth, ctx->params->sourceHeight);
+        return AVERROR(EINVAL);
+    }
+
+    if ((avctx->color_primaries <= AVCOL_PRI_SMPTE432 &&
          avctx->color_primaries != AVCOL_PRI_UNSPECIFIED) ||
-        (avctx->color_trc <= AVCOL_TRC_BT2020_12 &&
+        (avctx->color_trc <= AVCOL_TRC_ARIB_STD_B67 &&
          avctx->color_trc != AVCOL_TRC_UNSPECIFIED) ||
-        (avctx->colorspace <= AVCOL_SPC_BT2020_CL &&
+        (avctx->colorspace <= AVCOL_SPC_ICTCP &&
          avctx->colorspace != AVCOL_SPC_UNSPECIFIED)) {
 
         ctx->params->vui.bEnableVideoSignalTypePresentFlag  = 1;
@@ -166,6 +179,8 @@ static av_cold int libx265_encode_init(AVCodecContext *avctx)
         ctx->params->internalCsp = X265_CSP_I444;
         break;
     case AV_PIX_FMT_GRAY8:
+    case AV_PIX_FMT_GRAY10:
+    case AV_PIX_FMT_GRAY12:
         if (ctx->api->api_build_number < 85) {
             av_log(avctx, AV_LOG_ERROR,
                    "libx265 version is %d, must be at least 85 for gray encoding.\n",
@@ -214,6 +229,18 @@ static av_cold int libx265_encode_init(AVCodecContext *avctx)
                 }
             }
             av_dict_free(&dict);
+        }
+    }
+
+    if (ctx->profile) {
+        if (ctx->api->param_apply_profile(ctx->params, ctx->profile) < 0) {
+            int i;
+            av_log(avctx, AV_LOG_ERROR, "Invalid or incompatible profile set: %s.\n", ctx->profile);
+            av_log(avctx, AV_LOG_INFO, "Possible profiles:");
+            for (i = 0; x265_profile_names[i]; i++)
+                av_log(avctx, AV_LOG_INFO, " %s", x265_profile_names[i]);
+            av_log(avctx, AV_LOG_INFO, "\n");
+            return AVERROR(EINVAL);
         }
     }
 
@@ -273,7 +300,8 @@ static int libx265_encode_frame(AVCodecContext *avctx, AVPacket *pkt,
         x265pic.pts      = pic->pts;
         x265pic.bitDepth = av_pix_fmt_desc_get(avctx->pix_fmt)->comp[0].depth;
 
-        x265pic.sliceType = pic->pict_type == AV_PICTURE_TYPE_I ? X265_TYPE_I :
+        x265pic.sliceType = pic->pict_type == AV_PICTURE_TYPE_I ?
+                                              (ctx->forced_idr ? X265_TYPE_IDR : X265_TYPE_I) :
                             pic->pict_type == AV_PICTURE_TYPE_P ? X265_TYPE_P :
                             pic->pict_type == AV_PICTURE_TYPE_B ? X265_TYPE_B :
                             X265_TYPE_AUTO;
@@ -290,7 +318,7 @@ static int libx265_encode_frame(AVCodecContext *avctx, AVPacket *pkt,
     for (i = 0; i < nnal; i++)
         payload += nal[i].sizeBytes;
 
-    ret = ff_alloc_packet(pkt, payload);
+    ret = ff_alloc_packet2(avctx, pkt, payload, payload);
     if (ret < 0) {
         av_log(avctx, AV_LOG_ERROR, "Error getting output packet.\n");
         return ret;
@@ -325,6 +353,13 @@ FF_DISABLE_DEPRECATION_WARNINGS
 FF_ENABLE_DEPRECATION_WARNINGS
 #endif
 
+#if X265_BUILD >= 130
+    if (x265pic_out.sliceType == X265_TYPE_B)
+#else
+    if (x265pic_out.frameData.sliceType == 'b')
+#endif
+        pkt->flags |= AV_PKT_FLAG_DISPOSABLE;
+
     *got_packet = 1;
     return 0;
 }
@@ -348,6 +383,7 @@ static const enum AVPixelFormat x265_csp_ten[] = {
     AV_PIX_FMT_YUV444P10,
     AV_PIX_FMT_GBRP10,
     AV_PIX_FMT_GRAY8,
+    AV_PIX_FMT_GRAY10,
     AV_PIX_FMT_NONE
 };
 
@@ -365,6 +401,8 @@ static const enum AVPixelFormat x265_csp_twelve[] = {
     AV_PIX_FMT_YUV444P12,
     AV_PIX_FMT_GBRP12,
     AV_PIX_FMT_GRAY8,
+    AV_PIX_FMT_GRAY10,
+    AV_PIX_FMT_GRAY12,
     AV_PIX_FMT_NONE
 };
 
@@ -382,8 +420,10 @@ static av_cold void libx265_encode_init_csp(AVCodec *codec)
 #define VE AV_OPT_FLAG_VIDEO_PARAM | AV_OPT_FLAG_ENCODING_PARAM
 static const AVOption options[] = {
     { "crf",         "set the x265 crf",                                                            OFFSET(crf),       AV_OPT_TYPE_FLOAT,  { .dbl = -1 }, -1, FLT_MAX, VE },
+    { "forced-idr",  "if forcing keyframes, force them as IDR frames",                              OFFSET(forced_idr),AV_OPT_TYPE_BOOL,   { .i64 =  0 },  0,       1, VE },
     { "preset",      "set the x265 preset",                                                         OFFSET(preset),    AV_OPT_TYPE_STRING, { 0 }, 0, 0, VE },
     { "tune",        "set the x265 tune parameter",                                                 OFFSET(tune),      AV_OPT_TYPE_STRING, { 0 }, 0, 0, VE },
+    { "profile",     "set the x265 profile",                                                        OFFSET(profile),   AV_OPT_TYPE_STRING, { 0 }, 0, 0, VE },
     { "x265-params", "set the x265 configuration using a :-separated list of key=value parameters", OFFSET(x265_opts), AV_OPT_TYPE_STRING, { 0 }, 0, 0, VE },
     { NULL }
 };
@@ -413,4 +453,5 @@ AVCodec ff_libx265_encoder = {
     .priv_class       = &class,
     .defaults         = x265_defaults,
     .capabilities     = AV_CODEC_CAP_DELAY | AV_CODEC_CAP_AUTO_THREADS,
+    .wrapper_name     = "libx265",
 };

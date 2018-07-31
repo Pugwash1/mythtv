@@ -2,15 +2,13 @@
 #include "mythdisplay.h"
 #include "mythmainwindow.h"
 
+#include <QApplication>
+#include <QDesktopWidget>
+
 #if defined(Q_OS_MAC)
 #import "util-osx.h"
 #elif USING_X11
 #include "mythxdisplay.h"
-#endif
-
-#if !USING_X11
-#include <QApplication>
-#include <QDesktopWidget>
 #endif
 
 #ifdef Q_OS_ANDROID
@@ -114,16 +112,23 @@ DisplayInfo MythDisplay::GetDisplayInfo(int video_rate)
     ret.size = disp->GetDisplayDimensions();
     delete disp;
 #elif defined(Q_OS_ANDROID)
+    QAndroidJniEnvironment env;
     QAndroidJniObject activity = QtAndroid::androidActivity();
     QAndroidJniObject windowManager =  activity.callObjectMethod("getWindowManager", "()Landroid/view/WindowManager;");
     QAndroidJniObject display =  windowManager.callObjectMethod("getDefaultDisplay", "()Landroid/view/Display;");
     QAndroidJniObject displayMetrics("android/util/DisplayMetrics");
-    display.callMethod<void>("getMetrics", "(Landroid/util/DisplayMetrics;)V", displayMetrics.object());
+    display.callMethod<void>("getRealMetrics", "(Landroid/util/DisplayMetrics;)V", displayMetrics.object());
+    // check if passed or try a different method
+    if (env->ExceptionCheck())
+    {
+        env->ExceptionClear();
+        display.callMethod<void>("getMetrics", "(Landroid/util/DisplayMetrics;)V", displayMetrics.object());
+    }
     float xdpi = displayMetrics.getField<jfloat>("xdpi");
     float ydpi = displayMetrics.getField<jfloat>("ydpi");
+    int height = displayMetrics.getField<jint>("heightPixels");
+    int width = displayMetrics.getField<jint>("widthPixels");
     float rate = display.callMethod<jfloat>("getRefreshRate");
-    int height = display.callMethod<jint>("getHeight");
-    int width = display.callMethod<jint>("getWidth");
     LOG(VB_GENERAL, LOG_INFO, LOC +
         QString("rate:%1 h:%2 w:%3 xdpi:%4 ydpi:%5")
         .arg(rate).arg(height).arg(width)
@@ -145,20 +150,9 @@ DisplayInfo MythDisplay::GetDisplayInfo(int video_rate)
 int MythDisplay::GetNumberXineramaScreens(void)
 {
     int nr_xinerama_screens = 0;
-
-#if USING_X11
-    // TODO Qt is Xinerama aware so this should be unnecessary
-    MythXDisplay *d = OpenMythXDisplay();
-    if (d)
-    {
-        nr_xinerama_screens = d->GetNumberXineramaScreens();
-        delete d;
+    QDesktopWidget *m_desktop = QApplication::desktop();
+    if (m_desktop) {
+        nr_xinerama_screens = m_desktop->numScreens();
     }
-#else
-    // Mac OS X when not using X11 server supports Xinerama.
-    if (QApplication::desktop())
-        nr_xinerama_screens = QApplication::desktop()->numScreens();
-#endif
-
     return nr_xinerama_screens;
 }

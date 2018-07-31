@@ -51,6 +51,7 @@
 #include "recordingprofile.h"
 
 #include "scheduler.h"
+#include "tv_rec.h"
 
 extern QMap<int, EncoderLink *> tvList;
 extern AutoExpire  *expirer;
@@ -64,7 +65,10 @@ DTC::ProgramList* Dvr::GetRecordedList( bool           bDescending,
                                         int            nCount,
                                         const QString &sTitleRegEx,
                                         const QString &sRecGroup,
-                                        const QString &sStorageGroup )
+                                        const QString &sStorageGroup,
+                                        const QString &sCategory,
+                                        const QString &sSort
+                                      )
 {
     QMap< QString, ProgramInfo* > recMap;
 
@@ -80,7 +84,7 @@ DTC::ProgramList* Dvr::GetRecordedList( bool           bDescending,
     if (bDescending)
         desc = -1;
 
-    LoadFromRecorded( progList, false, inUseMap, isJobRunning, recMap, desc );
+    LoadFromRecorded( progList, false, inUseMap, isJobRunning, recMap, desc, sSort );
 
     QMap< QString, ProgramInfo* >::iterator mit = recMap.begin();
 
@@ -108,7 +112,8 @@ DTC::ProgramList* Dvr::GetRecordedList( bool           bDescending,
         if (pInfo->IsDeletePending() ||
             (!sTitleRegEx.isEmpty() && !pInfo->GetTitle().contains(rTitleRegEx)) ||
             (!sRecGroup.isEmpty() && sRecGroup != pInfo->GetRecordingGroup()) ||
-            (!sStorageGroup.isEmpty() && sStorageGroup != pInfo->GetStorageGroup()))
+            (!sStorageGroup.isEmpty() && sStorageGroup != pInfo->GetStorageGroup()) ||
+            (!sCategory.isEmpty() && sCategory != pInfo->GetCategory()))
             continue;
 
         if ((nAvailable < nStartIndex) ||
@@ -660,9 +665,9 @@ DTC::ProgramList* Dvr::GetExpiringList( int nStartIndex,
 
 DTC::EncoderList* Dvr::GetEncoderList()
 {
-
     DTC::EncoderList* pList = new DTC::EncoderList();
 
+    QReadLocker tvlocker(&TVRec::inputsLock);
     QList<InputInfo> inputInfoList = CardUtil::GetAllInputInfo();
     QMap<int, EncoderLink *>::Iterator iter = tvList.begin();
 
@@ -759,6 +764,32 @@ QStringList Dvr::GetRecGroupList()
     if (!query.exec())
     {
         MythDB::DBError("GetRecGroupList", query);
+        return result;
+    }
+
+    while (query.next())
+        result << query.value(0).toString();
+
+    return result;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+//
+/////////////////////////////////////////////////////////////////////////////
+
+QStringList Dvr::GetProgramCategories( bool OnlyRecorded )
+{
+    MSqlQuery query(MSqlQuery::InitCon());
+
+    if (OnlyRecorded)
+        query.prepare("SELECT DISTINCT category FROM recorded ORDER BY category");
+    else
+        query.prepare("SELECT DISTINCT category FROM program ORDER BY category");
+
+    QStringList result;
+    if (!query.exec())
+    {
+        MythDB::DBError("GetProgramCategories", query);
         return result;
     }
 
@@ -1603,4 +1634,109 @@ QString Dvr::DupMethodToDescription(QString DupMethod)
 {
     // RecordingDupMethodType method = static_cast<RecordingDupMethodType>(DupMethod);
     return toDescription(dupMethodFromString(DupMethod));
+}
+
+/////////////////////////////////////////////////////////////////////////////
+//
+/////////////////////////////////////////////////////////////////////////////
+
+int Dvr::ManageJobQueue( const QString   &sAction,
+                         const QString   &sJobName,
+                         int              nJobId,
+                         int              nRecordedId,
+                               QDateTime  jobstarttsRaw,
+                               QString    sRemoteHost,
+                               QString    sJobArgs )
+{
+    int nReturn = -1;
+
+    if (!m_parsedParams.contains("jobname") &&
+        !m_parsedParams.contains("recordedid") )
+    {
+        LOG(VB_GENERAL, LOG_ERR, "JobName and RecordedId are required.");
+        return nReturn;
+    }
+
+    if (sRemoteHost.isEmpty())
+        sRemoteHost = gCoreContext->GetHostName();
+
+    int jobType = JobQueue::GetJobTypeFromName(sJobName);
+
+    if (jobType == JOB_NONE)
+        return nReturn;
+
+    RecordingInfo ri = RecordingInfo(nRecordedId);
+
+    if (!ri.GetChanID())
+        return nReturn;
+
+    if ( sAction == "Remove")
+    {
+        if (!m_parsedParams.contains("jobid") || nJobId < 0)
+        {
+            LOG(VB_GENERAL, LOG_ERR, "For Remove, a valid JobId is required.");
+            return nReturn;
+        }
+
+        if (!JobQueue::SafeDeleteJob(nJobId, jobType, ri.GetChanID(),
+                                     ri.GetRecordingStartTime()))
+            return nReturn;
+
+        return nJobId;
+    }
+
+    if ( sAction != "Add")
+    {
+        LOG(VB_GENERAL, LOG_ERR, QString("Illegal Action name '%1'. Use: Add, "
+                                         "or Remove").arg(sAction));
+        return nReturn;
+    }
+
+    if ((jobType & JOB_USERJOB) &&
+         gCoreContext->GetSetting(sJobName, "").isEmpty())
+    {
+        LOG(VB_GENERAL, LOG_ERR, QString("%1 hasn't been defined.")
+            .arg(sJobName));
+        return nReturn;
+    }
+
+    if (!gCoreContext->GetNumSettingOnHost(QString("JobAllow%1").arg(sJobName),
+                                           sRemoteHost, 0))
+    {
+        LOG(VB_GENERAL, LOG_ERR, QString("%1 hasn't been allowed on host %2.")
+                                         .arg(sJobName).arg(sRemoteHost));
+        return nReturn;
+    }
+
+    if (!jobstarttsRaw.isValid())
+        jobstarttsRaw = QDateTime::currentDateTime();
+
+    if (!JobQueue::InJobRunWindow(jobstarttsRaw))
+        return nReturn;
+
+    if (sJobArgs.isNull())
+        sJobArgs = "";
+
+    int bReturn = JobQueue::QueueJob(jobType,
+                                 ri.GetChanID(),
+                                 ri.GetRecordingStartTime(),
+                                 sJobArgs,
+                                 QString("Dvr/ManageJobQueue"), // comment col.
+                                 sRemoteHost,
+                                 JOB_NO_FLAGS,
+                                 JOB_QUEUED,
+                                 jobstarttsRaw.toUTC());
+
+    if (!bReturn)
+    {
+        LOG(VB_GENERAL, LOG_ERR, QString("%1 job wasn't queued because of a "
+                                         "database error or because it was "
+                                         "already running/stopping etc.")
+                                         .arg(sJobName));
+
+        return nReturn;
+    }
+
+    return JobQueue::GetJobID(jobType, ri.GetChanID(),
+                              ri.GetRecordingStartTime());
 }

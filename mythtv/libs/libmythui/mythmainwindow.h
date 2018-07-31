@@ -54,6 +54,8 @@ class MUI_PUBLIC MythMainWindow : public QWidget
     bool TranslateKeyPress(const QString &context, QKeyEvent *e,
                            QStringList &actions, bool allowJumps = true)
                            MUNUSED_RESULT;
+    bool keyLongPressFilter(QEvent **e,
+        QScopedPointer<QEvent> &sNewEvent);
 
     void ReloadKeys(void);
     void ClearKey(const QString &context, const QString &action);
@@ -148,9 +150,11 @@ class MUI_PUBLIC MythMainWindow : public QWidget
   protected slots:
     void animate();
     void doRemoteScreenShot(QString filename, int x, int y);
+    void SetDrawEnabled(bool enable);
 
   signals:
     void signalRemoteScreenShot(QString filename, int x, int y);
+    void signalSetDrawEnabled(bool enable);
 
   protected:
     explicit MythMainWindow(const bool useDB = true);
@@ -169,8 +173,6 @@ class MUI_PUBLIC MythMainWindow : public QWidget
     void ExitToMainMenu();
 
     QObject *getTarget(QKeyEvent &key);
-
-    void SetDrawEnabled(bool enable);
 
     void LockInputDevices(bool locked);
 

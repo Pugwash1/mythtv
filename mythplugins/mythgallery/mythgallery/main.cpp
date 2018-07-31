@@ -21,12 +21,7 @@
 #include "dbcheck.h"
 
 #ifdef DCRAW_SUPPORT
-#if QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)
-    // Qt5 imports class name
-    Q_IMPORT_PLUGIN(DcrawPlugin)
-#else
-    Q_IMPORT_PLUGIN(dcrawplugin)
-#endif // QT_VERSION
+Q_IMPORT_PLUGIN(DcrawPlugin)
 #endif // DCRAW_SUPPORT
 void runRandomSlideshow(void);
 
@@ -139,7 +134,7 @@ static void setupKeys(void)
         "Toggle scale to fullscreen/scale to fit"), "W");
     REG_MEDIA_HANDLER(QT_TRANSLATE_NOOP("MythControls",
         "MythGallery Media Handler 1/3"), "", handleMedia,
-        MEDIATYPE_DATA | MEDIATYPE_MIXED, QString::null);
+        MEDIATYPE_DATA | MEDIATYPE_MIXED, QString());
     QString filt;
     Q_FOREACH(QString format, GalleryUtil::GetImageFilter())
     {

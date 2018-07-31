@@ -144,7 +144,7 @@ ChannelScanSM::ChannelScanSM(ScanMonitor *_scan_monitor,
     : // Set in constructor
       m_scanMonitor(_scan_monitor),
       m_channel(_channel),
-      m_signalMonitor(SignalMonitor::Init(_cardtype, -1, _channel)),
+      m_signalMonitor(SignalMonitor::Init(_cardtype, -1, _channel, true)),
       m_sourceID(_sourceID),
       m_signalTimeout(signal_timeout),
       m_channelTimeout(channel_timeout),
@@ -714,7 +714,7 @@ void ChannelScanSM::UpdateScanTransports(const NetworkInformationTable *nit)
             uint64_t frequency = 0;
             const MPEGDescriptor desc(list[j]);
             uint tag = desc.DescriptorTag();
-            DTVTunerType tt = DTVTunerType::kTunerTypeUnknown;
+            DTVTunerType tt(DTVTunerType::kTunerTypeUnknown);
 
             switch (tag)
             {
@@ -1065,7 +1065,7 @@ static void update_info(ChannelInsertInfo &info,
     if (info.service_name.isEmpty())
         info.service_name = vct->ShortChannelName(i);
 
-    info.chan_num           = QString::null;
+    info.chan_num.clear();
 
     info.service_id         = vct->ProgramNumber(i);
     info.atsc_major_channel = vct->MajorChannel(i);
@@ -1107,8 +1107,8 @@ static void update_info(ChannelInsertInfo &info,
 
     // Figure out best service name and callsign...
     ServiceDescriptor *desc = sdt->GetServiceDescriptor(i);
-    QString callsign = QString::null;
-    QString service_name = QString::null;
+    QString callsign;
+    QString service_name;
     if (desc)
     {
         callsign = desc->ServiceShortName();
@@ -1119,7 +1119,7 @@ static void update_info(ChannelInsertInfo &info,
 
         service_name = desc->ServiceName();
         if (service_name.trimmed().isEmpty())
-            service_name = QString::null;
+            service_name.clear();
     }
 
     if (info.callsign.isEmpty())
@@ -1173,7 +1173,8 @@ uint ChannelScanSM::GetCurrentTransportInfo(
 {
     if (m_current.iter() == m_scanTransports.end())
     {
-        cur_chan = cur_chan_tr = QString::null;
+        cur_chan.clear();
+        cur_chan_tr.clear();
         return 0;
     }
 
@@ -1210,7 +1211,7 @@ ChannelScanSM::GetChannelList(transport_scan_items_it_t trans_info,
 
     uint    mplexid   = (*trans_info).mplexid;
     int     freqid    = (*trans_info).friendlyNum;
-    QString freqidStr = (freqid) ? QString::number(freqid) : QString::null;
+    QString freqidStr = (freqid) ? QString::number(freqid) : QString();
     QString iptv_channel = (*trans_info).iptv_channel;
 
     // channels.conf
@@ -1436,13 +1437,14 @@ ChannelScanSM::GetChannelList(transport_scan_items_it_t trans_info,
     return pnum_to_dbchan;
 }
 
-ScanDTVTransportList ChannelScanSM::GetChannelList(void) const
+ScanDTVTransportList ChannelScanSM::GetChannelList(bool addFullTS) const
 {
     ScanDTVTransportList list;
 
     uint cardid = m_channel->GetInputID();
 
-    DTVTunerType tuner_type = GuessDTVTunerType(DTVTunerType::kTunerTypeATSC);
+    DTVTunerType tuner_type(DTVTunerType::kTunerTypeATSC);
+    tuner_type = GuessDTVTunerType(tuner_type);
 
     ChannelList::const_iterator it = m_channelList.begin();
     for (; it != m_channelList.end(); ++it)
@@ -1461,7 +1463,41 @@ ScanDTVTransportList ChannelScanSM::GetChannelList(void) const
         }
 
         if (item.channels.size())
+        {
+            if (addFullTS)
+            {
+                /* If addFullTS, then add a 'MPTS' channel
+                   which can be used to record the entire MPTS from
+                   the transport. */
+                dbchan_it = pnum_to_dbchan.begin();
+                ChannelInsertInfo info = *dbchan_it;
+
+                if (tuner_type == DTVTunerType::kTunerTypeASI)
+                    info.callsign = QString("MPTS_%1")
+                                    .arg(CardUtil::GetDisplayName(cardid));
+                else if (info.si_standard == "mpeg" ||
+                         info.si_standard == "scte" ||
+                         info.si_standard == "opencable")
+                    info.callsign = QString("MPTS_%1").arg(info.freqid);
+                else if (info.atsc_major_channel > 0)
+                    info.callsign =
+                        QString("MPTS_%1").arg(info.atsc_major_channel);
+                else if (info.service_id > 0)
+                    info.callsign = QString("MPTS_%1").arg(info.service_id);
+                else if (!info.chan_num.isEmpty())
+                    info.callsign = QString("MPTS_%1").arg(info.chan_num);
+                else
+                    info.callsign = "MPTS_UNKNOWN";
+
+                info.service_name = info.callsign;
+                info.service_id = 0;
+                info.atsc_minor_channel = 0;
+                info.format = "MPTS";
+                item.channels.push_back(info);
+            }
+
             list.push_back(item);
+        }
     }
 
     return list;
@@ -1883,7 +1919,7 @@ bool ChannelScanSM::ScanTransports(
 
             if (start.isEmpty() || name == start)
             {
-                start = QString::null;
+                start.clear();
 
                 TransportScanItem item(SourceID, std, name, name_num,
                                        freq, ft, m_signalTimeout);
@@ -2002,8 +2038,6 @@ bool ChannelScanSM::ScanIPTVChannels(uint sourceid,
 bool ChannelScanSM::ScanTransportsStartingOn(
     int sourceid, const QMap<QString,QString> &startChan)
 {
-    QMap<QString,QString>::const_iterator it;
-
     if (startChan.find("std")        == startChan.end() ||
         startChan.find("type")       == startChan.end())
     {
@@ -2087,7 +2121,7 @@ bool ChannelScanSM::AddToList(uint mplexid)
     uint    sourceid   = query.value(0).toUInt();
     QString sistandard = query.value(1).toString();
     uint    tsid       = query.value(2).toUInt();
-    DTVTunerType tt = DTVTunerType::kTunerTypeUnknown;
+    DTVTunerType tt(DTVTunerType::kTunerTypeUnknown);
 
     QString fn = (tsid) ? QString("Transport ID %1").arg(tsid) :
         QString("Multiplex #%1").arg(mplexid);

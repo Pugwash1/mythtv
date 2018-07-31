@@ -71,6 +71,7 @@ class MTV_PUBLIC ChannelScanner
               bool           do_follow_nit,
               bool           do_test_decryption,
               bool           do_fta_only,
+              bool           do_add_full_ts,
               ServiceRequirements service_requirements,
               // stuff needed for particular scans
               uint           mplexid,
@@ -78,8 +79,8 @@ class MTV_PUBLIC ChannelScanner
               const QString &freq_std,
               const QString &mod,
               const QString &tbl,
-              const QString &tbl_start = QString::null,
-              const QString &tbl_end   = QString::null);
+              const QString &tbl_start = QString(),
+              const QString &tbl_end   = QString());
 
     virtual DTVConfParser::return_t ImportDVBUtils(
         uint sourceid, int cardtype, const QString &file);
@@ -123,6 +124,9 @@ class MTV_PUBLIC ChannelScanner
 
     /// Only fta channels desired post scan?
     bool                freeToAirOnly;
+
+    /// Add MPTS "full transport stream" channels
+    bool                addFullTS;
 
     /// Services desired post scan
     ServiceRequirements serviceRequirements;

@@ -320,8 +320,12 @@ QDateTime PlaybackSock::PixmapLastModified(const ProgramInfo *pginfo)
 
     SendReceiveStringList(strlist);
 
-    if (!strlist.empty() && strlist[0] != "BAD")
+    if (!strlist.empty() && !strlist[0].isEmpty() && (strlist[0] != "BAD"))
+#if QT_VERSION < QT_VERSION_CHECK(5,8,0)
         return MythDate::fromTime_t(strlist[0].toUInt());
+#else
+        return MythDate::fromSecsSinceEpoch(strlist[0].toLongLong());
+#endif
 
     return QDateTime();
 }
@@ -457,8 +461,13 @@ RecStatus::Type PlaybackSock::StartRecording(int capturecardnum,
     if (SendReceiveStringList(strlist, 3))
     {
         pginfo->SetRecordingID(strlist[1].toUInt());
+#if QT_VERSION < QT_VERSION_CHECK(5,8,0)
         pginfo->SetRecordingStartTime(
             MythDate::fromTime_t(strlist[2].toUInt()));
+#else
+        pginfo->SetRecordingStartTime(
+            MythDate::fromSecsSinceEpoch(strlist[2].toLongLong()));
+#endif
         return RecStatus::Type(strlist[0].toInt());
     }
 
@@ -536,6 +545,14 @@ QStringList PlaybackSock::ForwardRequest(const QStringList &slist)
         return strlist;
 
     return QStringList();
+}
+
+/** \brief Tells a slave to add a child input.
+ */
+bool PlaybackSock::AddChildInput(uint childid)
+{
+    QStringList strlist(QString("ADD_CHILD_INPUT %1").arg(childid));
+    return SendReceiveStringList(strlist, 1) && (strlist[0] == "OK");
 }
 
 /* vim: set expandtab tabstop=4 shiftwidth=4: */

@@ -162,6 +162,10 @@ bool getMemStats(int &totalMB, int &freeMB, int &totalVM, int &freeVM)
     freeVM = (int)(free >> 10);
 
 #else
+    Q_UNUSED(totalMB);
+    Q_UNUSED(freeMB);
+    Q_UNUSED(totalVM);
+    Q_UNUSED(freeVM);
     LOG(VB_GENERAL, LOG_NOTICE, "getMemStats(): Unknown platform. "
         "How do I get the memory stats?");
     return false;
@@ -491,7 +495,7 @@ QString getSymlinkTarget(const QString &start_file,
             .arg(maxLinks));
 #endif
 
-    QString   link     = QString::null;
+    QString   link;
     QString   cur_file = start_file; cur_file.detach();
     QFileInfo fi(cur_file);
 
@@ -529,10 +533,10 @@ QString getSymlinkTarget(const QString &start_file,
 
     LOG(VB_GENERAL, LOG_DEBUG,
             QString("getSymlinkTarget() -> '%1'")
-            .arg((!fi.isSymLink()) ? cur_file : QString::null));
+            .arg((!fi.isSymLink()) ? cur_file : QString()));
 #endif
 
-    return (!fi.isSymLink()) ? cur_file : QString::null;
+    return (!fi.isSymLink()) ? cur_file : QString();
 }
 
 bool IsMACAddress(QString MAC)
@@ -693,18 +697,6 @@ bool myth_nice(int val)
     }
 
     return true;
-}
-
-bool myth_realtime(int val)
-{
-    errno = 0;
-    struct sched_param param;
-    param.sched_priority = val;
-    int ret = pthread_setschedparam(pthread_self(), SCHED_FIFO, &param);
-    if (ret !=0) {
-      LOG(VB_GENERAL, LOG_ERR, "Failed to set RT thread");
-    }
-    return ret == 0;
 }
 
 void myth_yield(void)
@@ -1102,7 +1094,7 @@ int naturalCompare(const QString &_a, const QString &_b, Qt::CaseSensitivity cas
 
 // QStringRef::localeAwareCompare is buggy on Qt < 5.3, taking significant time
 // to complete. So we use compare instead with those versions of Qt.
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)) && (QT_VERSION < QT_VERSION_CHECK(5, 3, 0))
+#if (QT_VERSION < QT_VERSION_CHECK(5, 3, 0))
         const int cmp = QStringRef::compare(subA, subB);
 #else
         const int cmp = QStringRef::localeAwareCompare(subA, subB);

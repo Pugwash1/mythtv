@@ -46,7 +46,7 @@ ProgramInfoUpdater *ProgramInfo::updater;
 int dummy = pginfo_init_statics();
 bool ProgramInfo::usingProgIDAuth = true;
 
-const static uint kInvalidDateTime = QDateTime().toTime_t();
+const static uint kInvalidDateTime = (uint)-1;
 
 
 const QString ProgramInfo::kFromRecordedQuery =
@@ -196,7 +196,6 @@ ProgramInfo::ProgramInfo(void) :
     lastmodified(startts),
     lastInUseTime(startts.addSecs(-4 * 60 * 60)),
 
-    prefinput(0),
     recpriority2(0),
     recordid(0),
     parentid(0),
@@ -281,7 +280,6 @@ ProgramInfo::ProgramInfo(const ProgramInfo &other) :
     lastmodified(other.lastmodified),
     lastInUseTime(MythDate::current().addSecs(-4 * 60 * 60)),
 
-    prefinput(other.prefinput),
     recpriority2(other.recpriority2),
     recordid(other.recordid),
     parentid(other.parentid),
@@ -466,7 +464,6 @@ ProgramInfo::ProgramInfo(
     lastmodified(_lastmodified),
     lastInUseTime(MythDate::current().addSecs(-4 * 60 * 60)),
 
-    prefinput(0),
     recpriority2(0),
     recordid(_recordid),
     parentid(0),
@@ -586,7 +583,6 @@ ProgramInfo::ProgramInfo(
     lastmodified(startts),
     lastInUseTime(MythDate::current().addSecs(-4 * 60 * 60)),
 
-    prefinput(0),
     recpriority2(0),
     recordid(_recordid),
     parentid(0),
@@ -715,7 +711,6 @@ ProgramInfo::ProgramInfo(
     lastmodified(startts),
     lastInUseTime(startts.addSecs(-4 * 60 * 60)),
 
-    prefinput(0),
     recpriority2(0),
     recordid(_recordid),
     parentid(0),
@@ -874,7 +869,6 @@ ProgramInfo::ProgramInfo(
     lastmodified(MythDate::current()),
     lastInUseTime(lastmodified.addSecs(-4 * 60 * 60)),
 
-    prefinput(0),
     recpriority2(0),
     recordid(0),
     parentid(0),
@@ -1119,7 +1113,6 @@ void ProgramInfo::clone(const ProgramInfo &other,
 
     recstatus = other.recstatus;
 
-    prefinput = other.prefinput;
     recpriority2 = other.recpriority2;
     recordid = other.recordid;
     parentid = other.parentid;
@@ -1230,7 +1223,6 @@ void ProgramInfo::clear(void)
 
     recstatus = RecStatus::Unknown;
 
-    prefinput = 0;
     recpriority2 = 0;
     recordid = 0;
     parentid = 0;
@@ -1259,6 +1251,126 @@ void ProgramInfo::clear(void)
     // Private
     inUseForWhat.clear();
     positionMapDBReplacement = NULL;
+}
+
+/*!
+ *  Compare two QStrings when they can either be initialized to
+ *  "Default" or to the empty string.
+ */
+bool qstringEqualOrDefault(const QString a, const QString b);
+bool qstringEqualOrDefault(const QString a, const QString b)
+{
+    if (a == b)
+        return true;
+    if (a.isEmpty() and (b == "Default"))
+        return true;
+    if ((a == "Default") and b.isEmpty())
+        return true;
+    return false;
+}
+
+/*!
+ *  Compare two ProgramInfo instances to see if they are equal.  Equal
+ *  is defined as all parameters that are serialized and passed across
+ *  the myth protocol are the same.
+ *
+ *  \param rhs The ProgramInfo instance to compare to the current
+ *  instance.
+ *
+ *  \return True if all the serialized fields match, False otherwise.
+ */
+bool ProgramInfo::operator==(const ProgramInfo& rhs)
+{
+    if ((title != rhs.title) ||
+        (subtitle != rhs.subtitle) ||
+        (description != rhs.description) ||
+        (season != rhs.season) ||
+        (episode != rhs.episode) ||
+        (totalepisodes != rhs.totalepisodes) ||
+        (syndicatedepisode != rhs.syndicatedepisode) ||
+        (category != rhs.category)
+#if 0
+        || (director != rhs.director)
+#endif
+        )
+        return false;
+
+    if (recpriority != rhs.recpriority)
+        return false;
+
+    if ((chanid != rhs.chanid) ||
+        (chanstr != rhs.chanstr) ||
+        (chansign != rhs.chansign) ||
+        (channame != rhs.channame) ||
+        (chanplaybackfilters != rhs.chanplaybackfilters))
+        return false;
+
+    if (!qstringEqualOrDefault(recgroup, rhs.recgroup) ||
+        !qstringEqualOrDefault(playgroup, rhs.playgroup))
+        return false;
+
+    if (pathname != rhs.pathname)
+        return false;
+
+    if ((hostname != rhs.hostname) ||
+        !qstringEqualOrDefault(storagegroup, rhs.storagegroup))
+        return false;
+
+    if ((seriesid != rhs.seriesid) ||
+        (programid != rhs.programid) ||
+        (inetref != rhs.inetref) ||
+        (catType != rhs.catType))
+        return false;
+
+    if (filesize != rhs.filesize)
+        return false;
+
+    if ((startts != rhs.startts) ||
+        (endts != rhs.endts) ||
+        (recstartts != rhs.recstartts) ||
+        (recendts != rhs.recendts))
+        return false;
+
+    if ((stars != rhs.stars) ||
+        (originalAirDate != rhs.originalAirDate) ||
+        (lastmodified != rhs.lastmodified)
+#if 0
+        || (lastInUseTime != rhs.lastInUseTime)
+#endif
+        )
+        return false;
+
+    if (recpriority2 != rhs.recpriority2)
+        return false;
+
+    if ((recordid != rhs.recordid) ||
+        (parentid != rhs.parentid))
+        return false;
+
+    if ((sourceid != rhs.sourceid) ||
+        (inputid != rhs.inputid) ||
+        (findid != rhs.findid))
+        return false;
+
+    if ((programflags != rhs.programflags) ||
+        (properties != rhs.properties) ||
+        (year != rhs.year) ||
+        (partnumber != rhs.partnumber) ||
+        (parttotal != rhs.parttotal))
+        return false;
+
+    if ((recstatus != rhs.recstatus) ||
+        (rectype != rhs.rectype) ||
+        (dupin != rhs.dupin) ||
+        (dupmethod != rhs.dupmethod))
+        return false;
+
+    if ((recordedid != rhs.recordedid) ||
+        (inputname != rhs.inputname) ||
+        (bookmarkupdate != rhs.bookmarkupdate))
+        return false;
+
+    return true;
 }
 
 /** \fn ProgramInfo::~ProgramInfo()
@@ -1358,7 +1470,17 @@ bool ProgramInfo::QueryRecordedIdFromPathname(const QString &pathname,
 
 #define INT_TO_LIST(x)       do { list << QString::number(x); } while (0)
 
+#if QT_VERSION < QT_VERSION_CHECK(5,8,0)
 #define DATETIME_TO_LIST(x)  INT_TO_LIST((x).toTime_t())
+#else
+#define DATETIME_TO_LIST(x)  do {                                         \
+                                 if ((x).isValid()) {                     \
+                                     INT_TO_LIST((x).toSecsSinceEpoch()); \
+                                 } else {                                 \
+                                     INT_TO_LIST(kInvalidDateTime);       \
+                                 }                                        \
+                             } while (0)
+#endif
 
 #define LONGLONG_TO_LIST(x)  do { list << QString::number(x); } while (0)
 
@@ -1448,11 +1570,22 @@ void ProgramInfo::ToStringList(QStringList &list) const
 #define INT_FROM_LIST(x)     do { NEXT_STR(); (x) = ts.toLongLong(); } while (0)
 #define ENUM_FROM_LIST(x, y) do { NEXT_STR(); (x) = ((y)ts.toInt()); } while (0)
 
+#if QT_VERSION < QT_VERSION_CHECK(5,8,0)
 #define DATETIME_FROM_LIST(x) \
     do { NEXT_STR();                                                    \
          x = (ts.toUInt() == kInvalidDateTime ?                         \
               QDateTime() : MythDate::fromTime_t(ts.toUInt()));         \
     } while (0)
+#else
+#define DATETIME_FROM_LIST(x) \
+    do { NEXT_STR();                                                    \
+         if (ts.isEmpty() or (ts.toUInt() == kInvalidDateTime)) {       \
+              x = QDateTime();                                          \
+         } else {                                                       \
+              x = MythDate::fromSecsSinceEpoch(ts.toLongLong());        \
+         }                                                              \
+    } while (0)
+#endif
 #define DATE_FROM_LIST(x) \
     do { NEXT_STR(); (x) = ((ts.isEmpty()) || (ts == "0000-00-00")) ? \
                          QDate() : QDate::fromString(ts, Qt::ISODate); \
@@ -1653,8 +1786,13 @@ void ProgramInfo::ToMap(InfoMap &progMap,
         progMap["recstartdate"] = MythDate::toString(recstartts, kDateShort);
         progMap["recendtime"] = MythDate::toString(recendts, kTime);
         progMap["recenddate"] = MythDate::toString(recendts, kDateShort);
+#if QT_VERSION < QT_VERSION_CHECK(5,8,0)
         progMap["startts"] = QString::number(startts.toTime_t());
         progMap["endts"]   = QString::number(endts.toTime_t());
+#else
+        progMap["startts"] = QString::number(startts.toSecsSinceEpoch());
+        progMap["endts"]   = QString::number(endts.toSecsSinceEpoch());
+#endif
         if (timeNow.toLocalTime().date().year() !=
             startts.toLocalTime().date().year())
             progMap["startyear"] = startts.toLocalTime().toString("yyyy");
@@ -2007,7 +2145,6 @@ bool ProgramInfo::LoadProgramFromRecorded(
         catType = kCategoryNone;
         lastInUseTime = MythDate::current().addSecs(-4 * 60 * 60);
         rectype = kNotRecording;
-        prefinput = 0;
         recpriority2 = 0;
         parentid = 0;
         sourceid = 0;
@@ -2094,7 +2231,6 @@ bool ProgramInfo::LoadProgramFromRecorded(
 
     recstatus    = RecStatus::Recorded;
 
-    /**///prefinput;
     /**///recpriority2;
 
     recordid     = query.value(29).toUInt();
@@ -5328,6 +5464,7 @@ void ProgramInfo::SubstituteMatches(QString &str)
         str.replace(QString("%%1ISOUTC%").arg(time_str[i]),
                     time_dtr[i]->toString(Qt::ISODate));
     }
+    str.replace(QString("%RECORDEDID%"), QString::number(recordedid));
 }
 
 QMap<QString,uint32_t> ProgramInfo::QueryInUseMap(void)
@@ -5867,6 +6004,7 @@ bool LoadFromOldRecorded(ProgramList &destination, const QString &sql,
  *  \param recMap          recording map
  *  \param sort            sort order, negative for descending, 0 for
  *                         unsorted, positive for ascending
+ *  \param sortBy          comma separated list of fields to sort by
  *  \return true if it succeeds, false if it fails.
  *  \sa QueryInUseMap(void)
  *      QueryJobsRunning(int)
@@ -5878,7 +6016,8 @@ bool LoadFromRecorded(
     const QMap<QString,uint32_t> &inUseMap,
     const QMap<QString,bool> &isJobRunning,
     const QMap<QString, ProgramInfo*> &recMap,
-    int sort)
+    int sort,
+    const QString &sortBy)
 {
     destination.clear();
 
@@ -5892,10 +6031,66 @@ bool LoadFromRecorded(
     if (possiblyInProgressRecordingsOnly)
         thequery += "WHERE r.endtime >= NOW() AND r.starttime <= NOW() ";
 
-    if (sort)
-        thequery += "ORDER BY r.starttime ";
-    if (sort < 0)
-        thequery += "DESC ";
+    if (sortBy.isEmpty())
+    {
+        if (sort)
+            thequery += "ORDER BY r.starttime ";
+        if (sort < 0)
+            thequery += "DESC ";
+    }
+    else
+    {
+        QStringList sortByFields;
+        sortByFields << "starttime" <<  "title" <<  "subtitle" << "season" << "episode" << "category"
+                     <<  "watched" << "stars" << "originalairdate" << "recgroup" << "storagegroup"
+                     <<  "channum" << "callsign" << "name";
+
+        // sanity check the fields are one of the above fields
+        QString sSortBy;
+        QStringList fields = sortBy.split(",");
+        for (int x = 0; x < fields.size(); x++)
+        {
+            bool ascending = true;
+            QString field = fields.at(x).simplified().toLower();
+
+            if (field.endsWith("desc"))
+            {
+                ascending = false;
+                field = field.remove("desc");
+            }
+
+            if (field.endsWith("asc"))
+            {
+                ascending = true;
+                field = field.remove("asc");
+            }
+
+            field = field.simplified();
+
+            if (field == "channelname")
+                field = "name";
+
+            if (sortByFields.contains(field))
+            {
+                QString table;
+                if (field == "channum" || field == "callsign" || field == "name")
+                    table = "c";
+                else
+                    table = "r";
+
+                if (sSortBy.isEmpty())
+                    sSortBy = QString("%1.%2 %3").arg(table).arg(field).arg(ascending ? "ASC" : "DESC");
+                else
+                    sSortBy += QString(",%1.%2 %3").arg(table).arg(field).arg(ascending ? "ASC" : "DESC");
+            }
+            else
+            {
+                LOG(VB_GENERAL, LOG_WARNING, QString("ProgramInfo::LoadFromRecorded() got an unknown sort field '%1' - ignoring").arg(fields.at(x)));
+            }
+        }
+
+        thequery += "ORDER BY " + sSortBy;
+    }
 
     MSqlQuery query(MSqlQuery::InitCon());
     query.prepare(thequery);

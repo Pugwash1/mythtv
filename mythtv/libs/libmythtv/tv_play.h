@@ -573,6 +573,8 @@ class MTV_PUBLIC TV : public QObject, public MenuItemDisplayer
     void DoArbSeek(PlayerContext*, ArbSeekWhence whence, bool honorCutlist);
     void DoJumpFFWD(PlayerContext *ctx);
     void DoJumpRWND(PlayerContext *ctx);
+    void DoSeekFFWD(PlayerContext *ctx);
+    void DoSeekRWND(PlayerContext *ctx);
     void NormalSpeed(PlayerContext*);
     void ChangeSpeed(PlayerContext*, int direction);
     void ToggleTimeStretch(PlayerContext*);
@@ -632,7 +634,7 @@ class MTV_PUBLIC TV : public QObject, public MenuItemDisplayer
     void UpdateOSDSeekMessage(const PlayerContext*,
                               const QString &mesg, enum OSDTimeout timeout);
     void UpdateOSDInput(const PlayerContext*,
-                        QString inputname = QString::null);
+                        QString inputname = QString());
     void UpdateOSDSignal(const PlayerContext*, const QStringList &strlist);
     void UpdateOSDTimeoutMessage(PlayerContext*);
     void UpdateOSDAskAllowDialog(PlayerContext*);
@@ -741,6 +743,10 @@ class MTV_PUBLIC TV : public QObject, public MenuItemDisplayer
                                       bool force = false);
     bool HandleOSDVideoExit(PlayerContext *ctx, QString action);
 
+    // Navigation Dialog
+    void StartOsdNavigation(PlayerContext *ctx);
+    void UpdateNavDialog(PlayerContext *ctx);
+
     // Menu dialog
     void ShowOSDMenu(bool isCompact = false);
 
@@ -790,7 +796,6 @@ class MTV_PUBLIC TV : public QObject, public MenuItemDisplayer
     bool    db_use_gui_size_for_tv;
     bool    db_start_in_guide;
     bool    db_clear_saved_position;
-    bool    db_toggle_bookmark;
     bool    db_run_jobs_on_remote;
     bool    db_continue_embedded;
     bool    db_use_fixed_size;

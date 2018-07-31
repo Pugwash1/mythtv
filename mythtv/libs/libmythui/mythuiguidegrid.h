@@ -11,10 +11,21 @@
 
 // MythUI
 #include "mythuitype.h"
+#include "mythuiimage.h"
 
 #define ARROWIMAGESIZE 4
 #define RECSTATUSSIZE  8
+
+
+// max number of channels to display in the guide grid
 #define MAX_DISPLAY_CHANS 40
+
+// max number of 5 minute time slots to show in guide grid (48 = 4hrs)
+#define MAX_DISPLAY_TIMES 48
+
+#define GridTimeNormal       0
+#define GridTimeStartsBefore 1
+#define GridTimeEndsAfter    2
 
 class MythFontProperties;
 
@@ -69,7 +80,7 @@ class MUI_PUBLIC MythUIGuideGrid : public MythUIType
     class UIGTCon
     {
       public:
-        UIGTCon() { m_arrow = m_recType = m_recStat = 0; };
+        UIGTCon() { m_arrow = GridTimeNormal; m_recType = m_recStat = 0; };
         UIGTCon(const QRect &drawArea, const QString &title,
                 const QString &category, int arrow, int recType, int recStat) :
                 m_drawArea(drawArea),               m_title(title),
@@ -109,8 +120,8 @@ class MUI_PUBLIC MythUIGuideGrid : public MythUIType
     QList<UIGTCon*> *m_allData;
     UIGTCon m_selectedItem;
 
-    MythImage *m_recImages[RECSTATUSSIZE];
-    MythImage *m_arrowImages[ARROWIMAGESIZE];
+    MythUIImage *m_recImages[RECSTATUSSIZE];
+    MythUIImage *m_arrowImages[ARROWIMAGESIZE];
 
     // themeable settings
     int  m_channelCount;

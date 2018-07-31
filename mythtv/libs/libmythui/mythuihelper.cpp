@@ -24,7 +24,6 @@
 #include "mythdirs.h"
 #include "mythlogging.h"
 #include "mythdownloadmanager.h"
-#include "oldsettings.h"
 #include "mythdb.h"
 #include "remotefile.h"
 #include "mythcorecontext.h"
@@ -104,8 +103,6 @@ public:
     double GetPixelAspectRatio(void);
     void WaitForScreenChange(void) const;
 
-    Settings *m_qtThemeSettings;   ///< Text/button/background colours, etc
-
     bool      m_themeloaded;       ///< Do we have a palette and pixmap to use?
     QString   m_menuthemepathname;
     QString   m_themepathname;
@@ -125,11 +122,20 @@ public:
     bool m_isWide;
 
     QMap<QString, MythImage *> imageCache;
+#if QT_VERSION < QT_VERSION_CHECK(5,8,0)
     QMap<QString, uint> CacheTrack;
+#else
+    QMap<QString, qint64> CacheTrack;
+#endif
     QMutex *m_cacheLock;
 
+#if QT_VERSION < QT_VERSION_CHECK(5,10,0)
     QAtomicInt m_cacheSize;
     QAtomicInt m_maxCacheSize;
+#else
+    QAtomicInteger<qint64> m_cacheSize;
+    QAtomicInteger<qint64> m_maxCacheSize;
+#endif
 
     // The part of the screen(s) allocated for the GUI. Unless
     // overridden by the user, defaults to drawable area above.
@@ -168,8 +174,7 @@ int MythUIHelperPrivate::w_override = -1;
 int MythUIHelperPrivate::h_override = -1;
 
 MythUIHelperPrivate::MythUIHelperPrivate(MythUIHelper *p)
-    : m_qtThemeSettings(new Settings()),
-      m_themeloaded(false),
+    : m_themeloaded(false),
       m_wmult(1.0), m_hmult(1.0), m_pixelAspectRatio(-1.0),
       m_xbase(0), m_ybase(0), m_height(0), m_width(0),
       m_baseWidth(800), m_baseHeight(600), m_isWide(false),
@@ -203,7 +208,6 @@ MythUIHelperPrivate::~MythUIHelperPrivate()
 
     delete m_cacheLock;
     delete m_imageThreadPool;
-    delete m_qtThemeSettings;
     delete screensaver;
 
     if (display_res)
@@ -496,10 +500,6 @@ void MythUIHelper::LoadQtConfig(void)
     // Note the possibly changed screen settings
     d->GetScreenBounds();
 
-    delete d->m_qtThemeSettings;
-
-    d->m_qtThemeSettings = new Settings;
-
     qApp->setStyle("Windows");
 
     QString themename = GetMythDB()->GetSetting("Theme", DEFAULT_UI_THEME);
@@ -525,11 +525,6 @@ void MythUIHelper::LoadQtConfig(void)
     d->m_themepathname = themedir + '/';
     d->m_searchPaths.clear();
 
-    QString qtlook = "qtlook.txt";
-    if (!FindThemeFile(qtlook))
-        LOG(VB_GENERAL, LOG_ERR, LOC + "Failed to find any qtlook.txt in the theme search path");
-
-    d->m_qtThemeSettings->ReadSettings(qtlook);
     d->m_themeloaded = false;
 
     themename = GetMythDB()->GetSetting("MenuTheme", "defaultmenu");
@@ -537,12 +532,7 @@ void MythUIHelper::LoadQtConfig(void)
     if (themename == "default")
         themename = "defaultmenu";
 
-    d->m_menuthemepathname = FindMenuThemeDir(themename) + '/';
-}
-
-Settings *MythUIHelper::qtconfig(void)
-{
-    return d->m_qtThemeSettings;
+    d->m_menuthemepathname = FindMenuThemeDir(themename);
 }
 
 void MythUIHelper::UpdateImageCache(void)
@@ -574,7 +564,11 @@ MythImage *MythUIHelper::GetImageFromCache(const QString &url)
 
     if (d->imageCache.contains(url))
     {
+#if QT_VERSION < QT_VERSION_CHECK(5,8,0)
         d->CacheTrack[url] = MythDate::current().toTime_t();
+#else
+        d->CacheTrack[url] = MythDate::current().toSecsSinceEpoch();
+#endif
         d->imageCache[url]->IncrRef();
         return d->imageCache[url];
     }
@@ -594,13 +588,21 @@ MythImage *MythUIHelper::GetImageFromCache(const QString &url)
 void MythUIHelper::IncludeInCacheSize(MythImage *im)
 {
     if (im)
+#if QT_VERSION < QT_VERSION_CHECK(5,10,0)
         d->m_cacheSize.fetchAndAddOrdered(im->byteCount());
+#else
+        d->m_cacheSize.fetchAndAddOrdered(im->sizeInBytes());
+#endif
 }
 
 void MythUIHelper::ExcludeFromCacheSize(MythImage *im)
 {
     if (im)
+#if QT_VERSION < QT_VERSION_CHECK(5,10,0)
         d->m_cacheSize.fetchAndAddOrdered(-im->byteCount());
+#else
+        d->m_cacheSize.fetchAndAddOrdered(-im->sizeInBytes());
+#endif
 }
 
 MythImage *MythUIHelper::CacheImage(const QString &url, MythImage *im,
@@ -623,12 +625,22 @@ MythImage *MythUIHelper::CacheImage(const QString &url, MythImage *im,
     // delete the oldest cached images until we fall below threshold.
     QMutexLocker locker(d->m_cacheLock);
 
-    while (d->m_cacheSize.fetchAndAddOrdered(0) + im->byteCount() >=
+    while ((d->m_cacheSize.fetchAndAddOrdered(0) +
+#if QT_VERSION < QT_VERSION_CHECK(5,10,0)
+	   im->byteCount()
+#else
+	   im->sizeInBytes()
+#endif
+	    ) >=
            d->m_maxCacheSize.fetchAndAddOrdered(0) &&
            d->imageCache.size())
     {
         QMap<QString, MythImage *>::iterator it = d->imageCache.begin();
+#if QT_VERSION < QT_VERSION_CHECK(5,8,0)
         uint oldestTime = MythDate::current().toTime_t();
+#else
+        qint64 oldestTime = MythDate::current().toSecsSinceEpoch();
+#endif
         QString oldestKey = it.key();
 
         int count = 0;
@@ -654,7 +666,13 @@ MythImage *MythUIHelper::CacheImage(const QString &url, MythImage *im,
         {
             LOG(VB_GUI | VB_FILE, LOG_INFO, LOC +
                 QString("Cache too big (%1), removing :%2:")
-                .arg(d->m_cacheSize.fetchAndAddOrdered(0) + im->byteCount())
+                .arg(d->m_cacheSize.fetchAndAddOrdered(0) +
+#if QT_VERSION < QT_VERSION_CHECK(5,10,0)
+		     im->byteCount()
+#else
+		     im->sizeInBytes()
+#endif
+		     )
                 .arg(oldestKey));
 
             d->imageCache[oldestKey]->SetIsInCache(false);
@@ -674,12 +692,22 @@ MythImage *MythUIHelper::CacheImage(const QString &url, MythImage *im,
     {
         im->IncrRef();
         d->imageCache[url] = im;
+#if QT_VERSION < QT_VERSION_CHECK(5,8,0)
         d->CacheTrack[url] = MythDate::current().toTime_t();
+#else
+        d->CacheTrack[url] = MythDate::current().toSecsSinceEpoch();
+#endif
 
         im->SetIsInCache(true);
         LOG(VB_GUI | VB_FILE, LOG_INFO, LOC +
             QString("NOT IN RAM CACHE, Adding, and adding to size :%1: :%2:")
-            .arg(url).arg(im->byteCount()));
+            .arg(url)
+#if QT_VERSION < QT_VERSION_CHECK(5,10,0)
+	    .arg(im->byteCount())
+#else
+	    .arg(im->sizeInBytes())
+#endif
+	    );
     }
 
     LOG(VB_GUI | VB_FILE, LOG_INFO, LOC +
@@ -766,7 +794,7 @@ bool MythUIHelper::IsImageInCache(const QString &url)
 
 QString MythUIHelper::GetThemeCacheDir(void)
 {
-    static QString oldcachedir = QString::null;
+    static QString oldcachedir;
     QString tmpcachedir = GetThemeBaseCacheDir() + "/" +
                           GetMythDB()->GetSetting("Theme", DEFAULT_UI_THEME) +
                           "." + QString::number(d->m_screenwidth) +
@@ -904,8 +932,11 @@ void MythUIHelper::PruneCacheDir(QString dirname)
     LOG(VB_GENERAL, LOG_INFO, LOC +
         QString("Pruning cache directory: %1").arg(dirname));
     QDateTime cutoff = MythDate::current().addDays(-days);
-    /// todo: Use toSecsSinceEpoch() once Qt 5.8 is min version
+#if QT_VERSION < QT_VERSION_CHECK(5,8,0)
     qint64 cutoffsecs = cutoff.toMSecsSinceEpoch()/1000;
+#else
+    qint64 cutoffsecs = cutoff.toSecsSinceEpoch();
+#endif
 
     LOG(VB_GUI | VB_FILE, LOG_INFO, LOC +
         QString("Removing files not accessed since %1")
@@ -1333,114 +1364,6 @@ QList<ThemeInfo> MythUIHelper::GetThemes(ThemeType type)
     return themeList;
 }
 
-void MythUIHelper::SetPalette(QWidget *widget)
-{
-    QPalette pal = widget->palette();
-
-    const QString names[] = { "Foreground", "Button", "Light", "Midlight",
-                              "Dark", "Mid", "Text", "BrightText", "ButtonText",
-                              "Base", "Background", "Shadow", "Highlight",
-                              "HighlightedText"
-                            };
-
-    QString type = "Active";
-
-    for (int i = 0; i < 13; i++)
-    {
-        QString color = d->m_qtThemeSettings->GetSetting(type + names[i]);
-
-        if (!color.isEmpty())
-            pal.setColor(QPalette::Active, (QPalette::ColorRole) i,
-                         createColor(color));
-    }
-
-    type = "Disabled";
-
-    for (int i = 0; i < 13; i++)
-    {
-        QString color = d->m_qtThemeSettings->GetSetting(type + names[i]);
-
-        if (!color.isEmpty())
-            pal.setColor(QPalette::Disabled, (QPalette::ColorRole) i,
-                         createColor(color));
-    }
-
-    type = "Inactive";
-
-    for (int i = 0; i < 13; i++)
-    {
-        QString color = d->m_qtThemeSettings->GetSetting(type + names[i]);
-
-        if (!color.isEmpty())
-            pal.setColor(QPalette::Inactive, (QPalette::ColorRole) i,
-                         createColor(color));
-    }
-
-    widget->setPalette(pal);
-}
-
-void MythUIHelper::ThemeWidget(QWidget *widget)
-{
-    if (d->m_themeloaded)
-    {
-        widget->setPalette(d->m_palette);
-        return;
-    }
-
-    SetPalette(widget);
-    d->m_palette = widget->palette();
-
-    QPixmap *bgpixmap = NULL;
-
-    if (!d->m_qtThemeSettings->GetSetting("BackgroundPixmap").isEmpty())
-    {
-        QString pmapname = d->m_qtThemeSettings->GetSetting("BackgroundPixmap");
-        if (!FindThemeFile(pmapname))
-            LOG(VB_GENERAL, LOG_ERR, QString(LOC + "Failed to find '%1' in the theme search path")
-                .arg(d->m_qtThemeSettings->GetSetting("BackgroundPixmap")));
-
-        bgpixmap = LoadScalePixmap(pmapname);
-
-        if (bgpixmap)
-        {
-            d->m_palette.setBrush(widget->backgroundRole(), QBrush(*bgpixmap));
-            widget->setPalette(d->m_palette);
-        }
-    }
-    else if (!d->m_qtThemeSettings
-             ->GetSetting("TiledBackgroundPixmap").isEmpty())
-    {
-        QString pmapname = d->m_qtThemeSettings->GetSetting("TiledBackgroundPixmap");
-
-        if (!FindThemeFile(pmapname))
-            LOG(VB_GENERAL, LOG_ERR, QString(LOC + "Failed to find '%1' in the theme search path")
-                .arg(d->m_qtThemeSettings->GetSetting("TiledBackgroundPixmap")));
-
-        int width, height;
-        float wmult, hmult;
-
-        GetScreenSettings(width, wmult, height, hmult);
-
-        bgpixmap = LoadScalePixmap(pmapname);
-
-        if (bgpixmap)
-        {
-            QPixmap background(width, height);
-            QPainter tmp(&background);
-
-            tmp.drawTiledPixmap(0, 0, width, height, *bgpixmap);
-            tmp.end();
-
-            d->m_palette.setBrush(widget->backgroundRole(), QBrush(background));
-            widget->setPalette(d->m_palette);
-        }
-    }
-
-    d->m_themeloaded = true;
-
-    delete bgpixmap;
-}
-
 bool MythUIHelper::FindThemeFile(QString &path)
 {
     QFileInfo fi(path);
@@ -1479,188 +1402,6 @@ bool MythUIHelper::FindThemeFile(QString &path)
     return foundit;
 }
 
-QImage *MythUIHelper::LoadScaleImage(QString filename)
-{
-    LOG(VB_GUI | VB_FILE, LOG_INFO,  LOC +
-        QString("LoadScaleImage(%1)").arg(filename));
-
-    if (filename.isEmpty())
-        return NULL;
-
-    if ((!filename.startsWith("http://")) &&
-        (!filename.startsWith("https://")) &&
-        (!filename.startsWith("ftp://")) &&
-        (!filename.startsWith("myth://")) &&
-        (!FindThemeFile(filename)))
-    {
-        LOG(VB_GENERAL, LOG_ERR, LOC + QString("LoadScaleImage(%1) ")
-            .arg(filename) + "Unable to find image file");
-
-        return NULL;
-    }
-
-    QImage *ret = NULL;
-    QImage tmpimage;
-    int width, height;
-    float wmult, hmult;
-
-    GetScreenSettings(width, wmult, height, hmult);
-
-    if (filename.startsWith("myth://"))
-    {
-        RemoteFile *rf = new RemoteFile(filename, false, false, 0);
-
-        QByteArray data;
-        bool loaded = rf->SaveAs(data);
-        delete rf;
-
-        if (loaded)
-            tmpimage.loadFromData(data);
-        else
-        {
-            LOG(VB_GENERAL, LOG_ERR, LOC +
-                QString("LoadScaleImage(%1) failed to load remote image")
-                .arg(filename));
-        }
-    }
-    else if ((filename.startsWith("http://")) ||
-             (filename.startsWith("https://")) ||
-             (filename.startsWith("ftp://")))
-    {
-        QByteArray data;
-
-        if (GetMythDownloadManager()->download(filename, &data))
-            tmpimage.loadFromData(data);
-        else
-        {
-            LOG(VB_GENERAL, LOG_ERR, LOC +
-                QString("LoadScaleImage(%1) failed to load remote image")
-                .arg(filename));
-        }
-    }
-    else
-    {
-        tmpimage.load(filename);
-    }
-
-    if (tmpimage.isNull())
-    {
-        LOG(VB_GENERAL, LOG_ERR, LOC +
-            QString("LoadScaleImage(%1) failed to load image")
-            .arg(filename));
-
-        return NULL;
-    }
-
-    if (width != d->m_baseWidth || height != d->m_baseHeight)
-    {
-        QImage tmp2 = tmpimage.scaled(
-                          (int)(tmpimage.width() * wmult),
-                          (int)(tmpimage.height() * hmult),
-                          Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
-
-        ret = new QImage(tmp2);
-    }
-    else
-    {
-        ret = new QImage(tmpimage);
-
-        if (!ret->width() || !ret->height())
-        {
-            LOG(VB_GENERAL, LOG_ERR, LOC +
-                QString("LoadScaleImage(%1) invalid image dimensions")
-                .arg(filename));
-
-            delete ret;
-            return NULL;
-        }
-    }
-
-    return ret;
-}
-
-QPixmap *MythUIHelper::LoadScalePixmap(QString filename)
-{
-    LOG(VB_GUI | VB_FILE, LOG_INFO, LOC +
-        QString("LoadScalePixmap(%1)").arg(filename));
-
-    if (filename.isEmpty())
-        return NULL;
-
-    if (!FindThemeFile(filename) && (!filename.startsWith("myth:")))
-    {
-        LOG(VB_GENERAL, LOG_ERR, LOC + QString("LoadScalePixmap(%1)")
-            .arg(filename) + "Unable to find image file");
-
-        return NULL;
-    }
-
-    QPixmap *ret = NULL;
-    QImage tmpimage;
-    int width, height;
-    float wmult, hmult;
-
-    GetScreenSettings(width, wmult, height, hmult);
-
-    if (filename.startsWith("myth://"))
-    {
-        RemoteFile *rf = new RemoteFile(filename, false, false, 0);
-
-        QByteArray data;
-        bool loaded = rf->SaveAs(data);
-        delete rf;
-
-        if (loaded)
-        {
-            tmpimage.loadFromData(data);
-        }
-        else
-        {
-            LOG(VB_GENERAL, LOG_ERR, LOC +
-                QString("LoadScalePixmap(%1): failed to load remote image")
-                .arg(filename));
-        }
-    }
-    else
-    {
-        tmpimage.load(filename);
-    }
-
-    if (width != d->m_baseWidth || height != d->m_baseHeight)
-    {
-        if (tmpimage.isNull())
-        {
-            LOG(VB_GENERAL, LOG_ERR, LOC +
-                QString("LoadScalePixmap(%1) failed to load image")
-                .arg(filename));
-
-            return NULL;
-        }
-
-        QImage tmp2 = tmpimage.scaled((int)(tmpimage.width() * wmult),
-                                      (int)(tmpimage.height() * hmult),
-                                      Qt::IgnoreAspectRatio,
-                                      Qt::SmoothTransformation);
-        ret = new QPixmap(QPixmap::fromImage(tmp2));
-    }
-    else
-    {
-        ret = new QPixmap(QPixmap::fromImage(tmpimage));
-
-        if (!ret->width() || !ret->height())
-        {
-            LOG(VB_GENERAL, LOG_ERR, LOC +
-                QString("LoadScalePixmap(%1) invalid image dimensions")
-                .arg(filename));
-
-            delete ret;
-            return NULL;
-        }
-    }
-
-    return ret;
-}
-
 MythImage *MythUIHelper::LoadCacheImage(QString srcfile, QString label,
                                         MythPainter *painter,
                                         ImageCacheMode cacheMode)
@@ -1682,7 +1423,11 @@ MythImage *MythUIHelper::LoadCacheImage(QString srcfile, QString label,
 
         // This only applies to the MEMORY cache
         const uint kImageCacheTimeout = 60;
+#if QT_VERSION < QT_VERSION_CHECK(5,8,0)
         uint now = MythDate::current().toTime_t();
+#else
+        qint64 now = MythDate::current().toSecsSinceEpoch();
+#endif
 
         QMutexLocker locker(d->m_cacheLock);
 

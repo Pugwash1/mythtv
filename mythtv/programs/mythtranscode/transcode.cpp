@@ -181,7 +181,7 @@ static QString get_str_option(RecordingProfile *profile, const QString &name)
     LOG(VB_GENERAL, LOG_ERR, LOC +
         QString("get_str_option(...%1): Option not in profile.").arg(name));
 
-    return QString::null;
+    return QString();
 }
 
 static int get_int_option(RecordingProfile *profile, const QString &name)
@@ -1075,7 +1075,7 @@ int Transcode::TranscodeFile(const QString &inputname,
     VideoOutput *videoOutput = GetPlayer()->GetVideoOutput();
     bool is_key = 0;
     bool first_loop = true;
-    AVPicture imageIn, imageOut;
+    AVFrame imageIn, imageOut;
     struct SwsContext  *scontext = NULL;
 
     if (fifow)

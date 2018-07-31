@@ -18,7 +18,6 @@ using namespace std;
 #include "filesysteminfo.h"
 #include "recordinginfo.h"
 #include "remoteutil.h"
-#include "inputgroupmap.h"
 #include "mythdeque.h"
 #include "mythscheduler.h"
 #include "mthread.h"
@@ -73,6 +72,8 @@ class Scheduler : public MThread, public MythScheduler
     { Reschedule(ScheduledRecording::BuildPlaceRequest(why)); };
 
     void AddRecording(const RecordingInfo&);
+    void AddRecording(const ProgramInfo& prog)
+    { AddRecording(RecordingInfo(prog)); };
     void FillRecordListFromDB(uint recordid = 0);
     void FillRecordListFromMaster(void);
 
@@ -119,6 +120,8 @@ class Scheduler : public MThread, public MythScheduler
     RecStatus::Type GetRecStatus(const ProgramInfo &pginfo);
 
     int GetError(void) const { return error; }
+
+    void AddChildInput(uint parentid, uint childid);
 
   protected:
     virtual void run(void); // MThread

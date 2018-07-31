@@ -48,7 +48,9 @@ class Dvr : public DvrServices
                                                 int              Count,
                                                 const QString   &TitleRegEx,
                                                 const QString   &RecGroup,
-                                                const QString   &StorageGroup );
+                                                const QString   &StorageGroup,
+                                                const QString   &Category,
+                                                const QString   &Sort);
 
         DTC::ProgramList* GetOldRecordedList  ( bool             Descending,
                                                 int              StartIndex,
@@ -131,6 +133,8 @@ class Dvr : public DvrServices
         DTC::InputList*   GetInputList        ( );
 
         QStringList       GetRecGroupList     ( );
+
+        QStringList       GetProgramCategories   ( bool OnlyRecorded );
 
         QStringList       GetRecStorageGroupList ( );
 
@@ -269,6 +273,15 @@ class Dvr : public DvrServices
         QString           DupInToString        ( QString          DupIn     );
 
         QString           DupInToDescription   ( QString          DupIn     );
+
+        int               ManageJobQueue       ( const QString   &Action,
+                                                 const QString   &JobName,
+                                                 int              JobId,
+                                                 int              RecordedId,
+                                                       QDateTime  JobStartTime,
+                                                       QString    RemoteHost,
+                                                       QString    JobArgs   );
+
 };
 
 // --------------------------------------------------------------------------
@@ -318,12 +331,15 @@ class ScriptableDvr : public QObject
                                        int              Count,
                                        const QString   &TitleRegEx,
                                        const QString   &RecGroup,
-                                       const QString   &StorageGroup)
+                                       const QString   &StorageGroup,
+                                       const QString   &Category,
+                                       const QString   &Sort
+                                     )
         {
             SCRIPT_CATCH_EXCEPTION( NULL,
                 return m_obj.GetRecordedList( Descending, StartIndex, Count,
                                               TitleRegEx, RecGroup,
-                                              StorageGroup);
+                                              StorageGroup, Category, Sort);
             )
         }
 
@@ -628,6 +644,27 @@ class ScriptableDvr : public QObject
                 return m_obj.DupInToDescription( DupIn );
             )
         }
+
+        int ManageJobQueue( const QString   &Action,
+                            const QString   &JobName,
+                            int              JobId,
+                            int              RecordedId,
+                                  QDateTime  JobStartTime,
+                                  QString    RemoteHost,
+                                  QString    JobArgs )
+
+        {
+            SCRIPT_CATCH_EXCEPTION( false,
+                return m_obj.ManageJobQueue( Action,
+                                             JobName,
+                                             JobId,
+                                             RecordedId,
+                                             JobStartTime,
+                                             RemoteHost,
+                                             JobArgs );
+            )
+        }
+
 };
 
 Q_SCRIPT_DECLARE_QMETAOBJECT_MYTHTV( ScriptableDvr, QObject*)

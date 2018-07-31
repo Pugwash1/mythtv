@@ -3,16 +3,17 @@
 
 #include <qglobal.h>
 #include "mythbaseexp.h"
+#include "mythconfig.h"
 #include "version.h"
 
-#if ( QT_VERSION < 0x050200 )
-#error You need Qt version >= 5.2.0 to compile MythTV.
+#if ( QT_VERSION < QT_MIN_VERSION )
+#error "You need a newer version of Qt to compile MythTV. Please re-run 'configure'."
 #endif
 
 /// Update this whenever the plug-in ABI changes.
 /// Including changes in the libmythbase, libmyth, libmythtv, libmythav* and
 /// libmythui class methods in exported headers.
-#define MYTH_BINARY_VERSION "30.20171120-1"
+#define MYTH_BINARY_VERSION "30.20180319-1"
 
 /** \brief Increment this whenever the MythTV network protocol changes.
  *   Note that the token currently cannot contain spaces.
@@ -46,6 +47,16 @@
  */
 #define MYTH_PROTO_VERSION "91"
 #define MYTH_PROTO_TOKEN "BuzzOff"
+/*
+ *  Protocol cleanups needed:
+ *
+ *  Inconsistent handling of invalid QDateTime objects:
+ *    QUERY_PIXMAP_GET_IF_MODIFIED -> QString("-1")
+ *    QUERY_PIXMAP_LASTMODIFIED    -> "BAD"
+ *    QUERY_SG_FILEQUERY           -> QString((uint)-1) -> "4294967295"
+ *    Everything that serializes ProgramInfo
+ *                                 -> QString((uint)-1) -> "4294967295"
+ */
 
 /** \brief Increment this whenever the MythTV core database schema changes.
  *

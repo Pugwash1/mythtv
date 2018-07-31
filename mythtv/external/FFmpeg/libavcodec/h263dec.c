@@ -33,6 +33,7 @@
 #include "flv.h"
 #include "h263.h"
 #include "h263_parser.h"
+#include "hwaccel.h"
 #include "internal.h"
 #include "mpeg_er.h"
 #include "mpeg4video.h"
@@ -41,12 +42,17 @@
 #include "mpegvideo.h"
 #include "msmpeg4.h"
 #include "qpeldsp.h"
-#include "vdpau_compat.h"
 #include "thread.h"
 #include "wmv2.h"
 
 static enum AVPixelFormat h263_get_format(AVCodecContext *avctx)
 {
+    /* MPEG-4 Studio Profile only, not supported by hardware */
+    if (avctx->bits_per_raw_sample > 8) {
+        av_assert1(avctx->profile == FF_PROFILE_MPEG4_SIMPLE_STUDIO);
+        return avctx->pix_fmt;
+    }
+
     if (avctx->codec->id == AV_CODEC_ID_MSS2)
         return AV_PIX_FMT_YUV420P;
 
@@ -197,6 +203,11 @@ static int decode_slice(MpegEncContext *s)
 
     ff_set_qscale(s, s->qscale);
 
+    if (s->studio_profile) {
+        if ((ret = ff_mpeg4_decode_studio_slice_header(s->avctx->priv_data)) < 0)
+            return ret;
+    }
+
     if (s->avctx->hwaccel) {
         const uint8_t *start = s->gb.buffer + get_bits_count(&s->gb) / 8;
         ret = s->avctx->hwaccel->decode_slice(s->avctx, start, s->gb.buffer_end - start);
@@ -261,7 +272,7 @@ static int decode_slice(MpegEncContext *s)
             if (ret < 0) {
                 const int xy = s->mb_x + s->mb_y * s->mb_stride;
                 if (ret == SLICE_END) {
-                    ff_mpv_decode_mb(s, s->block);
+                    ff_mpv_reconstruct_mb(s, s->block);
                     if (s->loop_filter)
                         ff_h263_loop_filter(s);
 
@@ -294,7 +305,7 @@ static int decode_slice(MpegEncContext *s)
                 return AVERROR_INVALIDDATA;
             }
 
-            ff_mpv_decode_mb(s, s->block);
+            ff_mpv_reconstruct_mb(s, s->block);
             if (s->loop_filter)
                 ff_h263_loop_filter(s);
         }
@@ -534,6 +545,8 @@ retry:
     if (CONFIG_MPEG4_DECODER && avctx->codec_id == AV_CODEC_ID_MPEG4) {
         if (ff_mpeg4_workaround_bugs(avctx) == 1)
             goto retry;
+        if (s->studio_profile != (s->idsp.idct == NULL))
+            ff_mpv_idct_init(s);
     }
 
     /* After H.263 & MPEG-4 header decode we have the height, width,
@@ -600,15 +613,8 @@ retry:
     if ((ret = ff_mpv_frame_start(s, avctx)) < 0)
         return ret;
 
-    if (!s->divx_packed && !avctx->hwaccel)
+    if (!s->divx_packed)
         ff_thread_finish_setup(avctx);
-
-#if FF_API_CAP_VDPAU
-    if (CONFIG_MPEG4_VDPAU_DECODER && (s->avctx->codec->capabilities & AV_CODEC_CAP_HWACCEL_VDPAU)) {
-        ff_vdpau_mpeg4_decode_picture(avctx->priv_data, s->gb.buffer, s->gb.buffer_end - s->gb.buffer);
-        goto frame_end;
-    }
-#endif
 
     if (avctx->hwaccel) {
         ret = avctx->hwaccel->start_frame(avctx, s->gb.buffer,
@@ -637,7 +643,7 @@ retry:
     slice_ret = decode_slice(s);
     while (s->mb_y < s->mb_height) {
         if (s->msmpeg4_version) {
-            if (s->slice_height == 0 || s->mb_x != 0 ||
+            if (s->slice_height == 0 || s->mb_x != 0 || slice_ret < 0 ||
                 (s->mb_y % s->slice_height) != 0 || get_bits_left(&s->gb) < 0)
                 break;
         } else {
@@ -713,7 +719,7 @@ frame_end:
     }
 
     if (slice_ret < 0 && (avctx->err_recognition & AV_EF_EXPLODE))
-        return ret;
+        return slice_ret;
     else
         return get_consumed_bytes(s, buf_size);
 }
@@ -721,6 +727,9 @@ frame_end:
 const enum AVPixelFormat ff_h263_hwaccel_pixfmt_list_420[] = {
 #if CONFIG_H263_VAAPI_HWACCEL || CONFIG_MPEG4_VAAPI_HWACCEL
     AV_PIX_FMT_VAAPI,
+#endif
+#if CONFIG_MPEG4_NVDEC_HWACCEL
+    AV_PIX_FMT_CUDA,
 #endif
 #if CONFIG_MPEG4_VDPAU_HWACCEL
     AV_PIX_FMT_VDPAU,
@@ -743,6 +752,7 @@ AVCodec ff_h263_decoder = {
     .decode         = ff_h263_decode_frame,
     .capabilities   = AV_CODEC_CAP_DRAW_HORIZ_BAND | AV_CODEC_CAP_DR1 |
                       AV_CODEC_CAP_TRUNCATED | AV_CODEC_CAP_DELAY,
+    .caps_internal  = FF_CODEC_CAP_SKIP_FRAME_FILL_PARAM,
     .flush          = ff_mpeg_flush,
     .max_lowres     = 3,
     .pix_fmts       = ff_h263_hwaccel_pixfmt_list_420,
@@ -759,7 +769,20 @@ AVCodec ff_h263p_decoder = {
     .decode         = ff_h263_decode_frame,
     .capabilities   = AV_CODEC_CAP_DRAW_HORIZ_BAND | AV_CODEC_CAP_DR1 |
                       AV_CODEC_CAP_TRUNCATED | AV_CODEC_CAP_DELAY,
+    .caps_internal  = FF_CODEC_CAP_SKIP_FRAME_FILL_PARAM,
     .flush          = ff_mpeg_flush,
     .max_lowres     = 3,
     .pix_fmts       = ff_h263_hwaccel_pixfmt_list_420,
+    .hw_configs     = (const AVCodecHWConfigInternal*[]) {
+#if CONFIG_H263_VAAPI_HWACCEL
+                        HWACCEL_VAAPI(h263),
+#endif
+#if CONFIG_MPEG4_VDPAU_HWACCEL
+                        HWACCEL_VDPAU(mpeg4),
+#endif
+#if CONFIG_H263_VIDEOTOOLBOX_HWACCEL
+                        HWACCEL_VIDEOTOOLBOX(h263),
+#endif
+                        NULL
+                    },
 };

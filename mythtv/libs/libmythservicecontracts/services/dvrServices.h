@@ -45,7 +45,7 @@
 class SERVICE_PUBLIC DvrServices : public Service  //, public QScriptable ???
 {
     Q_OBJECT
-    Q_CLASSINFO( "version"    , "6.4" )
+    Q_CLASSINFO( "version"    , "6.6" )
     Q_CLASSINFO( "RemoveRecorded_Method",                       "POST" )
     Q_CLASSINFO( "DeleteRecording_Method",                      "POST" )
     Q_CLASSINFO( "UnDeleteRecording",                           "POST" )
@@ -57,6 +57,7 @@ class SERVICE_PUBLIC DvrServices : public Service  //, public QScriptable ???
     Q_CLASSINFO( "AddDontRecordSchedule",                       "POST" )
     Q_CLASSINFO( "EnableRecordSchedule_Method",                 "POST" )
     Q_CLASSINFO( "DisableRecordSchedule_Method",                "POST" )
+    Q_CLASSINFO( "ManageJobQueue_Method",                       "POST" )
 
 
     public:
@@ -85,7 +86,9 @@ class SERVICE_PUBLIC DvrServices : public Service  //, public QScriptable ???
                                                            int              Count,
                                                            const QString   &TitleRegEx,
                                                            const QString   &RecGroup,
-                                                           const QString   &StorageGroup ) = 0;
+                                                           const QString   &StorageGroup,
+                                                           const QString   &Category,
+                                                           const QString   &Sort) = 0;
 
         virtual DTC::ProgramList* GetOldRecordedList     ( bool             Descending,
                                                            int              StartIndex,
@@ -167,6 +170,8 @@ class SERVICE_PUBLIC DvrServices : public Service  //, public QScriptable ???
         virtual DTC::InputList*    GetInputList          ( ) = 0;
 
         virtual QStringList        GetRecGroupList       ( ) = 0;
+
+        virtual QStringList        GetProgramCategories  ( bool OnlyRecorded ) = 0;
 
         virtual QStringList        GetRecStorageGroupList ( ) = 0;
 
@@ -307,6 +312,15 @@ class SERVICE_PUBLIC DvrServices : public Service  //, public QScriptable ???
         virtual QString            DupInToString         ( QString          DupIn     ) = 0;
 
         virtual QString            DupInToDescription    ( QString          DupIn     ) = 0;
+
+        virtual int                ManageJobQueue        ( const QString   &Action,
+                                                           const QString   &JobName,
+                                                           int              JobId,
+                                                           int              RecordedId,
+                                                                 QDateTime  JobStartTime,
+                                                                 QString    RemoteHost,
+                                                                 QString    JobArgs   ) = 0;
+
 };
 
 #endif

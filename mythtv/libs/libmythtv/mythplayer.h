@@ -138,7 +138,7 @@ class MTV_PUBLIC MythPlayer
     friend class Transcode;
 
   public:
-    MythPlayer(PlayerFlags flags = kNoFlags);
+    explicit MythPlayer(PlayerFlags flags = kNoFlags);
     MythPlayer(const MythPlayer& rhs);
     virtual ~MythPlayer();
 
@@ -239,6 +239,7 @@ class MTV_PUBLIC MythPlayer
     virtual char *GetScreenGrab(int secondsin, int &bufflen,
                                 int &vw, int &vh, float &ar);
     InteractiveTV *GetInteractiveTV(void);
+    VideoOutput *GetVideoOutput(void)       { return videoOutput; }
 
     // Title stuff
     virtual bool SwitchTitle(int /*title*/) { return false; }
@@ -373,6 +374,7 @@ class MTV_PUBLIC MythPlayer
     static const double kInaccuracyFull;
 
     void SaveTotalFrames(void);
+    void SetErrored(const QString &reason);
 
   protected:
     // Initialization
@@ -404,7 +406,6 @@ class MTV_PUBLIC MythPlayer
     MuteState IncrMuteState(void)           { return audio.IncrMuteState();      }
 
     // Non-const gets
-    VideoOutput *GetVideoOutput(void)       { return videoOutput; }
     OSD         *GetOSD(void)               { return osd;         }
     virtual void SeekForScreenGrab(uint64_t &number, uint64_t frameNum,
                                    bool absolute);
@@ -563,7 +564,6 @@ class MTV_PUBLIC MythPlayer
     // Private Sets
     void SetPlayingInfo(const ProgramInfo &pginfo);
     void SetPlaying(bool is_playing);
-    void SetErrored(const QString &reason);
     void ResetErrored(void);
 
     // Private Gets
@@ -694,6 +694,7 @@ class MTV_PUBLIC MythPlayer
     /// How often we have tried to wait for a video output buffer and failed
     int       videobuf_retries;
     uint64_t  framesPlayed;
+    uint64_t  prebufferFramesPlayed;
     // "Fake" frame counter for when the container frame rate doesn't
     // match the stream frame rate.
     uint64_t  framesPlayedExtra;
@@ -809,6 +810,7 @@ class MTV_PUBLIC MythPlayer
     bool       normal_speed;
     int        frame_interval;///< always adjusted for play_speed
     int        m_frame_interval;///< used to detect changes to frame_interval
+    int        m_fpsMultiplier;///< used to detect changes
 
     int        ffrew_skip;
     int        ffrew_adjust;

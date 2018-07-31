@@ -1,10 +1,7 @@
 include ( ../../settings.pro )
 
-QT += network xml sql script
-contains(QT_VERSION, ^5\\.[0-9]\\..*) {
-QT += widgets
+QT += network xml sql script widgets
 android: QT += androidextras
-}
 
 TEMPLATE = lib
 TARGET = myth-$$LIBVERSION
@@ -93,7 +90,7 @@ SOURCES += netgrabbermanager.cpp
 INCLUDEPATH += ../../external/libsamplerate ../../external/libmythsoundtouch ../libmythfreesurround
 INCLUDEPATH += ../libmythbase
 INCLUDEPATH += ../.. ../ ./ ../libmythupnp ../libmythui
-INCLUDEPATH += ../../external/FFmpeg
+INCLUDEPATH += ../.. ../../external/FFmpeg
 #INCLUDEPATH += ../../external/libmythbluray
 INCLUDEPATH += ../libmythservicecontracts
 INCLUDEPATH += $${POSTINC}
@@ -130,7 +127,7 @@ LIBS += -L../libmythservicecontracts         -lmythservicecontracts-$${LIBVERSIO
 # Install headers so that plugins can compile independently
 inc.path = $${PREFIX}/include/mythtv/
 inc.files  = dialogbox.h mythcontext.h
-inc.files += mythwidgets.h remotefile.h oldsettings.h volumecontrol.h
+inc.files += mythwidgets.h remotefile.h volumecontrol.h
 inc.files += settings.h mythdialogs.h
 inc.files += audio/audiooutput.h audio/audiosettings.h
 inc.files += audio/audiooutputsettings.h audio/audiooutpututil.h
@@ -177,11 +174,7 @@ unix:!cygwin {
     SOURCES += mediamonitor-unix.cpp
     HEADERS += mediamonitor-unix.h
     !android {
-    contains(QT_VERSION, ^5\\.[0-9]\\..*) {
         using_qtdbus: QT += dbus
-    } else {
-        using_qtdbus: CONFIG += qdbus
-    }
     }
 }
 
@@ -279,3 +272,10 @@ LIBS += $$EXTRA_LIBS $$LATE_LIBS
 
 DISTFILES += \
     Makefile
+
+test_clean.commands = -cd test/ && $(MAKE) -f Makefile clean
+clean.depends = test_clean
+QMAKE_EXTRA_TARGETS += test_clean clean
+test_distclean.commands = -cd test/ && $(MAKE) -f Makefile distclean
+distclean.depends = test_distclean
+QMAKE_EXTRA_TARGETS += test_distclean distclean

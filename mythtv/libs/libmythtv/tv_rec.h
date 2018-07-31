@@ -9,6 +9,7 @@
 #include <QString>
 #include <QMap>
 #include <QMutex>                       // for QMutex
+#include <QReadWriteLock>
 #include <QHash>                        // for QHash
 
 // C++ headers
@@ -18,7 +19,6 @@
 #include "mythtimer.h"
 #include "mthread.h"
 #include "inputinfo.h"
-#include "inputgroupmap.h"
 #include "mythdeque.h"
 #include "recordinginfo.h"
 #include "tv.h"
@@ -105,12 +105,12 @@ class TuningRequest
 {
   public:
     explicit TuningRequest(uint f) :
-        flags(f), program(NULL), channel(QString::null),
-        input(QString::null), majorChan(0), minorChan(0), progNum(-1) {;}
+        flags(f), program(NULL),
+        majorChan(0), minorChan(0), progNum(-1) {;}
     TuningRequest(uint f, RecordingInfo *p) :
-        flags(f), program(p), channel(QString::null),
-        input(QString::null), majorChan(0), minorChan(0), progNum(-1) {;}
-    TuningRequest(uint f, QString ch, QString in = QString::null) :
+        flags(f), program(p),
+        majorChan(0), minorChan(0), progNum(-1) {;}
+    TuningRequest(uint f, QString ch, QString in = QString()) :
         flags(f), program(NULL), channel(ch),
         input(in), majorChan(0), minorChan(0), progNum(-1) {;}
 
@@ -301,9 +301,6 @@ class MTV_PUBLIC TVRec : public SignalMonitorListener, public QRunnable
     void TuningNewRecorder(MPEGStreamData*);
     void TuningRestartRecorder(void);
     QString TuningGetChanNum(const TuningRequest&, QString &input) const;
-    uint TuningCheckForHWChange(const TuningRequest&,
-                                QString &channum,
-                                QString &inputname);
     bool TuningOnSameMultiplex(TuningRequest &request);
 
     void HandleStateChange(void);
@@ -371,7 +368,6 @@ class MTV_PUBLIC TVRec : public SignalMonitorListener, public QRunnable
     int     overRecordSecNrml;
     int     overRecordSecCat;
     QString overRecordCategory;
-    InputGroupMap igrp;
 
     // Configuration variables from setup routines
     uint              inputid;
@@ -430,7 +426,7 @@ class MTV_PUBLIC TVRec : public SignalMonitorListener, public QRunnable
     QString      rbFileExt;
 
   public:
-    static QMutex            inputsLock;
+    static QReadWriteLock    inputsLock;
     static QMap<uint,TVRec*> inputs;
 
   public:

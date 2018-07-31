@@ -130,7 +130,7 @@ MetadataLookup::MetadataLookup(
     uint subtitletype,
     const QString &certification,
     const QStringList &countries,
-    const uint popularity,
+    const float popularity,
     const uint budget,
     const uint revenue,
     const QString &album,
@@ -219,6 +219,9 @@ MetadataLookup::MetadataLookup(
     m_artwork(artwork),
     m_downloads(downloads)
 {
+    QString manRecSuffix = QString(" (%1)").arg(QObject::tr("Manual Record"));
+    m_base_title = title;
+    m_base_title.replace(manRecSuffix,"");
 }
 
 // ProgramInfo-style constructor
@@ -312,6 +315,9 @@ MetadataLookup::MetadataLookup(
     m_popularity = 0;
     m_budget = 0;
     m_revenue = 0;
+    QString manRecSuffix = QString(" (%1)").arg(QObject::tr("Manual Record"));
+    m_base_title = title;
+    m_base_title.replace(manRecSuffix,"");
 }
 
 // XBMC NFO-style constructor
@@ -388,6 +394,9 @@ MetadataLookup::MetadataLookup(
     m_artwork(artwork),
     m_downloads(downloads)
 {
+    QString manRecSuffix = QString(" (%1)").arg(QObject::tr("Manual Record"));
+    m_base_title = title;
+    m_base_title.replace(manRecSuffix,"");
 }
 
 MetadataLookup::~MetadataLookup()
@@ -470,20 +479,6 @@ void MetadataLookup::toMap(InfoMap &metadataMap)
         m_releasedate, MythDate::kDateFull);
     metadataMap["lastupdated"] = MythDate::toString(m_lastupdated, MythDate::kDateFull);
 
-#if QT_VERSION < 0x050000
-    metadataMap["runtime"] = QCoreApplication::translate("(Common)",
-                                                         "%n minute(s)",
-                                                         "",
-                                                         QCoreApplication::UnicodeUTF8,
-                                                         m_runtime);
-
-
-    metadataMap["runtimesecs"] = QCoreApplication::translate("(Common)",
-                                                             "%n second(s)",
-                                                             "",
-                                                             QCoreApplication::UnicodeUTF8,
-                                                             m_runtimesecs);
-#else
     metadataMap["runtime"] = QCoreApplication::translate("(Common)",
                                                          "%n minute(s)",
                                                          "",
@@ -494,7 +489,6 @@ void MetadataLookup::toMap(InfoMap &metadataMap)
                                                              "%n second(s)",
                                                              "",
                                                              m_runtimesecs);
-#endif
     metadataMap["inetref"] = m_inetref;
     metadataMap["collectionref"] = m_collectionref;
     metadataMap["tmsref"] = m_tmsref;
@@ -1002,7 +996,7 @@ MetadataLookup* ParseMetadataItem(const QDomElement& item,
 
     uint season = 0, episode = 0, chanid = 0, programflags = 0,
          audioproperties = 0, videoproperties = 0, subtitletype = 0,
-         tracknum = 0, popularity = 0, budget = 0, revenue = 0,
+         tracknum = 0, budget = 0, revenue = 0,
          year = 0, runtime = 0, runtimesecs = 0, ratingcount = 0;
     QString title, network, status, subtitle, tagline, description, certification,
         channum, chansign, channame, chanplaybackfilters, recgroup,
@@ -1010,6 +1004,7 @@ MetadataLookup* ParseMetadataItem(const QDomElement& item,
         inetref, collectionref, tmsref, imdb, homepage, trailerURL, language;
     QStringList categories, countries, studios;
     float userrating = 0;
+    float popularity = 0;
     QDate releasedate;
     QDateTime lastupdated, startts, endts, recstartts, recendts;
     PeopleMap people;
@@ -1064,7 +1059,7 @@ MetadataLookup* ParseMetadataItem(const QDomElement& item,
     userrating = item.firstChildElement("userrating").text().toFloat();
     ratingcount = item.firstChildElement("ratingcount").text().toUInt();
     tracknum = item.firstChildElement("tracknum").text().toUInt();
-    popularity = item.firstChildElement("popularity").text().toUInt();
+    popularity = item.firstChildElement("popularity").text().toFloat();
     budget = item.firstChildElement("budget").text().toUInt();
     revenue = item.firstChildElement("revenue").text().toUInt();
     year = item.firstChildElement("year").text().toUInt();

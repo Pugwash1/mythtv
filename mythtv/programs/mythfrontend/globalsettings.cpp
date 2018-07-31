@@ -171,6 +171,24 @@ static HostCheckBoxSetting *RememberRecGroup()
     return gc;
 }
 
+static HostCheckBoxSetting *RecGroupMod()
+{
+    HostCheckBoxSetting *gc = new HostCheckBoxSetting("RecGroupsFocusable");
+
+    gc->setLabel(PlaybackSettings::tr("Change Recording Group using the arrow "
+                                      "keys"));
+
+    gc->setValue(false);
+
+    gc->setHelpText(PlaybackSettings::tr("If enabled, change recording group "
+                                         "directly using the arrow keys "
+                                         "instead of having to use < and >. "
+                                         "Requires theme support for this "
+                                         "feature."));
+    return gc;
+}
+
+
 static HostCheckBoxSetting *PBBStartInTitle()
 {
     HostCheckBoxSetting *gc = new HostCheckBoxSetting("PlaybackBoxStartInTitle");
@@ -1215,80 +1233,8 @@ static HostComboBoxSetting * CurrentPlaybackProfile()
                                     "Current Video Playback Profile"));
 
     QString host = gCoreContext->GetHostName();
+    VideoDisplayProfile::CreateProfiles(host);
     QStringList profiles = VideoDisplayProfile::GetProfiles(host);
-    if (profiles.empty())
-    {
-        VideoDisplayProfile::CreateProfiles(host);
-        profiles = VideoDisplayProfile::GetProfiles(host);
-    }
-    if (profiles.empty())
-        return grouptrigger;
-
-    if (!profiles.contains("Normal") &&
-        !profiles.contains("High Quality") &&
-        !profiles.contains("Slim"))
-    {
-        VideoDisplayProfile::CreateNewProfiles(host);
-        profiles = VideoDisplayProfile::GetProfiles(host);
-    }
-
-#ifdef USING_VDPAU
-    if (!profiles.contains("VDPAU Normal") &&
-        !profiles.contains("VDPAU High Quality") &&
-        !profiles.contains("VDPAU Slim"))
-    {
-        VideoDisplayProfile::CreateVDPAUProfiles(host);
-        profiles = VideoDisplayProfile::GetProfiles(host);
-    }
-#endif
-
-#if defined(Q_OS_MACX)
-    if (VDALibrary::GetVDALibrary() != NULL)
-    {
-        if (!profiles.contains("VDA Normal") &&
-            !profiles.contains("VDA High Quality") &&
-            !profiles.contains("VDA Slim"))
-        {
-            VideoDisplayProfile::CreateVDAProfiles(host);
-            profiles = VideoDisplayProfile::GetProfiles(host);
-        }
-    }
-#endif
-
-#ifdef USING_OPENGL_VIDEO
-    if (!profiles.contains("OpenGL Normal") &&
-        !profiles.contains("OpenGL High Quality") &&
-        !profiles.contains("OpenGL Slim"))
-    {
-        VideoDisplayProfile::CreateOpenGLProfiles(host);
-        profiles = VideoDisplayProfile::GetProfiles(host);
-    }
-#endif
-
-#ifdef USING_GLVAAPI
-    if (!profiles.contains("VAAPI Normal"))
-    {
-        VideoDisplayProfile::CreateVAAPIProfiles(host);
-        profiles = VideoDisplayProfile::GetProfiles(host);
-    }
-#endif
-
-#ifdef USING_OPENMAX
-    if (!profiles.contains("OpenMAX Normal") &&
-        !profiles.contains("OpenMAX High Quality"))
-    {
-        VideoDisplayProfile::CreateOpenMAXProfiles(host);
-        profiles = VideoDisplayProfile::GetProfiles(host);
-    }
-    // Special case for user upgrading from version that only
-    // has OpenMAX Normal
-    else if (!profiles.contains("OpenMAX High Quality"))
-    {
-        VideoDisplayProfile::CreateOpenMAXProfiles(host,1);
-        profiles = VideoDisplayProfile::GetProfiles(host);
-    }
-#endif
-
 
     QString profile = VideoDisplayProfile::GetDefaultProfileName(host);
     if (!profiles.contains(profile))
@@ -1657,20 +1603,20 @@ static HostCheckBoxSetting *ClearSavedPosition()
     return gc;
 }
 
-static HostCheckBoxSetting *AltClearSavedPosition()
+static HostCheckBoxSetting *UseProgStartMark()
 {
-    HostCheckBoxSetting *gc = new HostCheckBoxSetting("AltClearSavedPosition");
+    HostCheckBoxSetting *gc = new HostCheckBoxSetting("UseProgStartMark");
 
-    gc->setLabel(PlaybackSettings::tr("Alternate clear and save bookmark"));
+    gc->setLabel(PlaybackSettings::tr("Playback from start of program"));
 
-    gc->setValue(true);
+    gc->setValue(false);
 
-    gc->setHelpText(PlaybackSettings::tr("During playback the SELECT key "
-                                         "(Enter or Space) will alternate "
-                                         "between \"Bookmark Saved\" and "
-                                         "\"Bookmark Cleared\". If disabled, "
-                                         "the SELECT key will save the current "
-                                         "position for each keypress."));
+    gc->setHelpText(PlaybackSettings::tr("If enabled and no bookmark is set, "
+                                         "playback starts at the program "
+                                         "scheduled start time rather than "
+                                         "the beginning of the recording. "
+                                         "Useful for automatically skipping "
+                                         "'start early' parts of a recording."));
     return gc;
 }
 
@@ -2058,7 +2004,7 @@ static HostComboBoxSetting *AdjustFill()
 
 static HostSpinBoxSetting *GuiWidth()
 {
-    HostSpinBoxSetting *gs = new HostSpinBoxSetting("GuiWidth", 0, 1920, 8, true);
+    HostSpinBoxSetting *gs = new HostSpinBoxSetting("GuiWidth", 0, 3840, 8, true);
 
     gs->setLabel(AppearanceSettings::tr("GUI width (pixels)"));
 
@@ -2074,7 +2020,7 @@ static HostSpinBoxSetting *GuiWidth()
 
 static HostSpinBoxSetting *GuiHeight()
 {
-    HostSpinBoxSetting *gs = new HostSpinBoxSetting("GuiHeight", 0, 1600, 8, true);
+    HostSpinBoxSetting *gs = new HostSpinBoxSetting("GuiHeight", 0, 2160, 8, true);
 
     gs->setLabel(AppearanceSettings::tr("GUI height (pixels)"));
 
@@ -2179,7 +2125,7 @@ static HostSpinBoxSetting *VidModeWidth(int idx)
 {
     HostSpinBoxSetting *gs =
         new HostSpinBoxSetting(QString("VidModeWidth%1").arg(idx),
-                               0, 1920, 16, true);
+                               0, 3840, 16, true);
 
     gs->setLabel(VideoModeSettings::tr("In X", "Video mode width"));
 
@@ -2195,7 +2141,7 @@ static HostSpinBoxSetting *VidModeHeight(int idx)
 {
     HostSpinBoxSetting *gs =
         new HostSpinBoxSetting(QString("VidModeHeight%1").arg(idx),
-                               0, 1080, 16, true);
+                               0, 2160, 16, true);
 
     gs->setLabel(VideoModeSettings::tr("In Y", "Video mode height"));
 
@@ -2480,6 +2426,21 @@ static HostCheckBoxSetting *AlwaysOnTop()
     return gc;
 }
 
+static HostSpinBoxSetting *StartupScreenDelay()
+{
+    HostSpinBoxSetting *gs = new HostSpinBoxSetting("StartupScreenDelay", -1, 60, 1, 1, "Never show startup screen");
+
+    gs->setLabel(AppearanceSettings::tr("Startup Screen Delay"));
+
+    gs->setValue(2);
+
+    gs->setHelpText(AppearanceSettings::tr(
+        "The Startup Screen will show the progress of starting the frontend "
+        "if frontend startup takes longer than this number of seconds."));
+    return gs;
+}
+
+
 static HostComboBoxSetting *MythDateFormatCB()
 {
     HostComboBoxSetting *gc = new HostComboBoxSetting("DateFormat");
@@ -2621,19 +2582,19 @@ static HostComboBoxSetting *ThemePainter()
 
     gc->setLabel(AppearanceSettings::tr("Paint engine"));
 
-    gc->addSelection(QCoreApplication::translate("(Common)", "Qt"), QT_PAINTER);
     gc->addSelection(QCoreApplication::translate("(Common)", "Auto", "Automatic"),
                      AUTO_PAINTER);
+#ifdef _WIN32
+    gc->addSelection(QCoreApplication::translate("(Common)", "Direct3D"),
+                     D3D9_PAINTER);
+#endif
 #if defined USING_OPENGL && ! defined USING_OPENGLES
     gc->addSelection(QCoreApplication::translate("(Common)", "OpenGL 2"),
                      OPENGL2_PAINTER);
     gc->addSelection(QCoreApplication::translate("(Common)", "OpenGL 1"),
                      OPENGL_PAINTER);
 #endif
-#ifdef _WIN32
-    gc->addSelection(QCoreApplication::translate("(Common)", "Direct3D"),
-                     D3D9_PAINTER);
-#endif
+    gc->addSelection(QCoreApplication::translate("(Common)", "Qt"), QT_PAINTER);
     gc->setHelpText(
         AppearanceSettings::tr("This selects what MythTV uses to draw. "
                                "Choosing '%1' is recommended, unless running "
@@ -4000,7 +3961,7 @@ void PlaybackSettings::Load(void)
     general->addChild(AudioReadAhead());
     general->addChild(JumpToProgramOSD());
     general->addChild(ClearSavedPosition());
-    general->addChild(AltClearSavedPosition());
+    general->addChild(UseProgStartMark());
     general->addChild(AutomaticSetWatched());
     general->addChild(ContinueEmbeddedTVPlay());
     general->addChild(LiveTVIdleTimeout());
@@ -4043,6 +4004,7 @@ void PlaybackSettings::Load(void)
     pbox2->addChild(DisplayRecGroup());
     pbox2->addChild(QueryInitialFilter());
     pbox2->addChild(RememberRecGroup());
+    pbox2->addChild(RecGroupMod());
 
     pbox->addChild(pbox2);
 
@@ -4308,6 +4270,7 @@ AppearanceSettings::AppearanceSettings()
     screen->addChild(RunInWindow());
     screen->addChild(UseFixedWindowSize());
     screen->addChild(AlwaysOnTop());
+    screen->addChild(StartupScreenDelay());
 #ifdef USING_AIRPLAY
     screen->addChild(AirPlayFullScreen());
 #endif

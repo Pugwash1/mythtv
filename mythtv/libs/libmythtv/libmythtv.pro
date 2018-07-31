@@ -1,9 +1,7 @@
 include ( ../../settings.pro )
 
-QT += network xml sql
-contains(QT_VERSION, ^5\\.[0-9]\\..*) {
-QT += widgets
-}
+QT += network xml sql widgets
+android: QT += androidextras
 
 TEMPLATE = lib
 TARGET = mythtv-$$LIBVERSION
@@ -49,7 +47,7 @@ DEPENDPATH  += ../libmythupnp
 DEPENDPATH  += ../libmythservicecontracts
 
 INCLUDEPATH += .. ../.. # for avlib headers
-INCLUDEPATH += ../../external/FFmpeg
+INCLUDEPATH += ../.. ../../external/FFmpeg
 INCLUDEPATH += $$DEPENDPATH
 
 !win32-msvc* {
@@ -208,6 +206,7 @@ HEADERS += mpeg/iso6937tables.h
 HEADERS += mpeg/tsstats.h           mpeg/streamlisteners.h
 HEADERS += mpeg/H264Parser.h
 HEADERS += mpeg/tablestatus.h
+HEADERS += mpeg/tsstreamdata.h
 
 SOURCES += mpeg/tspacket.cpp        mpeg/pespacket.cpp
 SOURCES += mpeg/mpegtables.cpp      mpeg/atsctables.cpp
@@ -224,6 +223,7 @@ SOURCES += mpeg/freesat_huffman.cpp
 SOURCES += mpeg/iso6937tables.cpp
 SOURCES += mpeg/H264Parser.cpp
 SOURCES += mpeg/tablestatus.cpp
+SOURCES += mpeg/tsstreamdata.cpp
 
 # Channels, and the multiplexes that transmit them
 HEADERS += frequencies.h            frequencytables.h
@@ -257,18 +257,32 @@ inc.files += mythavutil.h           mythframe.h
 
 INSTALLS += inc
 
+inc2.path = $${PREFIX}/include/mythtv/goom
+inc2.files  = visualisations/goom/filters.h
+inc2.files += visualisations/goom/goomconfig.h
+inc2.files += visualisations/goom/goom_core.h
+inc2.files += visualisations/goom/goom_tools.h
+inc2.files += visualisations/goom/graphic.h
+inc2.files += visualisations/goom/ifs.h
+inc2.files += visualisations/goom/lines.h
+inc2.files += visualisations/goom/drawmethods.h
+inc2.files += visualisations/goom/mmx.h
+inc2.files += visualisations/goom/mathtools.h
+inc2.files += visualisations/goom/tentacle3d.h
+inc2.files += visualisations/goom/v3d.h
+
+INSTALLS += inc2
+
 #DVD stuff
 DEPENDPATH  += ../../external/libmythdvdnav/
 DEPENDPATH  += ../../external/libmythdvdnav/dvdread # for dvd_reader.h & dvd_input.h
 
-!win32-msvc* {
-  QMAKE_CXXFLAGS += -isystem ../../external/libmythdvdnav/dvdnav
-  QMAKE_CXXFLAGS += -isystem ../../external/libmythdvdnav/dvdread
-}
-
-win32-msvc* {
+win32-msvc*|freebsd {
   INCLUDEPATH += ../../external/libmythdvdnav/dvdnav
   INCLUDEPATH += ../../external/libmythdvdnav/dvdread
+} else {
+  QMAKE_CXXFLAGS += -isystem ../../external/libmythdvdnav/dvdnav
+  QMAKE_CXXFLAGS += -isystem ../../external/libmythdvdnav/dvdread
 }
 
 !win32-msvc*:POST_TARGETDEPS += ../../external/libmythdvdnav/libmythdvdnav-$${MYTH_LIB_EXT}
@@ -420,12 +434,14 @@ using_frontend {
         HEADERS += visualisations/goom/filters.h
         HEADERS += visualisations/goom/goomconfig.h
         HEADERS += visualisations/goom/goom_core.h
+        HEADERS += visualisations/goom/goom_tools.h
         HEADERS += visualisations/goom/graphic.h
         HEADERS += visualisations/goom/ifs.h
         HEADERS += visualisations/goom/lines.h
         HEADERS += visualisations/goom/drawmethods.h
         HEADERS += visualisations/goom/mmx.h
         HEADERS += visualisations/goom/mathtools.h
+        HEADERS += visualisations/goom/surf3d.h
         HEADERS += visualisations/goom/tentacle3d.h
         HEADERS += visualisations/goom/v3d.h
         HEADERS += visualisations/videovisualgoom.h
@@ -488,6 +504,12 @@ using_frontend {
         using_opengl_video:DEFINES += USING_GLVAAPI
     }
 
+    using_mediacodec {
+        DEFINES += USING_MEDIACODEC
+        HEADERS += mediacodeccontext.h
+        SOURCES += mediacodeccontext.cpp
+    }
+
     # Misc. frontend
     HEADERS += DetectLetterbox.h
     SOURCES += DetectLetterbox.cpp
@@ -540,8 +562,8 @@ using_backend {
     SOURCES += recorders/signalmonitor.cpp
     SOURCES += recorders/dtvsignalmonitor.cpp
 
-    HEADERS += inputinfo.h                 inputgroupmap.h
-    SOURCES += inputinfo.cpp               inputgroupmap.cpp
+    HEADERS += inputinfo.h
+    SOURCES += inputinfo.cpp
 
     # Channel scanner stuff
     HEADERS += scanwizard.h
@@ -963,3 +985,10 @@ include ( ../libs-targetfix.pro )
 
 LIBS += $$LATE_LIBS
 DEFINES += MTV_API
+
+test_clean.commands = -cd test/ && $(MAKE) -f Makefile clean
+clean.depends = test_clean
+QMAKE_EXTRA_TARGETS += test_clean clean
+test_distclean.commands = -cd test/ && $(MAKE) -f Makefile distclean
+distclean.depends = test_distclean
+QMAKE_EXTRA_TARGETS += test_distclean distclean

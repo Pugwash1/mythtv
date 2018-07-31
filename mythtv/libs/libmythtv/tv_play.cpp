@@ -176,7 +176,7 @@ EMBEDRETURNVOIDFINDER TV::RunProgramFinderPtr = NULL;
 class DDLoader : public QRunnable
 {
   public:
-    DDLoader(TV *parent) : m_parent(parent), m_sourceid(0)
+    explicit DDLoader(TV *parent) : m_parent(parent), m_sourceid(0)
     {
         setAutoDelete(false);
     }
@@ -372,7 +372,7 @@ bool TV::StartTV(ProgramInfo *tvrec, uint flags,
     // Notify others that we are about to play
     gCoreContext->WantingPlayback(tv);
 
-    QString playerError = QString::null;
+    QString playerError;
     while (!quitAll)
     {
         if (curProgram)
@@ -599,7 +599,37 @@ void TV::InitKeys(void)
             "Change Group View"), "");
     REG_KEY("TV Frontend", ACTION_LISTRECORDEDEPISODES, QT_TRANSLATE_NOOP("MythControls",
             "List recorded episodes"), "");
-
+    /*
+     * TODO when consolidating database version 1348 into initialize, you can delete
+     * the following upgrade code and replace bkmKeys and togBkmKeys  with "" in the
+     * REG_KEY for ACTION_SETBOOKMARK and ACTION_TOGGLEBOOKMARK.
+     */
+    // Bookmarks - Instead of SELECT to add or toggle,
+    // Use separate bookmark actions. This code is to convert users
+    // who may already be using SELECT. If they are not already using
+    // this frontend then nothing will be assigned to bookmark actions.
+    QString bkmKeys;
+    QString togBkmKeys;
+    // Check if this is a new frontend - if PAUSE returns
+    // "?" then frontend is new, never used before, so we will not assign
+    // any default bookmark keys
+    QString testKey = GetMythMainWindow()->GetKey("TV Playback", ACTION_PAUSE);
+    if (testKey != "?")
+    {
+        int alternate = gCoreContext->GetNumSetting("AltClearSavedPosition",0);
+        QString selectKeys = GetMythMainWindow()->GetKey("Global", ACTION_SELECT);
+        if (selectKeys != "?")
+        {
+            if (alternate)
+                togBkmKeys = selectKeys;
+            else
+                bkmKeys = selectKeys;
+        }
+    }
+    REG_KEY("TV Playback", ACTION_SETBOOKMARK, QT_TRANSLATE_NOOP("MythControls",
+            "Add Bookmark"), bkmKeys);
+    REG_KEY("TV Playback", ACTION_TOGGLEBOOKMARK, QT_TRANSLATE_NOOP("MythControls",
+            "Toggle Bookmark"), togBkmKeys);
     REG_KEY("TV Playback", "BACK", QT_TRANSLATE_NOOP("MythControls",
             "Exit or return to DVD menu"), "Esc");
     REG_KEY("TV Playback", ACTION_MENUCOMPACT, QT_TRANSLATE_NOOP("MythControls",
@@ -607,7 +637,7 @@ void TV::InitKeys(void)
     REG_KEY("TV Playback", ACTION_CLEAROSD, QT_TRANSLATE_NOOP("MythControls",
             "Clear OSD"), "Backspace");
     REG_KEY("TV Playback", ACTION_PAUSE, QT_TRANSLATE_NOOP("MythControls",
-            "Pause"), "P");
+            "Pause"), "P,Space");
     REG_KEY("TV Playback", ACTION_SEEKFFWD, QT_TRANSLATE_NOOP("MythControls",
             "Fast Forward"), "Right");
     REG_KEY("TV Playback", ACTION_SEEKRWND, QT_TRANSLATE_NOOP("MythControls",
@@ -847,6 +877,8 @@ void TV::InitKeys(void)
             "Switch title"), "");
     REG_KEY("TV Playback", ACTION_SWITCHANGLE, QT_TRANSLATE_NOOP("MythControls",
             "Switch angle"), "");
+    REG_KEY("TV Playback", ACTION_OSDNAVIGATION, QT_TRANSLATE_NOOP("MythControls",
+            "OSD Navigation"), "");
     REG_KEY("TV Playback", ACTION_ZOOMUP, QT_TRANSLATE_NOOP("MythControls",
             "Zoom mode - shift up"), "");
     REG_KEY("TV Playback", ACTION_ZOOMDOWN, QT_TRANSLATE_NOOP("MythControls",
@@ -1016,7 +1048,6 @@ TV::TV(void)
       db_auto_set_watched(false),   db_end_of_rec_exit_prompt(false),
       db_jump_prefer_osd(true),     db_use_gui_size_for_tv(false),
       db_clear_saved_position(false),
-      db_toggle_bookmark(false),
       db_run_jobs_on_remote(false), db_continue_embedded(false),
       db_use_fixed_size(true),      db_browse_always(false),
       db_browse_all_tuners(false),
@@ -1124,7 +1155,6 @@ void TV::InitFromDB(void)
     kv["JumpToProgramOSD"]         = "1";
     kv["GuiSizeForTV"]             = "0";
     kv["ClearSavedPosition"]       = "1";
-    kv["AltClearSavedPosition"]    = "1";
     kv["JobsRunOnRecordHost"]      = "0";
     kv["ContinueEmbeddedTVPlay"]   = "0";
     kv["UseFixedWindowSize"]       = "1";
@@ -1175,7 +1205,6 @@ void TV::InitFromDB(void)
     db_jump_prefer_osd     = kv["JumpToProgramOSD"].toInt();
     db_use_gui_size_for_tv = kv["GuiSizeForTV"].toInt();
     db_clear_saved_position= kv["ClearSavedPosition"].toInt();
-    db_toggle_bookmark     = kv["AltClearSavedPosition"].toInt();
     db_run_jobs_on_remote  = kv["JobsRunOnRecordHost"].toInt();
     db_continue_embedded   = kv["ContinueEmbeddedTVPlay"].toInt();
     db_use_fixed_size      = kv["UseFixedWindowSize"].toInt();
@@ -1280,7 +1309,7 @@ bool TV::Init(bool createWindow)
         }
 
         // main window sizing
-        int maxWidth = 1920, maxHeight = 1440;
+        int maxWidth = 3840, maxHeight = 2160;
         if (switchMode)
         {
             DisplayRes *display_res = DisplayRes::GetDisplayRes();
@@ -1921,7 +1950,7 @@ void TV::ShowOSDAskAllow(PlayerContext *ctx)
         it = next;
     }
     int          timeuntil = 0;
-    QString      message   = QString::null;
+    QString      message;
     uint conflict_count = askAllowPrograms.size();
 
     it = askAllowPrograms.begin();
@@ -2920,7 +2949,7 @@ void TV::timerEvent(QTimerEvent *te)
         return;
 
     // Check if it matches networkControlTimerId
-    QString netCmd = QString::null;
+    QString netCmd;
     {
         QMutexLocker locker(&timerIdLock);
         if (timer_id == networkControlTimerId)
@@ -3011,7 +3040,7 @@ void TV::timerEvent(QTimerEvent *te)
         {
             uint tmp = switchToInputId;
             switchToInputId = 0;
-            SwitchInputs(actx, 0, QString::null, tmp);
+            SwitchInputs(actx, 0, QString(), tmp);
         }
         ReturnPlayerLock(actx);
 
@@ -3204,7 +3233,7 @@ void TV::timerEvent(QTimerEvent *te)
 
 bool TV::HandlePxPTimerEvent(void)
 {
-    QString cmd = QString::null;
+    QString cmd;
 
     {
         QMutexLocker locker(&timerIdLock);
@@ -3664,8 +3693,18 @@ bool TV::eventFilter(QObject *o, QEvent *e)
 
     // Intercept keypress events unless they need to be handled by a main UI
     // screen (e.g. GuideGrid, ProgramFinder)
+
+    if ( (QEvent::KeyPress == e->type() || QEvent::KeyRelease == e->type())
+        && ignoreKeyPresses )
+        return false;
+
+    QScopedPointer<QEvent> sNewEvent(NULL);
+    if (GetMythMainWindow()->keyLongPressFilter(&e, sNewEvent))
+        return true;
+
     if (QEvent::KeyPress == e->type())
-        return ignoreKeyPresses ? false : event(e);
+        return event(e);
+
     if (MythGestureEvent::kEventType == e->type())
         return ignoreKeyPresses ? false : event(e);
 
@@ -4031,7 +4070,7 @@ bool TV::ProcessKeypressOrGesture(PlayerContext *actx, QEvent *e)
         alreadyTranslatedPlayback = true;
 
         if (handled || actions.isEmpty())
-            return true;
+            return handled;
 
         bool esc   = has_action("ESCAPE", actions) ||
                      has_action("BACK", actions);
@@ -4047,13 +4086,12 @@ bool TV::ProcessKeypressOrGesture(PlayerContext *actx, QEvent *e)
     {
         if (QEvent::KeyPress == e->type())
         {
-            osd->DialogHandleKeypress((QKeyEvent*)e);
+            handled = osd->DialogHandleKeypress((QKeyEvent*)e);
         }
         if (MythGestureEvent::kEventType == e->type())
         {
-            osd->DialogHandleGesture((MythGestureEvent*)e);
+            handled = osd->DialogHandleGesture((MythGestureEvent*)e);
         }
-        handled = true;
     }
     ReturnOSDLock(actx, osd);
 
@@ -4177,7 +4215,7 @@ bool TV::ProcessKeypressOrGesture(PlayerContext *actx, QEvent *e)
                   "TV Playback", e, actions, isLiveTV);
     }
     if (handled || actions.isEmpty())
-        return true;
+        return handled;
 
     handled = false;
 
@@ -4605,7 +4643,7 @@ bool TV::ActiveHandleAction(PlayerContext *ctx,
         SetAutoCommercialSkip(ctx, kCommSkipIncr);
     else if (has_action("NEXTSCAN", actions))
     {
-        QString msg = QString::null;
+        QString msg;
         ctx->LockDeletePlayer(__FILE__, __LINE__);
         if (ctx->player)
         {
@@ -4949,6 +4987,8 @@ bool TV::ToggleHandleAction(PlayerContext *ctx,
         else if (!isDVD)
             StartProgramEditMode(ctx);
     }
+    else if (has_action(ACTION_OSDNAVIGATION, actions))
+        StartOsdNavigation(ctx);
     else
         handled = false;
 
@@ -5022,7 +5062,7 @@ void TV::SetBookmark(PlayerContext *ctx, bool clear)
             ctx->player->SetBookmark(true);
             SetOSDMessage(ctx, tr("Bookmark Cleared"));
         }
-        else if (IsBookmarkAllowed(ctx))
+        else // if (IsBookmarkAllowed(ctx))
         {
             ctx->player->SetBookmark();
             osdInfo info;
@@ -5044,12 +5084,21 @@ bool TV::ActivePostQHandleAction(PlayerContext *ctx, const QStringList &actions)
     bool isdvd  = state == kState_WatchingDVD;
     bool isdisc = isdvd || state == kState_WatchingBD;
 
-    if (has_action(ACTION_SELECT, actions))
+    if (has_action(ACTION_SETBOOKMARK, actions))
     {
-        if (!islivetv || !CommitQueuedInput(ctx))
+        if (!CommitQueuedInput(ctx))
         {
             ctx->LockDeletePlayer(__FILE__, __LINE__);
-            SetBookmark(ctx, db_toggle_bookmark && ctx->player->GetBookmark());
+            SetBookmark(ctx, false);
+            ctx->UnlockDeletePlayer(__FILE__, __LINE__);
+        }
+    }
+    if (has_action(ACTION_TOGGLEBOOKMARK, actions))
+    {
+        if (!CommitQueuedInput(ctx))
+        {
+            ctx->LockDeletePlayer(__FILE__, __LINE__);
+            SetBookmark(ctx, ctx->player->GetBookmark());
             ctx->UnlockDeletePlayer(__FILE__, __LINE__);
         }
     }
@@ -5179,7 +5228,7 @@ void TV::ProcessNetworkControlCommand(PlayerContext *ctx,
     if (tokens.size() == 3 && tokens[1] == "CHANID")
     {
         queuedChanID = tokens[2].toUInt();
-        queuedChanNum = QString::null;
+        queuedChanNum.clear();
         CommitQueuedInput(ctx);
     }
     else if (tokens.size() == 3 && tokens[1] == "CHANNEL")
@@ -5968,7 +6017,7 @@ void TV::PxPCreateView(PlayerContext *actx, bool wantPBP)
     if (!actx)
         return;
 
-    QString err_msg = QString::null;
+    QString err_msg;
     if ((player.size() > kMaxPBPCount) && (wantPBP || actx->IsPBP()))
     {
         err_msg = tr("Sorry, PBP only supports %n video stream(s)", "",
@@ -6443,6 +6492,7 @@ void TV::DoPlay(PlayerContext *ctx)
 
     SetSpeedChangeTimer(0, __LINE__);
     gCoreContext->emitTVPlaybackPlaying();
+    UpdateNavDialog(ctx);
 }
 
 float TV::DoTogglePauseStart(PlayerContext *ctx)
@@ -6558,6 +6608,26 @@ void TV::DoTogglePause(PlayerContext *ctx, bool showOSD)
         DoTogglePauseFinish(ctx, DoTogglePauseStart(ctx), showOSD);
     // Emit Pause or Unpaused signal
     paused ? gCoreContext->emitTVPlaybackUnpaused() : gCoreContext->emitTVPlaybackPaused();
+    UpdateNavDialog(ctx);
+}
+
+void TV::UpdateNavDialog(PlayerContext *ctx)
+{
+    OSD *osd = GetOSDLock(ctx);
+    if (osd && osd->DialogVisible(OSD_DLG_NAVIGATE))
+    {
+        osdInfo info;
+        ctx->LockDeletePlayer(__FILE__, __LINE__);
+        bool paused = (ctx->player
+            && (ctx->ff_rew_state || ctx->ff_rew_speed != 0
+                || ctx->player->IsPaused()));
+        ctx->UnlockDeletePlayer(__FILE__, __LINE__);
+        info.text["paused"] = (paused ? "Y" : "N");
+        bool muted = ctx->player->IsMuted();
+        info.text["muted"] = (muted ? "Y" : "N");
+        osd->SetText(OSD_DLG_NAVIGATE, info.text, paused ? kOSDTimeout_None : kOSDTimeout_Long);
+    }
+    ReturnOSDLock(ctx, osd);
 }
 
 bool TV::DoPlayerSeek(PlayerContext *ctx, float time)
@@ -6713,6 +6783,7 @@ bool TV::SeekHandleAction(PlayerContext *actx, const QStringList &actions,
                    /*timeIsOffset*/true,
                    /*honorCutlist*/!(flags & kIgnoreCutlist));
     }
+    UpdateNavDialog(actx);
     return true;
 }
 
@@ -6745,7 +6816,8 @@ void TV::DoSeek(PlayerContext *ctx, float time, const QString &mesg,
             ctx->UnlockDeletePlayer(__FILE__, __LINE__);
             DoPlayerSeekToFrame(ctx, desiredFrameRel);
         }
-        UpdateOSDSeekMessage(ctx, mesg, kOSDTimeout_Med);
+        bool paused = ctx->player->IsPaused();
+        UpdateOSDSeekMessage(ctx, mesg, paused ? kOSDTimeout_None : kOSDTimeout_Med);
     }
     else
         ctx->UnlockDeletePlayer(__FILE__, __LINE__);
@@ -8243,7 +8315,7 @@ void TV::UpdateOSDSignal(const PlayerContext *ctx, const QStringList &strlist)
     int   pos  = -1;
     int   tuned = -1;
     QString pat(""), pmt(""), mgt(""), vct(""), nit(""), sdt(""), crypt("");
-    QString err = QString::null, msg = QString::null;
+    QString err, msg;
     for (it = slist.begin(); it != slist.end(); ++it)
     {
         if ("error" == it->GetShortName())
@@ -9111,6 +9183,7 @@ void TV::ToggleMute(PlayerContext *ctx, const bool muteIndividualChannels)
         case kMuteRight: text = tr("Right Channel Muted"); break;
     }
 
+    UpdateNavDialog(ctx);
     SetOSDMessage(ctx, text);
 }
 
@@ -9679,7 +9752,7 @@ void TV::customEvent(QEvent *e)
 
     if (message.startsWith("LIVETV_CHAIN"))
     {
-        QString id = QString::null;
+        QString id;
         if ((tokens.size() >= 2) && tokens[1] == "UPDATE")
             id = tokens[2];
 
@@ -10406,6 +10479,20 @@ void TV::StartChannelEditMode(PlayerContext *ctx)
     }
 }
 
+void TV::StartOsdNavigation(PlayerContext *ctx)
+{
+    OSD *osd = GetOSDLock(ctx);
+    if (osd)
+    {
+        osd->DialogQuit();
+        osd->HideAll();
+        ToggleOSD(ctx, true);
+        osd->DialogShow(OSD_DLG_NAVIGATE);
+    }
+    ReturnOSDLock(ctx, osd);
+    UpdateNavDialog(ctx);
+}
+
 /**
  *  \brief Processes channel editing key.
  */
@@ -10595,14 +10682,14 @@ QString TV::GetDataDirect(QString key, QString value, QString field,
 
     uint sourceid = chanEditMap["sourceid"].toUInt();
     if (!sourceid)
-        return QString::null;
+        return QString();
 
     if (sourceid != ddMapSourceId)
-        return QString::null;
+        return QString();
 
     DDKeyMap::const_iterator it_key = ddMap.find(key);
     if (it_key == ddMap.end())
-        return QString::null;
+        return QString();
 
     DDValueMap::const_iterator it_val = (*it_key).find(value);
     if (it_val != (*it_key).end())
@@ -10617,7 +10704,7 @@ QString TV::GetDataDirect(QString key, QString value, QString field,
     }
 
     if (!allow_partial_match || value.isEmpty())
-        return QString::null;
+        return QString();
 
     // Check for partial matches.. prefer early match, then short string
     DDValueMap::const_iterator best_match = (*it_key).end();
@@ -10648,7 +10735,7 @@ QString TV::GetDataDirect(QString key, QString value, QString field,
         }
     }
 
-    return QString::null;
+    return QString();
 }
 
 void TV::RunLoadDDMap(uint sourceid)
@@ -10739,7 +10826,10 @@ void TV::OSDDialogEvent(int result, QString text, QString action)
             .arg(result).arg(text).arg(action));
 
     bool hide = true;
+    if (result == 100)
+        hide = false;
 
+    bool handled = true;
     if (action.startsWith("DIALOG_"))
     {
         action.remove("DIALOG_");
@@ -10818,6 +10908,10 @@ void TV::OSDDialogEvent(int result, QString text, QString action)
         DoJumpFFWD(actx);
     else if (action == ACTION_JUMPRWND)
         DoJumpRWND(actx);
+    else if (action == ACTION_SEEKFFWD)
+        DoSeekFFWD(actx);
+    else if (action == ACTION_SEEKRWND)
+        DoSeekRWND(actx);
     else if (action.startsWith("DEINTERLACER"))
         HandleDeinterlacer(actx, action);
     else if (action == ACTION_TOGGLEOSDDEBUG)
@@ -10850,7 +10944,7 @@ void TV::OSDDialogEvent(int result, QString text, QString action)
     }
     else if (action.startsWith("SELECTSCAN_"))
     {
-        QString msg = QString::null;
+        QString msg;
         actx->LockDeletePlayer(__FILE__, __LINE__);
         actx->player->SetScanType((FrameScanType) action.right(1).toInt());
         actx->UnlockDeletePlayer(__FILE__, __LINE__);
@@ -10889,15 +10983,21 @@ void TV::OSDDialogEvent(int result, QString text, QString action)
     {
         DoToggleNightMode(actx);
     }
+    else if (action == "TOGGLEASPECT")
+        ToggleAspectOverride(actx);
     else if (action.startsWith("TOGGLEASPECT"))
     {
         ToggleAspectOverride(actx,
                              (AspectOverrideMode) action.right(1).toInt());
     }
+    else if (action == "TOGGLEFILL")
+        ToggleAdjustFill(actx);
     else if (action.startsWith("TOGGLEFILL"))
     {
         ToggleAdjustFill(actx, (AdjustFillMode) action.right(1).toInt());
     }
+    else if (action == "MENU")
+         ShowOSDMenu();
     else if (action == "AUTODETECT_FILL")
     {
         actx->player->detect_letter_box->SetDetectLetterbox(!actx->player->detect_letter_box->GetDetectLetterbox());
@@ -11006,14 +11106,13 @@ void TV::OSDDialogEvent(int result, QString text, QString action)
             hide = false;
         }
         else
-        {
-            LOG(VB_GENERAL, LOG_ERR, LOC +
-                "Unknown menu action selected: " + action);
-            hide = false;
-        }
+            handled = false;
     }
-    else if (StateIsPlaying(actx->GetState()))
+    else
+        handled = false;
+    if (!handled && StateIsPlaying(actx->GetState()))
     {
+        handled = true;
         if (action == ACTION_JUMPTODVDROOTMENU ||
             action == ACTION_JUMPTODVDCHAPTERMENU ||
             action == ACTION_JUMPTOPOPUPMENU ||
@@ -11067,11 +11166,22 @@ void TV::OSDDialogEvent(int result, QString text, QString action)
         else if (action == "QUEUETRANSCODE_LOW")
             DoQueueTranscode(actx, "Low Quality");
         else
-        {
-            LOG(VB_GENERAL, LOG_ERR, LOC +
-                "Unknown menu action selected: " + action);
-            hide = false;
-        }
+            handled = false;
+    }
+    if (!handled)
+    {
+        bool isDVD = actx->buffer && actx->buffer->IsDVD();
+        bool isMenuOrStill = actx->buffer && actx->buffer->IsInDiscMenuOrStillFrame();
+        handled = ActiveHandleAction(actx, QStringList(action), isDVD, isMenuOrStill);
+    }
+    if (!handled)
+            handled = ActivePostQHandleAction(actx, QStringList(action));
+
+    if (!handled)
+    {
+        LOG(VB_GENERAL, LOG_ERR, LOC +
+            "Unknown menu action selected: " + action);
+        hide = false;
     }
 
     if (hide)
@@ -12623,7 +12733,7 @@ void TV::HandleDeinterlacer(PlayerContext *ctx, const QString &action)
 
 void TV::ToggleAutoExpire(PlayerContext *ctx)
 {
-    QString desc = QString::null;
+    QString desc;
 
     ctx->LockPlayingInfo(__FILE__, __LINE__);
 
@@ -12647,7 +12757,7 @@ void TV::ToggleAutoExpire(PlayerContext *ctx)
 void TV::SetAutoCommercialSkip(const PlayerContext *ctx,
                                CommSkipMode skipMode)
 {
-    QString desc = QString::null;
+    QString desc;
 
     ctx->LockDeletePlayer(__FILE__, __LINE__);
     if (ctx->player)
@@ -13008,6 +13118,13 @@ void TV::DoJumpFFWD(PlayerContext *ctx)
                /*honorCutlist*/true);
 }
 
+void TV::DoSeekFFWD(PlayerContext *ctx)
+{
+    DoSeek(ctx, ctx->fftime, tr("Skip Ahead"),
+            /*timeIsOffset*/true,
+            /*honorCutlist*/true);
+}
+
 void TV::DoJumpRWND(PlayerContext *ctx)
 {
     if (GetState(ctx) == kState_WatchingDVD)
@@ -13018,6 +13135,13 @@ void TV::DoJumpRWND(PlayerContext *ctx)
         DoSeek(ctx, -ctx->jumptime * 60, tr("Jump Back"),
                /*timeIsOffset*/true,
                /*honorCutlist*/true);
+}
+
+void TV::DoSeekRWND(PlayerContext *ctx)
+{
+    DoSeek(ctx, -ctx->rewtime, tr("Jump Back"),
+            /*timeIsOffset*/true,
+            /*honorCutlist*/true);
 }
 
 /*  \fn TV::DVDJumpBack(PlayerContext*)
@@ -13159,7 +13283,7 @@ void TV::ShowOSDStopWatchingRecording(PlayerContext *ctx)
         DoTogglePause(ctx, false);
 
     QString message;
-    QString videotype = QString::null;
+    QString videotype;
 
     if (StateIsLiveTV(GetState(ctx)))
         videotype = tr("Live TV");
@@ -13440,7 +13564,7 @@ ProgramInfo *TV::GetLastProgram(void) const
 
 QString TV::GetRecordingGroup(int player_idx) const
 {
-    QString ret = QString::null;
+    QString ret;
 
     const PlayerContext *ctx = GetPlayerReadLock(player_idx, __FILE__, __LINE__);
     if (ctx)

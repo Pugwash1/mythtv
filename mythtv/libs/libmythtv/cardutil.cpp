@@ -169,11 +169,7 @@ bool CardUtil::IsCableCardPresent(uint inputid,
 
         uint tuner = tuner_parts.at(1).toUInt();
 
-#if QT_VERSION < QT_VERSION_CHECK(5, 0, 0)
-        QUrl params;
-#else
         QUrlQuery params;
-#endif
         params.addQueryItem("i", QString::number(tuner));
         params.addQueryItem("s", "cas");
         params.addQueryItem("v", "CardStatus");
@@ -182,11 +178,7 @@ bool CardUtil::IsCableCardPresent(uint inputid,
         url.setScheme("http");
         url.setHost(ip_address);
         url.setPath("/get_var.json");
-#if QT_VERSION < QT_VERSION_CHECK(5, 0, 0)
-        url.setEncodedQuery(params.encodedQuery());
-#else
         url.setQuery(params);
-#endif
 
         QNetworkRequest *request = new QNetworkRequest();
         request->setAttribute(QNetworkRequest::CacheLoadControlAttribute,
@@ -243,6 +235,8 @@ bool CardUtil::HasTuner(const QString &rawtype, const QString & device)
         V4L2util v4l2(device);
         return !v4l2 ? false : v4l2.HasTuner();
     }
+#else
+    Q_UNUSED(device);
 #endif
 
     if (rawtype == "EXTERNAL")
@@ -748,7 +742,7 @@ QString get_on_input(const QString &to_get, uint inputid)
     else if (query.next())
         return query.value(0).toString();
 
-    return QString::null;
+    return QString();
 }
 
 bool set_on_input(const QString &to_set, uint inputid, const QString &value)
@@ -1006,7 +1000,7 @@ static uint clone_capturecard(uint src_inputid, uint orig_dst_inputid)
     {
         MythDB::DBError("clone_capturecard -- save data", query2);
         if (!orig_dst_inputid)
-            CardUtil::DeleteCard(dst_inputid);
+            CardUtil::DeleteInput(dst_inputid);
         return 0;
     }
 
@@ -1026,17 +1020,42 @@ static uint clone_capturecard(uint src_inputid, uint orig_dst_inputid)
     return dst_inputid;
 }
 
-bool CardUtil::CloneCard(uint src_inputid, uint orig_dst_inputid)
+uint CardUtil::CloneCard(uint src_inputid, uint orig_dst_inputid)
 {
     QString type = CardUtil::GetRawInputType(src_inputid);
     if (!IsTunerSharingCapable(type))
-        return false;
+        return 0;
 
     uint dst_inputid = clone_capturecard(src_inputid, orig_dst_inputid);
-    if (!dst_inputid)
-        return false;
+    return dst_inputid;
+}
 
-    return true;
+uint CardUtil::AddChildInput(uint parentid)
+{
+    uint inputid = CloneCard(parentid, 0);
+
+    // Update the reclimit for the parent and all children so the new
+    // child doesn't get removed the next time mythtv-setup is run.
+    if (inputid)
+    {
+        LOG(VB_GENERAL, LOG_INFO, LOC +
+            QString("Added child input %1 to parent %2")
+            .arg(inputid).arg(parentid));
+        MSqlQuery query(MSqlQuery::InitCon());
+        query.prepare("UPDATE capturecard "
+                      "SET reclimit = reclimit + 1 "
+                      "WHERE cardid = :PARENTID");
+        query.bindValue(":PARENTID", parentid);
+        if (!query.exec())
+            MythDB::DBError("CardUtil::AddChildInput", query);
+    }
+    else
+    {
+        LOG(VB_GENERAL, LOG_ERR, LOC +
+            QString("Failed to add child input to parent %1").arg(parentid));
+    }
+
+    return inputid;
 }
 
 QString CardUtil::GetFirewireChangerNode(uint inputid)
@@ -1209,13 +1228,13 @@ QString CardUtil::GetStartingChannel(uint inputid)
     else if (query.next())
         return query.value(0).toString();
 
-    return QString::null;
+    return QString();
 }
 
 QString CardUtil::GetDisplayName(uint inputid)
 {
     if (!inputid)
-        return QString::null;
+        return QString();
 
     MSqlQuery query(MSqlQuery::InitCon());
     query.prepare("SELECT displayname, cardid, cardtype, inputname "
@@ -1234,7 +1253,7 @@ QString CardUtil::GetDisplayName(uint inputid)
         return result;
     }
 
-    return QString::null;
+    return QString();
 }
 
 uint CardUtil::GetSourceID(uint inputid)
@@ -1314,47 +1333,6 @@ int CardUtil::CreateCardInput(const uint inputid,
     }
 
     return inputid;
-}
-
-bool CardUtil::DeleteInput(uint inputid)
-{
-    MSqlQuery query(MSqlQuery::InitCon());
-    query.prepare(
-        "UPDATE capturecard "
-        "SET sourceid = 0, "
-        "    inputname = 'None', "
-        "    externalcommand = '', "
-        "    changer_device = '', "
-        "    changer_model = '', "
-        "    tunechan = '', "
-        "    startchan = '', "
-        "    displayname = '', "
-        "    dishnet_eit = 0, "
-        "    recpriority = 0, "
-        "    quicktune = 0, "
-        "    schedorder = 1, "
-        "    livetvorder = 1 "
-        "WHERE cardid = :INPUTID");
-    query.bindValue(":INPUTID", inputid);
-
-    if (!query.exec())
-    {
-        MythDB::DBError("DeleteInput", query);
-        return false;
-    }
-
-    query.prepare("DELETE FROM inputgroup "
-                  "WHERE cardinputid = :INPUTID AND "
-                  "      inputgroupname LIKE 'user:%'");
-    query.bindValue(":INPUTID", inputid);
-
-    if (!query.exec())
-    {
-        MythDB::DBError("DeleteInput2", query);
-        return false;
-    }
-
-    return true;
 }
 
 uint CardUtil::CreateInputGroup(const QString &name)
@@ -1672,7 +1650,8 @@ bool CardUtil::GetV4LInfo(
     int videofd, QString &input, QString &driver, uint32_t &version,
     uint32_t &capabilities)
 {
-    input = driver = QString::null;
+    input.clear();
+    driver.clear();
     version = 0;
     capabilities = 0;
 
@@ -2072,83 +2051,77 @@ int CardUtil::CreateCaptureCard(const QString &videodevice,
     return inputid;
 }
 
-bool CardUtil::DeleteCard(uint inputid)
+bool CardUtil::DeleteInput(uint inputid)
 {
-    MSqlQuery query(MSqlQuery::InitCon());
-    bool ok = true;
+    vector<uint> childids = GetChildInputIDs(inputid);
+    for (uint i = 0; i < childids.size(); ++i)
+    {
+        if (!DeleteInput(childids[i]))
+        {
+            LOG(VB_GENERAL, LOG_ERR, LOC +
+                QString("CardUtil: Failed to delete child input %1")
+                .arg(childids[i]));
+            return false;
+        }
+    }
 
-    if (!inputid)
-        return true;
+    MSqlQuery query(MSqlQuery::InitCon());
 
     DiSEqCDevTree tree;
     tree.Load(inputid);
 
-    // delete any clones
-    QString rawtype     = GetRawInputType(inputid);
-    QString videodevice = GetVideoDevice(inputid);
-    if (IsTunerSharingCapable(rawtype) && !videodevice.isEmpty())
-    {
-        query.prepare(
-            "SELECT cardid "
-            "FROM capturecard "
-            "WHERE parentid = :INPUTID");
-        query.bindValue(":INPUTID", inputid);
-
-        if (!query.exec())
-        {
-            MythDB::DBError("DeleteCard -- find clone inputs", query);
-            return false;
-        }
-
-        while (query.next())
-            ok &= DeleteCard(query.value(0).toUInt());
-
-        if (!ok)
-            return false;
-    }
-
-    ok &= CardUtil::DeleteInput(inputid);
-
-    if (!ok)
-        return false;
-
-    // actually delete the capturecard row for this input
+    // Delete the capturecard row for this input
     query.prepare("DELETE FROM capturecard WHERE cardid = :INPUTID");
     query.bindValue(":INPUTID", inputid);
-
     if (!query.exec())
     {
-        MythDB::DBError("DeleteCard -- delete row", query);
-        ok = false;
+        MythDB::DBError("DeleteCard -- delete capturecard", query);
+        return false;
     }
 
-    if (ok)
+    // Update the reclimit of the parent input
+    query.prepare("UPDATE capturecard SET reclimit=reclimit-1 "
+                  "WHERE cardid = :INPUTID");
+    query.bindValue(":INPUTID", inputid);
+    if (!query.exec())
     {
-        // Delete the diseqc tree if no more inputs reference it.
-        if (tree.Root())
-        {
-            query.prepare("SELECT cardid FROM capturecard "
-                          "WHERE diseqcid = :DISEQCID LIMIT 1");
-            query.bindValue(":DISEQCID", tree.Root()->GetDeviceID());
-            if (!query.exec())
-            {
-                MythDB::DBError("DeleteCard -- find diseqc tree", query);
-            }
-            else if (!query.next())
-            {
-                tree.SetRoot(NULL);
-                tree.Store(inputid);
-            }
-        }
-
-        // delete any unused input groups
-        UnlinkInputGroup(0,0);
+        MythDB::DBError("DeleteCard -- update capturecard", query);
+        return false;
     }
 
-    return ok;
+    // Delete the inputgroup rows for this input
+    query.prepare("DELETE FROM inputgroup WHERE cardinputid = :INPUTID");
+    query.bindValue(":INPUTID", inputid);
+    if (!query.exec())
+    {
+        MythDB::DBError("DeleteCard -- delete inputgroup", query);
+        return false;
+    }
+
+    // Delete the diseqc tree if no more inputs reference it.
+    if (tree.Root())
+    {
+        query.prepare("SELECT cardid FROM capturecard "
+                      "WHERE diseqcid = :DISEQCID LIMIT 1");
+        query.bindValue(":DISEQCID", tree.Root()->GetDeviceID());
+        if (!query.exec())
+        {
+            MythDB::DBError("DeleteCard -- find diseqc tree", query);
+        }
+        else if (!query.next())
+        {
+            tree.SetRoot(NULL);
+            tree.Store(inputid);
+        }
+    }
+
+    // delete any unused input groups
+    UnlinkInputGroup(0, 0);
+
+    return true;
 }
 
-bool CardUtil::DeleteAllCards(void)
+bool CardUtil::DeleteAllInputs(void)
 {
     MSqlQuery query(MSqlQuery::InitCon());
     return (query.exec("TRUNCATE TABLE inputgroup") &&

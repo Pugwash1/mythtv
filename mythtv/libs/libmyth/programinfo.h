@@ -281,6 +281,7 @@ class MPUBLIC ProgramInfo
             clear();
     }
 
+    bool operator==(const ProgramInfo& rhs);
     ProgramInfo &operator=(const ProgramInfo &other);
     virtual void clone(const ProgramInfo &other,
                        bool ignore_non_serialized_data = false);
@@ -426,7 +427,6 @@ class MPUBLIC ProgramInfo
     uint    GetRecordingID(void)              const { return recordedid; }
     RecStatus::Type GetRecordingStatus(void)    const
         { return (RecStatus::Type)recstatus; }
-    uint    GetPreferedInputID(void)          const { return prefinput; }
     uint    GetRecordingRuleID(void)          const { return recordid;  }
     uint    GetParentRecordingRuleID(void)    const { return parentid;  }
     RecordingType GetRecordingRuleType(void)  const
@@ -763,7 +763,6 @@ class MPUBLIC ProgramInfo
     QDateTime lastmodified;
     QDateTime lastInUseTime;
 
-    uint32_t prefinput;
     int32_t recpriority2;
 
     uint32_t recordid;
@@ -854,7 +853,9 @@ MPUBLIC bool LoadFromRecorded(
     const QMap<QString,uint32_t> &inUseMap,
     const QMap<QString,bool> &isJobRunning,
     const QMap<QString, ProgramInfo*> &recMap,
-    int                 sort = 0);
+    int                 sort = 0,
+    const QString      &sortBy = "");
+
 
 template<typename TYPE>
 bool LoadFromScheduler(

@@ -526,7 +526,7 @@ static void InitMSqlQueryInfo(MSqlQueryInfo &qi)
 
 
 MSqlQuery::MSqlQuery(const MSqlQueryInfo &qi)
-         : QSqlQuery(QString::null, qi.qsqldb)
+         : QSqlQuery(QString(), qi.qsqldb)
 {
     m_isConnected = false;
     m_db = qi.db;
@@ -661,7 +661,13 @@ bool MSqlQuery::exec()
     // if the query failed with "MySQL server has gone away"
     // Close and reopen the database connection and retry the query if it
     // connects again
-    if (!result && QSqlQuery::lastError().number() == 2006 && Reconnect())
+    if (!result
+#if QT_VERSION < QT_VERSION_CHECK(5,3,0)
+        && QSqlQuery::lastError().number() == 2006
+#else
+        && QSqlQuery::lastError().nativeErrorCode() == "2006"
+#endif
+        && Reconnect())
         result = QSqlQuery::exec();
 
     if (!result)
@@ -747,7 +753,13 @@ bool MSqlQuery::exec(const QString &query)
     // if the query failed with "MySQL server has gone away"
     // Close and reopen the database connection and retry the query if it
     // connects again
-    if (!result && QSqlQuery::lastError().number() == 2006 && Reconnect())
+    if (!result
+#if QT_VERSION < QT_VERSION_CHECK(5,3,0)
+        && QSqlQuery::lastError().number() == 2006
+#else
+        && QSqlQuery::lastError().nativeErrorCode() == "2006"
+#endif
+        && Reconnect())
         result = QSqlQuery::exec(query);
 
     LOG(VB_DATABASE, LOG_INFO,
@@ -868,7 +880,13 @@ bool MSqlQuery::prepare(const QString& query)
     // if the prepare failed with "MySQL server has gone away"
     // Close and reopen the database connection and retry the query if it
     // connects again
-    if (!ok && QSqlQuery::lastError().number() == 2006 && Reconnect())
+    if (!ok
+#if QT_VERSION < QT_VERSION_CHECK(5,3,0)
+        && QSqlQuery::lastError().number() == 2006
+#else
+        && QSqlQuery::lastError().nativeErrorCode() == "2006"
+#endif
+        && Reconnect())
         ok = true;
 
     if (!ok && !(GetMythDB()->SuppressDBMessages()))
@@ -950,7 +968,7 @@ void MSqlAddMoreBindings(MSqlBindings &output, MSqlBindings &addfrom)
 }
 
 struct Holder {
-    Holder( const QString& hldr = QString::null, int pos = -1 )
+    Holder( const QString& hldr = QString(), int pos = -1 )
         : holderName( hldr ), holderPos( pos ) {}
 
     bool operator==( const Holder& h ) const

@@ -58,6 +58,7 @@ extern "C" {
 #endif // silences warning when these are already defined
 
 #include "libswscale/swscale.h"
+#include "libavutil/imgutils.h"
 }
 
 #if ! HAVE_ROUND
@@ -321,7 +322,7 @@ class XvAttributes
 {
   public:
     XvAttributes() :
-        description(QString::null), xv_flags(0), feature_flags(0) {}
+        xv_flags(0), feature_flags(0) {}
     XvAttributes(const QString &a, uint b, uint c) :
         description(a), xv_flags(b), feature_flags(c)
         { description.detach(); }
@@ -365,7 +366,7 @@ int VideoOutputXv::GrabSuitableXvPort(MythXDisplay* disp, Window root,
                                       QString *adaptor_name)
 {
     if (adaptor_name)
-        *adaptor_name = QString::null;
+        *adaptor_name = QString();
 
     // create list of requirements to check in order..
     vector<XvAttributes> req;
@@ -408,7 +409,7 @@ int VideoOutputXv::GrabSuitableXvPort(MythXDisplay* disp, Window root,
         return -1;
     }
 
-    QString lastAdaptorName = QString::null;
+    QString lastAdaptorName;
     int port = -1;
 
     // find an Xv port
@@ -600,7 +601,7 @@ bool VideoOutputXv::InitXVideo()
 {
     MythXLocker lock(disp);
     disp->StartLog();
-    QString adaptor_name = QString::null;
+    QString adaptor_name;
     const QSize video_dim = window.GetVideoDim();
     xv_port = GrabSuitableXvPort(disp, disp->GetRoot(), kCodec_MPEG2,
                                  video_dim.width(), video_dim.height(),
@@ -818,7 +819,7 @@ bool VideoOutputXv::InitSetupBuffers(void)
     db_vdisp_profile->SetInput(window.GetVideoDim());
     QStringList renderers = allowed_video_renderers(
                                 video_codec_id, disp, XJ_curwin);
-    QString     renderer  = QString::null;
+    QString     renderer;
 
     QString tmp = db_vdisp_profile->GetVideoRenderer();
     LOG(VB_PLAYBACK, LOG_INFO, LOC + "InitSetupBuffers() " +
@@ -1435,7 +1436,7 @@ void VideoOutputXv::PrepareFrameMem(VideoFrame *buffer, FrameScanType /*scan*/)
 
     int out_width  = display_visible_rect.width()  & ~0x1;
     int out_height = display_visible_rect.height() & ~0x1;
-    AVPicture image_in, image_out;
+    AVFrame image_in, image_out;
 
     if ((out_width  == width) &&
         (out_height == height))
@@ -1449,8 +1450,9 @@ void VideoOutputXv::PrepareFrameMem(VideoFrame *buffer, FrameScanType /*scan*/)
         int size = buffersize(FMT_YV12, out_width, out_height);
         unsigned char *sbuf = (unsigned char*)av_malloc(size);
 
-        avpicture_fill(&image_out, (uint8_t *)sbuf, AV_PIX_FMT_YUV420P,
-                       out_width, out_height);
+        av_image_fill_arrays(image_out.data, image_out.linesize,
+            (uint8_t *)sbuf, AV_PIX_FMT_YUV420P,
+            out_width, out_height, IMAGE_ALIGN);
         AVPictureFill(&image_in, buffer);
         QMutexLocker locker(&lock);
         scontext = sws_getCachedContext(scontext, width, height,
@@ -1462,8 +1464,9 @@ void VideoOutputXv::PrepareFrameMem(VideoFrame *buffer, FrameScanType /*scan*/)
                   image_out.data, image_out.linesize);
     }
 
-    avpicture_fill(&image_in, (uint8_t *)XJ_non_xv_image->data,
-                   non_xv_av_format, out_width, out_height);
+    av_image_fill_arrays(image_in.data, image_in.linesize,
+        (uint8_t *)XJ_non_xv_image->data,
+        non_xv_av_format, out_width, out_height, IMAGE_ALIGN);
 
     m_copyFrame.Copy(&image_in, non_xv_av_format, &image_out, AV_PIX_FMT_YUV420P,
                 out_width, out_height);

@@ -15,7 +15,6 @@ AudioPlayer::AudioPlayer(MythPlayer *parent, bool muted)
     m_samplerate(44100),  m_codec_profile(0),
     m_stretchfactor(1.0f),m_passthru(false),
     m_lock(QMutex::Recursive), m_muted_on_creation(muted),
-    m_main_device(QString::null), m_passthru_device(QString::null),
     m_no_audio_in(false), m_no_audio_out(true), m_controls_volume(true)
 {
     m_controls_volume = gCoreContext->GetNumSetting("MythControlsVolume", 1);
@@ -109,7 +108,7 @@ void AudioPlayer::DeleteOutput(void)
 QString AudioPlayer::ReinitAudio(void)
 {
     bool want_audio = m_parent->IsAudioNeeded();
-    QString errMsg = QString::null;
+    QString errMsg;
     QMutexLocker lock(&m_lock);
 
     if ((m_format == FORMAT_NONE) ||
@@ -238,7 +237,8 @@ void AudioPlayer::SetAudioInfo(const QString &main_device,
                                uint           samplerate,
                                int            codec_profile)
 {
-    m_main_device = m_passthru_device = QString::null;
+    m_main_device.clear();
+    m_passthru_device.clear();
     if (!main_device.isEmpty())
     {
         m_main_device = main_device;

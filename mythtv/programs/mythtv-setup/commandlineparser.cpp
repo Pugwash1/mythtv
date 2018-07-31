@@ -31,26 +31,40 @@ void MythTVSetupCommandLineParser::LoadArguments(void)
     add("--scan-save-only", "savescan", false, "", "no help");
     add("--scan-non-interactive", "scannoninteractive", false, "", "no help");
 
-    add("--frequency-table", "freqtable", "atsc-vsb8-us", "",
-            "Specify frequency table to be used with command "
-            "line channel scanner.");
+    add("--freq-std", "freqstd", "atsc", "",
+            "Specify the frequency standard to be used with command "
+            "line channel scanner")
+        ->SetParentOf("modulation")
+        ->SetParentOf("region");
+    add("--modulation", "modulation", "vsb8", "",
+            "Specify the frequency modulation to be used with command "
+            "line channel scanner");
+    add("--region", "region", "us", "",
+           "Specify the region for the frequency standard to be used with command "
+           "line channel scanner"); 
+
     add("--input-name", "inputname", "", "",
             "Specify which input to scan for, if specified card "
             "supports multiple.");
     add("--FTAonly", "ftaonly", false, "", "Only import 'Free To Air' channels.");
+    add("--add-full-ts", "addfullts", false, "",
+        "Create addition Transport Stream channels, "
+        "which allow recording of the full, unaltered, transport stream.");
     add("--service-type", "servicetype", "all", "",
             "To be used with channel scanning or importing, specify "
             "the type of services to import. Select from the following, "
             "multiple can be added with '+':\n"
             "   all, tv, radio");
 
-    add("--scan", "scan", 0U, "", 
+    add("--scan", "scan", 0U, "",
             "Run the command line channel scanner on a specified card ID.")
-        ->SetParentOf("freqtable")
+        ->SetParentOf("freqstd")
         ->SetParentOf("inputname")
         ->SetParentOf("ftaonly")
         ->SetParentOf("servicetype")
+        ->SetParentOf("addfullts")
         ->SetBlocks("importscan");
+
 
     add("--scan-import", "importscan", 0U, "",
             "Import an existing scan from the database. Use --scan-list "
@@ -58,4 +72,3 @@ void MythTVSetupCommandLineParser::LoadArguments(void)
         ->SetParentOf("ftaonly")
         ->SetParentOf("servicetype");
 }
-

@@ -53,6 +53,7 @@
 extern "C" {
 #include "libavcodec/avcodec.h"
 #include "libswscale/swscale.h"
+#include "libavutil/imgutils.h"
 }
 
 #include "filtermanager.h"
@@ -187,7 +188,7 @@ VideoOutput *VideoOutput::Create(
     LOG(VB_PLAYBACK, LOG_INFO, LOC + "Allowed renderers (filt: " + decoder +
             "): " + to_comma_list(renderers));
 
-    QString renderer = QString::null;
+    QString renderer;
 
     VideoDisplayProfile *vprof = new VideoDisplayProfile();
 
@@ -400,7 +401,6 @@ VideoOutput::VideoOutput() :
     db_display_dim(0,0),
     db_aspectoverride(kAspect_Off), db_adjustfill(kAdjustFill_Off),
     db_letterbox_colour(kLetterBoxColour_Black),
-    db_deint_filtername(QString::null),
 
     // Video parameters
     video_codec_id(kCodec_NONE),        db_vdisp_profile(NULL),
@@ -531,7 +531,7 @@ QString VideoOutput::GetFilters(void) const
 {
     if (db_vdisp_profile)
         return db_vdisp_profile->GetFilters();
-    return QString::null;
+    return QString();
 }
 
 void VideoOutput::SetVideoFrameRate(float playback_fps)
@@ -619,7 +619,7 @@ bool VideoOutput::SetupDeinterlace(bool interlaced,
                     QString("Failed to approve '%1' deinterlacer "
                             "as a software deinterlacer")
                         .arg(m_deintfiltername));
-                m_deintfiltername = QString::null;
+                m_deintfiltername.clear();
             }
             else
             {
@@ -1120,10 +1120,12 @@ void VideoOutput::ShowPIP(VideoFrame  *frame,
 
         if (pip_tmp_buf && pip_scaling_context)
         {
-            AVPicture img_in, img_out;
-            avpicture_fill(
-                &img_out, (uint8_t *)pip_tmp_buf, AV_PIX_FMT_YUV420P,
-                pip_display_size.width(), pip_display_size.height());
+            AVFrame img_in, img_out;
+            av_image_fill_arrays(
+                img_out.data, img_out.linesize,
+                (uint8_t *)pip_tmp_buf, AV_PIX_FMT_YUV420P,
+                pip_display_size.width(), pip_display_size.height(),
+                IMAGE_ALIGN);
 
             AVPictureFill(&img_in, pipimage);
 
@@ -1135,12 +1137,14 @@ void VideoOutput::ShowPIP(VideoFrame  *frame,
 
             if (pipActive)
             {
-                AVPicture img_padded;
-                avpicture_fill( &img_padded, (uint8_t *)pip_tmp_buf2,
-                    AV_PIX_FMT_YUV420P, pipw, piph);
+                AVFrame img_padded;
+                av_image_fill_arrays(img_padded.data, img_padded.linesize,
+                    (uint8_t *)pip_tmp_buf2,
+                    AV_PIX_FMT_YUV420P, pipw, piph, IMAGE_ALIGN);
 
                 int color[3] = { 20, 0, 200 }; //deep red YUV format
-                av_picture_pad(&img_padded, &img_out, piph, pipw,
+                av_picture_pad((AVPicture*)(&img_padded),
+                    (AVPicture*)(&img_out), piph, pipw,
                                AV_PIX_FMT_YUV420P, 4, 4, 4, 4, color);
 
                 int offsets[3] = {0, int(img_padded.data[1] - img_padded.data[0]),
@@ -1247,12 +1251,14 @@ void VideoOutput::ResizeVideo(VideoFrame *frame)
 
     if (vsz_tmp_buf && vsz_scale_context)
     {
-        AVPicture img_in, img_out;
+        AVFrame img_in, img_out;
 
-        avpicture_fill(&img_out, (uint8_t *)vsz_tmp_buf, AV_PIX_FMT_YUV420P,
-                       resize.width(), resize.height());
-        avpicture_fill(&img_in, (uint8_t *)frame->buf, AV_PIX_FMT_YUV420P,
-                       frame->width, frame->height);
+        av_image_fill_arrays(img_out.data, img_out.linesize,
+            (uint8_t *)vsz_tmp_buf, AV_PIX_FMT_YUV420P,
+            resize.width(), resize.height(),IMAGE_ALIGN);
+        av_image_fill_arrays(img_in.data, img_in.linesize,
+            (uint8_t *)frame->buf, AV_PIX_FMT_YUV420P,
+            frame->width, frame->height,IMAGE_ALIGN);
         img_in.data[0] = frame->buf + frame->offsets[0];
         img_in.data[1] = frame->buf + frame->offsets[1];
         img_in.data[2] = frame->buf + frame->offsets[2];
@@ -1397,6 +1403,7 @@ class OsdRender : public QRunnable
           case FMT_YV12: yv12(); break;
           case FMT_AI44: i44(true); break;
           case FMT_IA44: i44(false); break;
+         default: break;
         }
     }
 

@@ -67,13 +67,15 @@ VideoOutputVDPAU::VideoOutputVDPAU()
 {
     if (gCoreContext->GetNumSetting("UseVideoModes", 0))
         display_res = DisplayRes::GetDisplayRes(true);
-    memset(&m_context, 0, sizeof(AVVDPAUContext));
+    m_context = av_vdpau_alloc_context();
+    memset(m_context, 0, sizeof(AVVDPAUContext));
 }
 
 VideoOutputVDPAU::~VideoOutputVDPAU()
 {
     QMutexLocker locker(&m_lock);
     TearDown();
+    av_freep(&m_context);
 }
 
 void VideoOutputVDPAU::TearDown(void)
@@ -92,11 +94,14 @@ bool VideoOutputVDPAU::Init(const QSize &video_dim_buf,
                             WId winid, const QRect &win_rect,
                             MythCodecID codec_id)
 {
-    // Attempt to free up as much video memory as possible
-    // only works when using the VDPAU painter for the UI
-    MythPainter *painter = GetMythPainter();
-    if (painter)
-        painter->FreeResources();
+    if (!m_win) // Only if this is the first initialization
+    {
+        // Attempt to free up as much video memory as possible
+        // only works when using the VDPAU painter for the UI
+        MythPainter *painter = GetMythPainter();
+        if (painter)
+            painter->FreeResources();
+    }
 
     m_win = winid;
     QMutexLocker locker(&m_lock);
@@ -1354,5 +1359,5 @@ void VideoOutputVDPAU::SetVideoFlip(void)
 
 void* VideoOutputVDPAU::GetDecoderContext(unsigned char* /*buf*/, uint8_t*& /*id*/)
 {
-    return &m_context;
+    return m_context;
 }

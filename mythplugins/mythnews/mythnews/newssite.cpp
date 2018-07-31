@@ -22,11 +22,9 @@ NewsSite::NewsSite(const QString   &name,
     QObject(),
     m_lock(QMutex::Recursive),
     m_name(name),  m_url(url), m_urlReq(url),
-    m_desc(QString::null), m_updated(updated),
+    m_updated(updated),
     m_destDir(GetConfDir()+"/MythNews"),
     m_state(NewsSite::Success),
-    m_errorString(QString::null),
-    m_updateErrorString(QString::null),
     m_imageURL(""),
     m_podcast(podcast)
 {
@@ -66,8 +64,8 @@ void NewsSite::retrieve(void)
 
     stop();
     m_state = NewsSite::Retrieving;
-    m_errorString = QString::null;
-    m_updateErrorString = QString::null;
+    m_errorString.clear();
+    m_updateErrorString.clear();
     m_articleList.clear();
     QString destFile = QString("%1/%2").arg(m_destDir).arg(m_name);
     GetMythDownloadManager()->queueDownload(m_url, destFile, this);
@@ -189,7 +187,7 @@ void NewsSite::customEvent(QEvent *event)
                 }
                 else
                 {
-                    m_updateErrorString = QString::null;
+                    m_updateErrorString.clear();
                     //m_data = data;
 
                     if (m_name.isEmpty())
@@ -328,7 +326,7 @@ void NewsSite::parseRSS(QDomDocument domDoc)
                                         .toElement().text().simplified());
 
         QDomNode descNode = itemNode.namedItem("description");
-        QString description = QString::null;
+        QString description;
         if (!descNode.isNull())
         {
             description = descNode.toElement().text().simplified();
@@ -336,14 +334,14 @@ void NewsSite::parseRSS(QDomDocument domDoc)
         }
 
         QDomNode linkNode = itemNode.namedItem("link");
-        QString url = QString::null;
+        QString url;
         if (!linkNode.isNull())
             url = linkNode.toElement().text().simplified();
 
         QDomNode enclosureNode = itemNode.namedItem("enclosure");
-        QString enclosure = QString::null;
-        QString enclosure_type = QString::null;
-        QString thumbnail = QString::null;
+        QString enclosure;
+        QString enclosure_type;
+        QString thumbnail;
         if (!enclosureNode.isNull())
         {
             QDomAttr enclosureURL = enclosureNode.toElement()
@@ -361,7 +359,7 @@ void NewsSite::parseRSS(QDomDocument domDoc)
                 if (enclosure_type == "image/jpeg")
                 {
                     thumbnail = enclosure;
-                    enclosure = QString::null;
+                    enclosure.clear();
                 }
 
                 // fix for broken feeds that don't add the enclosure type
@@ -373,7 +371,7 @@ void NewsSite::parseRSS(QDomDocument domDoc)
                         if (enclosure.toLower().endsWith(imageExtensions[x]))
                         {
                             thumbnail = enclosure;
-                            enclosure = QString::null;
+                            enclosure.clear();
                             break;
                         }
                     }
@@ -382,7 +380,7 @@ void NewsSite::parseRSS(QDomDocument domDoc)
             else
             {
                 // fix broken feeds (like RT) that don't add the enclosure type
-                enclosure = QString::null;
+                enclosure.clear();
             }
         }
 
@@ -408,7 +406,7 @@ void NewsSite::parseRSS(QDomDocument domDoc)
         }
 
         QDomNode playerNode = itemNode.namedItem("media:player");
-        QString mediaurl = QString::null;
+        QString mediaurl;
         if (!playerNode.isNull())
         {
             QDomAttr mediaURL = playerNode.toElement().attributeNode("url");
@@ -473,7 +471,7 @@ void NewsSite::parseAtom(QDomDocument domDoc)
                                          .text().simplified());
 
         QDomNode summNode = itemNode.namedItem("summary");
-        QString description = QString::null;
+        QString description;
         if (!summNode.isNull())
         {
             description = ReplaceHtmlChar(
@@ -481,7 +479,7 @@ void NewsSite::parseAtom(QDomDocument domDoc)
         }
 
         QDomNode linkNode = itemNode.namedItem("link");
-        QString url = QString::null;
+        QString url;
         if (!linkNode.isNull())
         {
             QDomAttr linkHref = linkNode.toElement().attributeNode("href");

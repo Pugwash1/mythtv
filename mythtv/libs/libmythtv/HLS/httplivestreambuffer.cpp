@@ -152,8 +152,8 @@ public:
         m_bitrate       = rhs.m_bitrate;
         m_url           = rhs.m_url;
         // keep the old data downloaded
-        m_data          = m_data;
-        m_played        = m_played;
+        // m_data       = m_data;
+        // m_played     = m_played;
         m_title         = rhs.m_title;
 #ifdef USING_LIBCRYPTO
         m_psz_key_path  = rhs.m_psz_key_path;
@@ -1776,11 +1776,7 @@ bool HLSRingBuffer::TestForHTTPLiveStreaming(const QString &filename)
         QUrl url = filename;
         isHLS =
         url.path().endsWith(QLatin1String("m3u8"), Qt::CaseInsensitive) ||
-#if QT_VERSION < QT_VERSION_CHECK(5, 0, 0)
-        QString(url.encodedQuery()).contains(QLatin1String("m3u8"), Qt::CaseInsensitive);
-#else
         QString(url.query( QUrl::FullyEncoded )).contains(QLatin1String("m3u8"), Qt::CaseInsensitive);
-#endif
     }
     return isHLS;
 }
@@ -2583,7 +2579,7 @@ bool HLSRingBuffer::OpenFile(const QString &lfilename, uint /*retry_ms*/)
 
     /* HLS standard doesn't provide any guaranty about streams
      being sorted by bitrate, so we sort them, higher bitrate being first */
-    qSort(m_streams.begin(), m_streams.end(), HLSStream::IsGreater);
+    std::sort(m_streams.begin(), m_streams.end(), HLSStream::IsGreater);
 
     // if we want as close to live. We should be selecting a further segment
     // m_live ? ChooseSegment(0) : 0;

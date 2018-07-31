@@ -237,19 +237,17 @@ bool ExternIO::Run(void)
     return true;
 }
 
-void ExternIO::Term(bool /*force*/)
-{
-    LOG(VB_RECORD, LOG_INFO, QString("ExternIO::Term()"));
-}
-
 /* Return true if the process is not, or is no longer running */
 bool ExternIO::KillIfRunning(const QString & cmd)
 {
 #if CONFIG_DARWIN || (__FreeBSD__) || defined(__OpenBSD__)
+    Q_UNUSED(cmd);
     return false;
 #elif defined USING_MINGW
+    Q_UNUSED(cmd);
     return false;
 #elif defined( _MSC_VER )
+    Q_UNUSED(cmd);
     return false;
 #else
     QString grp = QString("pgrep -x -f \"%1\" 2>&1 > /dev/null").arg(cmd);
@@ -268,7 +266,7 @@ bool ExternIO::KillIfRunning(const QString & cmd)
         .arg(cmd));
     res_kil = system(kil.toUtf8().constData());
     if (WEXITSTATUS(res_kil) == 1)
-        LOG(VB_GENERAL, LOG_WARNING, QString("'%1' failed")
+        LOG(VB_GENERAL, LOG_WARNING, QString("'%1' failed: %2")
             .arg(kil).arg(ENO));
 
     res_grp = system(grp.toUtf8().constData());
@@ -307,6 +305,7 @@ void ExternIO::Fork(void)
     }
 
     QString full_command = QString("%1").arg(m_args.join(" "));
+
     if (!KillIfRunning(full_command))
     {
         // Give it one more chance.
@@ -560,11 +559,7 @@ ExternalStreamHandler::ExternalStreamHandler(const QString & path) :
 
 int ExternalStreamHandler::StreamingCount(void) const
 {
-#if QT_VERSION >= 0x050000
     return m_streaming_cnt.loadAcquire();
-#else
-    return m_streaming_cnt;
-#endif
 }
 
 void ExternalStreamHandler::run(void)
@@ -637,8 +632,8 @@ void ExternalStreamHandler::run(void)
             m_notify = false;
         }
 
-        while (read_len = 0, buffer.size() > 188*50 ||
-               (read_len = m_IO->Read(buffer, PACKET_SIZE, 100)) > 0)
+        while (read_len = 0, buffer.size() == PACKET_SIZE ||
+               (read_len = m_IO->Read(buffer, PACKET_SIZE - remainder, 100)) > 0)
         {
             if (m_IO->Error())
             {
@@ -654,12 +649,6 @@ void ExternalStreamHandler::run(void)
 
             if (read_len > 0)
                 empty_cnt = 0;
-
-            if (_stream_data_list.empty())
-            {
-                LOG(VB_GENERAL, LOG_ERR, LOC + "_stream_data_list is empty");
-                continue;
-            }
 
             if (xon)
             {
@@ -697,6 +686,11 @@ void ExternalStreamHandler::run(void)
                 }
             }
 
+            len = remainder = buffer.size();
+
+            if (!m_stream_lock.tryLock())
+                continue;
+
             if (!_listener_lock.tryLock())
                 continue;
 
@@ -707,8 +701,6 @@ void ExternalStreamHandler::run(void)
                              (buffer.constData()), buffer.size());
 
             _listener_lock.unlock();
-
-            len = buffer.size();
 
             if (m_replay)
             {
@@ -722,11 +714,14 @@ void ExternalStreamHandler::run(void)
                 }
             }
 
-            if (remainder > 0 && (len > remainder)) // leftover bytes
-                buffer.remove(0, len - remainder);
-            else
+            m_stream_lock.unlock();
+
+            if (remainder == 0)
                 buffer.clear();
+            else if (len > remainder) // leftover bytes
+                buffer.remove(0, len - remainder);
         }
+
         if (m_IO->Error())
         {
             LOG(VB_GENERAL, LOG_ERR, LOC +
@@ -737,7 +732,8 @@ void ExternalStreamHandler::run(void)
             break;
         }
     }
-    LOG(VB_RECORD, LOG_INFO, LOC + "run(): " + "shutdown");
+    LOG(VB_RECORD, LOG_INFO, LOC + "run(): " +
+        QString("%1 shutdown").arg(_error ? "Error" : "Normal"));
 
     RemoveAllPIDFilters();
     SetRunning(false, true, false);
@@ -873,9 +869,21 @@ void ExternalStreamHandler::CloseApp(void)
         {
             LOG(VB_RECORD, LOG_INFO, LOC +
                 "CloseRecorder failed, sending kill.");
-            m_IO->Term();
-            sleep(5);
-            m_IO->Term(true);
+
+            QString full_command = QString("%1").arg(m_args.join(" "));
+
+            if (!m_IO->KillIfRunning(full_command))
+            {
+                // Give it one more chance.
+                usleep(50000);
+                if (!m_IO->KillIfRunning(full_command))
+                {
+                    LOG(VB_GENERAL, LOG_ERR,
+                        QString("Unable to kill existing '%1'.")
+                        .arg(full_command));
+                    return;
+                }
+            }
         }
         delete m_IO;
         m_IO = 0;
@@ -899,30 +907,22 @@ bool ExternalStreamHandler::RestartStream(void)
 
     if (streaming)
     {
-        return StartStreaming(false);
+        return StartStreaming();
     }
 
     return true;
 }
 
-bool ExternalStreamHandler::StartStreaming(bool flush_buffer)
+void ExternalStreamHandler::ReplayStream(void)
 {
-    QString result;
-
-    QMutexLocker locker(&m_stream_lock);
-
-    LOG(VB_RECORD, LOG_INFO, LOC +
-        QString("StartStreaming with %1 current listeners")
-        .arg(StreamingCount()));
-
-    if (!IsAppOpen())
+    if (m_replay)
     {
-        LOG(VB_GENERAL, LOG_ERR, LOC + "External Recorder not started.");
-        return false;
-    }
+        QString    result;
 
-    if (flush_buffer && m_replay)
-    {
+        // Let the external app know that we could be busy for a little while
+        if (!m_poll_mode)
+            ProcessCommand(QString("XOFF"), 50, result);
+
         /* If the input is not a 'broadcast' it may only have one
          * copy of the SPS right at the beginning of the stream,
          * so make sure we don't miss it!
@@ -941,6 +941,27 @@ bool ExternalStreamHandler::StartStreaming(bool flush_buffer)
             .arg(m_replay_buffer.size()));
         m_replay_buffer.clear();
         m_replay = false;
+
+        // Let the external app know that we are ready
+        if (!m_poll_mode)
+            ProcessCommand(QString("XON"), 50, result);
+    }
+}
+
+bool ExternalStreamHandler::StartStreaming(void)
+{
+    QString result;
+
+    QMutexLocker locker(&m_stream_lock);
+
+    LOG(VB_RECORD, LOG_INFO, LOC +
+        QString("StartStreaming with %1 current listeners")
+        .arg(StreamingCount()));
+
+    if (!IsAppOpen())
+    {
+        LOG(VB_GENERAL, LOG_ERR, LOC + "External Recorder not started.");
+        return false;
     }
 
     if (StreamingCount() == 0)
@@ -1018,7 +1039,7 @@ bool ExternalStreamHandler::StopStreaming(void)
             .arg(result));
         if (!result.startsWith("Warn"))
         {
-            LOG(VB_RECORD, LOG_WARNING, LOC +
+            LOG(VB_RECORD, LOG_ERR, LOC +
                 QString("StopStreaming failed: '%1'").arg(result));
             _error = true;
         }
@@ -1062,7 +1083,7 @@ bool ExternalStreamHandler::ProcessCommand(const QString & cmd, uint timeout,
 
         if (m_IO->Error())
         {
-            LOG(VB_GENERAL, LOG_ERR, "External Recorder in bad state: " +
+            LOG(VB_GENERAL, LOG_ERR, LOC + "External Recorder in bad state: " +
                 m_IO->ErrorString());
             return false;
         }
@@ -1079,7 +1100,7 @@ bool ExternalStreamHandler::ProcessCommand(const QString & cmd, uint timeout,
             result = m_IO->GetStatus(timeout);
             if (m_IO->Error())
             {
-                LOG(VB_GENERAL, LOG_ERR,
+                LOG(VB_GENERAL, LOG_ERR, LOC +
                     "Failed to read from External Recorder: " +
                     m_IO->ErrorString());
                     _error = true;
@@ -1118,7 +1139,11 @@ bool ExternalStreamHandler::ProcessCommand(const QString & cmd, uint timeout,
         }
 
         if (++m_io_errcnt > 10)
+        {
+            LOG(VB_GENERAL, LOG_ERR, LOC + "Too many I/O errors.");
             _error = true;
+            break;
+        }
         usleep(timeout);
     }
 

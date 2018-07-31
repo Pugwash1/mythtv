@@ -445,7 +445,7 @@ ProgramMapTable* ProgramMapTable::Create(
         uint len = global_desc[i][1] + 2;
         gdesc.insert(gdesc.end(), global_desc[i], global_desc[i] + len);
     }
-    pmt->SetProgramInfo(&gdesc[0], gdesc.size());
+    pmt->SetProgramInfo(gdesc.data(), gdesc.size());
 
     for (uint i = 0; i < count; i++)
     {
@@ -457,7 +457,7 @@ ProgramMapTable* ProgramMapTable::Create(
                          prog_desc[i][j], prog_desc[i][j] + len);
         }
 
-        pmt->AppendStream(pids[i], types[i], &pdesc[0], pdesc.size());
+        pmt->AppendStream(pids[i], types[i], pdesc.data(), pdesc.size());
     }
     pmt->Finalize();
 
@@ -1118,7 +1118,7 @@ QString ProgramMapTable::GetLanguage(uint i) const
         list, DescriptorID::iso_639_language);
 
     if (!lang_desc)
-        return QString::null;
+        return QString();
 
     ISO639LanguageDescriptor iso_lang(lang_desc);
     return iso_lang.CanonicalLanguageString();
@@ -1402,9 +1402,10 @@ QString SpliceInformationTable::toString(int64_t first, int64_t last) const
         .arg(IsEncryptedPacket()?EncryptionAlgorithmString():"None")
         .arg(PTSAdjustment());
     str += IsEncryptedPacket() ? QString(" cw_index(%1)") : QString("");
-    str += QString(" command_len(%1) command_type(%2)")
+    str += QString(" command_len(%1) command_type(%2) scte_pid(0x%3)")
         .arg(SpliceCommandLength())
-        .arg(SpliceCommandTypeString());
+        .arg(SpliceCommandTypeString()
+        .arg(getSCTEPID(), 0, 16));
 
     if (IsEncryptedPacket())
         return str;
@@ -1469,13 +1470,14 @@ QString SpliceInformationTable::toStringXML(
 
     QString str = QString(
         "%1<SpliceInformationSection %2 encryption_algorithm=\"%3\" "
-        "pts_adjustment=\"%4\" code_word_index=\"%5\" command_type=\"%6\">\n")
+        "pts_adjustment=\"%4\" code_word_index=\"%5\" command_type=\"%6\" scte_pid=\"0x%7\" >\n")
         .arg(indent)
         .arg(cap_time)
         .arg(EncryptionAlgorithmString())
         .arg(PTSAdjustment())
         .arg(CodeWordIndex())
-        .arg(SpliceCommandTypeString());
+        .arg(SpliceCommandTypeString())
+        .arg(getSCTEPID(), 0 ,16);
 
     if (IsEncryptedPacket())
         return str + indent + "</SpliceInformationSection>";

@@ -698,11 +698,11 @@ bool NuppelDecoder::InitAVCodecVideo(int codec)
         return false;
     }
 
-    if (mpa_vidcodec->capabilities & CODEC_CAP_DR1 && codec != AV_CODEC_ID_MJPEG)
+    if (mpa_vidcodec->capabilities & AV_CODEC_CAP_DR1 && codec != AV_CODEC_ID_MJPEG)
         directrendering = true;
 
     if (mpa_vidctx)
-        av_free(mpa_vidctx);
+        avcodec_free_context(&mpa_vidctx);
 
     mpa_vidctx = avcodec_alloc_context3(NULL);
 
@@ -716,7 +716,7 @@ bool NuppelDecoder::InitAVCodecVideo(int codec)
 
     if (directrendering)
     {
-        mpa_vidctx->flags |= CODEC_FLAG_EMU_EDGE;
+        // mpa_vidctx->flags |= CODEC_FLAG_EMU_EDGE;
         mpa_vidctx->draw_horiz_band = NULL;
         mpa_vidctx->get_buffer2 = get_nuppel_buffer;
         mpa_vidctx->opaque = (void *)this;
@@ -742,16 +742,8 @@ void NuppelDecoder::CloseAVCodecVideo(void)
 {
     QMutexLocker locker(avcodeclock);
 
-    if (mpa_vidcodec)
-    {
-        avcodec_close(mpa_vidctx);
-
-        if (mpa_vidctx)
-        {
-            av_free(mpa_vidctx);
-            mpa_vidctx = NULL;
-        }
-    }
+    if (mpa_vidcodec && mpa_vidctx)
+        avcodec_free_context(&mpa_vidctx);
 }
 
 bool NuppelDecoder::InitAVCodecAudio(int codec)
@@ -781,7 +773,7 @@ bool NuppelDecoder::InitAVCodecAudio(int codec)
     }
 
     if (mpa_audctx)
-        av_free(mpa_audctx);
+        avcodec_free_context(&mpa_audctx);
 
     mpa_audctx = avcodec_alloc_context3(NULL);
 
@@ -802,16 +794,8 @@ void NuppelDecoder::CloseAVCodecAudio(void)
 {
     QMutexLocker locker(avcodeclock);
 
-    if (mpa_audcodec)
-    {
-        avcodec_close(mpa_audctx);
-
-        if (mpa_audctx)
-        {
-            av_free(mpa_audctx);
-            mpa_audctx = NULL;
-        }
-    }
+    if (mpa_audcodec && mpa_audctx)
+        avcodec_free_context(&mpa_audctx);
 }
 
 static void CopyToVideo(unsigned char *buf, int video_width,
@@ -923,17 +907,35 @@ bool NuppelDecoder::DecodeFrame(struct rtframeheader *frameheader,
         {
             QMutexLocker locker(avcodeclock);
             // if directrendering, writes into buf
-            int gotpicture = 0;
-            int ret = avcodec_decode_video2(mpa_vidctx, mpa_pic, &gotpicture,
-                                            &pkt);
+            bool gotpicture = false;
+            //  SUGGESTION
+            //  Now that avcodec_decode_video2 is deprecated and replaced
+            //  by 2 calls (receive frame and send packet), this could be optimized
+            //  into separate routines or separate threads.
+            //  Also now that it always consumes a whole buffer some code
+            //  in the caller may be able to be optimized.
+            int ret = avcodec_receive_frame(mpa_vidctx, mpa_pic);
+            if (ret == 0)
+                gotpicture = true;
+            if (ret == AVERROR(EAGAIN))
+                ret = 0;
+            if (ret == 0)
+                ret = avcodec_send_packet(mpa_vidctx, &pkt);
             directframe = NULL;
+            // The code assumes that there is always space to add a new
+            // packet. This seems risky but has always worked.
+            // It should actually check if (ret == AVERROR(EAGAIN)) and then keep
+            // the packet around and try it again after processing the frame
+            // received here.
             if (ret < 0)
             {
-                LOG(VB_PLAYBACK, LOG_ERR, LOC +
-                    QString("avcodec_decode_video returned: %1").arg(ret));
-                return false;
+                char error[AV_ERROR_MAX_STRING_SIZE];
+                LOG(VB_GENERAL, LOG_ERR, LOC +
+                    QString("video decode error: %1 (%2)")
+                    .arg(av_make_error_string(error, sizeof(error), ret))
+                    .arg(gotpicture));
             }
-            else if (!gotpicture)
+            if (!gotpicture)
             {
                 return false;
             }
@@ -963,7 +965,7 @@ bool NuppelDecoder::DecodeFrame(struct rtframeheader *frameheader,
             return true;
 
         AVFrame *tmp = mpa_pic;
-        copyFrame.Copy(frame, (AVPicture*)tmp, mpa_vidctx->pix_fmt);
+        copyFrame.Copy(frame, (AVFrame*)tmp, mpa_vidctx->pix_fmt);
     }
 
     return true;

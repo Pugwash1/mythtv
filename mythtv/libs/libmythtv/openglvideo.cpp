@@ -68,8 +68,7 @@ OpenGLVideo::OpenGLVideo() :
     video_dim(0,0),           viewportSize(0,0),
     masterViewportSize(0,0),  display_visible_rect(0,0,0,0),
     display_video_rect(0,0,0,0), video_rect(0,0,0,0),
-    frameBufferRect(0,0,0,0), softwareDeinterlacer(QString::null),
-    hardwareDeinterlacer(QString::null), hardwareDeinterlacing(false),
+    frameBufferRect(0,0,0,0), hardwareDeinterlacing(false),
     colourSpace(NULL),        viewportControl(false),
     inputTextureSize(0,0),    currentFrameNum(0),
     inputUpdated(false),      refsNeeded(0),
@@ -184,8 +183,15 @@ bool OpenGLVideo::Init(MythRenderOpenGL *glcontext, VideoColourSpace *colourspac
         videoTextureType = GL_YCBCR_MESA;
     else if ((!shaders || preferYCBCR) && (gl_features & kGLAppleYCbCr))
         videoTextureType = GL_YCBCR_422_APPLE;
+#ifndef ANDROID
+    // WORKAROUND - bypass this on Android
+    // because on Android using texture type MYTHTV_YV12
+    // results in a green line on bottom and left with
+    // some videos. It seems to happen on videos that are
+    // being resized (e.g. play 720p video with 1080p screen).
     else if (glsl && fbos && !(pbos && uyvy) && yv12)
         videoTextureType = MYTHTV_YV12;
+#endif
     else if (shaders && fbos && uyvy)
         videoTextureType = MYTHTV_UYVY;
 
@@ -872,7 +878,7 @@ void OpenGLVideo::UpdateInputFrame(const VideoFrame *frame, bool soft_bob)
         MYTHTV_UYVY == videoTextureType)
     {
         // software conversion
-        AVPicture img_out;
+        AVFrame img_out;
         AVPixelFormat out_fmt = AV_PIX_FMT_BGRA;
         if ((GL_YCBCR_MESA == videoTextureType) ||
             (GL_YCBCR_422_APPLE == videoTextureType) ||
@@ -1436,7 +1442,7 @@ void OpenGLVideo::CustomiseProgramString(QString &string)
         yselect    /= ((float)inputTextureSize.width() / 2.0f);
     }
 
-    float maxheight  = (float)(min(inputTextureSize.height(), 1080) - 1) *
+    float maxheight  = (float)(min(inputTextureSize.height(), 2160) - 1) *
                        lineHeight;
     float fieldSize = 1.0f / (lineHeight * 2.0);
 

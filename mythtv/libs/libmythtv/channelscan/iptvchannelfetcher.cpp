@@ -175,8 +175,8 @@ void IPTVChannelFetcher::run(void)
                 chanid = ChannelUtil::CreateChanID(_sourceid, channum);
                 ChannelUtil::CreateChannel(0, _sourceid, chanid, name, name,
                                            channum, programnumber, 0, 0,
-                                           false, false, false, QString::null,
-                                           QString::null, "Default", xmltvid);
+                                           false, false, false, QString(),
+                                           QString(), "Default", xmltvid);
                 ChannelUtil::CreateIPTVTuningData(chanid, (*it).m_tuning);
             }
             else
@@ -188,8 +188,8 @@ void IPTVChannelFetcher::run(void)
                 }
                 ChannelUtil::UpdateChannel(0, _sourceid, chanid, name, name,
                                            channum, programnumber, 0, 0,
-                                           false, false, false, QString::null,
-                                           QString::null, "Default", xmltvid);
+                                           false, false, false, QString(),
+                                           QString(), "Default", xmltvid);
                 ChannelUtil::UpdateIPTVTuningData(chanid, (*it).m_tuning);
             }
 
@@ -327,7 +327,7 @@ fbox_chan_map_t IPTVChannelFetcher::ParsePlaylist(
     for (uint i = 1; true; i++)
     {
         IPTVChannelInfo info;
-        QString channum = QString::null;
+        QString channum;
 
         if (!parse_chan_info(rawdata, info, channum, lineNum))
             break;
@@ -342,7 +342,7 @@ fbox_chan_map_t IPTVChannelFetcher::ParsePlaylist(
                 .arg(info.m_tuning.GetDataURL().toString());
             LOG(VB_CHANNEL, LOG_INFO, LOC + msg);
 
-            msg = QString::null; // don't tell fetcher
+            msg.clear(); // don't tell fetcher
         }
 
         if (fetcher)

@@ -359,10 +359,10 @@ static void handle_transport_desc(vector<uint> &muxes,
             cd.SymbolRateHz(),    -1,
             -1,                   'a',
             -1,
-            cd.FECInnerString(),  QString::null,
-            -1,                   QString::null,
-            QString::null,        QString::null,
-            QString::null,        QString::null);
+            cd.FECInnerString(),  QString(),
+            -1,                   QString(),
+            QString(),            QString(),
+            QString(),            QString());
 
         if (mux)
             muxes.push_back(mux);
@@ -380,10 +380,10 @@ uint ChannelUtil::CreateMultiplex(int  sourceid,      QString sistandard,
         -1,                 -1,
         -1,                 -1,
         -1,
-        QString::null,      QString::null,
-        -1,                 QString::null,
-        QString::null,      QString::null,
-        QString::null,      QString::null);
+        QString(),          QString(),
+        -1,                 QString(),
+        QString(),          QString(),
+        QString(),          QString());
 }
 
 uint ChannelUtil::CreateMultiplex(
@@ -754,7 +754,7 @@ bool ChannelUtil::GetTuningParams(uint      mplexid,
 QString ChannelUtil::GetChannelStringField(int chan_id, const QString &field)
 {
     if (chan_id < 0)
-        return QString::null;
+        return QString();
 
     MSqlQuery query(MSqlQuery::InitCon());
     query.prepare(QString("SELECT %1 FROM channel "
@@ -763,11 +763,11 @@ QString ChannelUtil::GetChannelStringField(int chan_id, const QString &field)
     if (!query.exec())
     {
         MythDB::DBError("Selecting channel/dtv_multiplex 1", query);
-        return QString::null;
+        return QString();
     }
 
     if (!query.next())
-        return QString::null;
+        return QString();
 
     return query.value(0).toString();
 }
@@ -947,7 +947,7 @@ QString ChannelUtil::GetChannelValueStr(const QString &channel_field,
                                         uint           sourceid,
                                         const QString &channum)
 {
-    QString retval = QString::null;
+    QString retval;
 
     MSqlQuery query(MSqlQuery::InitCon());
 
@@ -1225,7 +1225,7 @@ QString ChannelUtil::GetDefaultAuthority(uint chanid)
     }
 
     QMap<uint,QString>::iterator it = channel_default_authority_map.find(chanid);
-    QString ret = QString::null;
+    QString ret;
     if (it != channel_default_authority_map.end())
     {
         ret = *it;
@@ -1856,8 +1856,11 @@ bool ChannelUtil::GetChannelData(
     bool    &commfree)
 {
     chanid        = 0;
-    tvformat      = modulation = freqtable = QString::null;
-    freqid        = dtv_si_std = QString::null;
+    tvformat.clear();
+    modulation.clear();
+    freqtable.clear();;
+    freqid.clear();
+    dtv_si_std.clear();
     finetune      = 0;
     frequency     = 0;
     mpeg_prog_num = -1;

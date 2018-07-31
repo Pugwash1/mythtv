@@ -258,9 +258,9 @@ static QString construct_sort_title(
 
         QString sortprefix;
         if (recpriority > 0)
-            sortprefix.sprintf("+%03u", 1000 - recpriority);
+            sortprefix.sprintf("+%03d", 1000 - recpriority);
         else
-            sortprefix.sprintf("-%03u", -recpriority);
+            sortprefix.sprintf("-%03d", -recpriority);
 
         sTitle = sortprefix + '-' + sTitle;
     }
@@ -556,7 +556,13 @@ bool PlaybackBox::Create()
     }
 
     if (m_recgroupList)
-        m_recgroupList->SetCanTakeFocus(false);
+    {
+        if (gCoreContext->GetNumSetting("RecGroupsFocusable", 0))
+        connect(m_recgroupList, SIGNAL(itemSelected(MythUIButtonListItem*)),
+            SLOT(updateRecGroup(MythUIButtonListItem*)));
+        else
+            m_recgroupList->SetCanTakeFocus(false);
+    }
 
     connect(m_groupList, SIGNAL(itemSelected(MythUIButtonListItem*)),
             SLOT(updateRecList(MythUIButtonListItem*)));
@@ -1337,6 +1343,12 @@ void PlaybackBox::UpdateUIRecGroupList(void)
     if (m_recGroupIdx < 0 || !m_recgroupList || m_recGroups.size() < 2)
         return;
 
+#if QT_VERSION < QT_VERSION_CHECK(5,3,0)
+    const bool wasBlocked = m_recgroupList->blockSignals(true);
+#else
+    QSignalBlocker blocker(m_recgroupList);
+#endif
+
     m_recgroupList->Reset();
 
     int idx = 0;
@@ -1357,6 +1369,9 @@ void PlaybackBox::UpdateUIRecGroupList(void)
             m_recgroupList->SetItemCurrent(item);
         item->SetText(name);
     }
+#if QT_VERSION < QT_VERSION_CHECK(5,3,0)
+    m_recgroupList->blockSignals(wasBlocked);
+#endif
 }
 
 void PlaybackBox::UpdateUIGroupList(const QStringList &groupPreferences)
@@ -1409,6 +1424,12 @@ void PlaybackBox::UpdateUIGroupList(const QStringList &groupPreferences)
         if (!sel_idx)
             updateRecList(m_groupList->GetItemCurrent());
     }
+}
+
+void PlaybackBox::updateRecGroup(MythUIButtonListItem *sel_item)
+{
+    QString newRecGroup = sel_item->GetData().toString();
+    displayRecGroup(newRecGroup);
 }
 
 void PlaybackBox::updateRecList(MythUIButtonListItem *sel_item)
@@ -1703,10 +1724,6 @@ bool PlaybackBox::UpdateUILists(void)
                 // Never show Deleted recs anywhere else
                 if (!isDeletedGroup)
                     continue;
-            }
-            else if (pRecgroup.startsWith('.'))
-            {
-                continue;
             }
             // Optionally ignore LiveTV programs if not viewing LiveTV group
             else if (!(m_viewMask & VIEW_LIVETVGRP) &&
@@ -2332,6 +2349,13 @@ void PlaybackBox::PlayX(const ProgramInfo &pginfo,
     Close();
 }
 
+void PlaybackBox::ClearBookmark()
+{
+    ProgramInfo *pginfo = GetCurrentProgram();
+    if (pginfo)
+        pginfo->SaveBookmark(0);
+}
+
 void PlaybackBox::StopSelected(void)
 {
     ProgramInfo *pginfo = GetCurrentProgram();
@@ -2527,6 +2551,9 @@ bool PlaybackBox::Play(
 
     m_playingSomething = true;
     int initIndex = m_recordingList->StopLoad();
+
+    if (!gCoreContext->GetNumSetting("UseProgStartMark", 0))
+        ignoreProgStart = true;
 
     uint flags =
         (inPlaylist          ? kStartTVInPlayList       : kStartTVNoFlags) |
@@ -3003,10 +3030,15 @@ MythMenu* PlaybackBox::createPlayFromMenu()
 
     if (pginfo->IsBookmarkSet())
         menu->AddItem(tr("Play from bookmark"), SLOT(PlayFromBookmark()));
+
     if (pginfo->QueryLastPlayPos())
         menu->AddItem(tr("Play from last played position"),
                       SLOT(PlayFromLastPlayPos()));
+
     menu->AddItem(tr("Play from beginning"), SLOT(PlayFromBeginning()));
+
+    if (pginfo->IsBookmarkSet())
+        menu->AddItem(tr("Clear bookmark"), SLOT(ClearBookmark()));
 
     return menu;
 }

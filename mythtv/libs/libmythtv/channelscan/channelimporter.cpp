@@ -539,9 +539,9 @@ ScanDTVTransportList ChannelImporter::InsertChannels(
                         chan.use_on_air_guide,
                         chan.hidden, chan.hidden_in_guide,
                         chan.freqid,
-                        QString::null,
-                        QString::null,
-                        QString::null,
+                        QString(),
+                        chan.format,
+                        QString(),
                         chan.default_authority);
 
                     if (!transports[i].iptv_tuning.GetDataURL().isEmpty())
@@ -700,9 +700,9 @@ ScanDTVTransportList ChannelImporter::UpdateChannels(
                     chan.use_on_air_guide,
                     chan.hidden, chan.hidden_in_guide,
                     chan.freqid,
-                    QString::null,
-                    QString::null,
-                    QString::null,
+                    QString(),
+                    chan.format,
+                    QString(),
                     chan.default_authority);
             }
 
@@ -742,7 +742,7 @@ void ChannelImporter::CleanupDuplicates(ScanDTVTransportList &transports) const
 {
     ScanDTVTransportList no_dups;
 
-    DTVTunerType tuner_type = DTVTunerType::kTunerTypeATSC;
+    DTVTunerType tuner_type(DTVTunerType::kTunerTypeATSC);
     if (!transports.empty())
         tuner_type = transports[0].tuner_type;
 
@@ -834,7 +834,7 @@ ScanDTVTransportList ChannelImporter::GetDBTransports(
 {
     ScanDTVTransportList not_in_scan;
 
-    DTVTunerType tuner_type = DTVTunerType::kTunerTypeATSC;
+    DTVTunerType tuner_type(DTVTunerType::kTunerTypeATSC);
     if (!transports.empty())
         tuner_type = transports[0].tuner_type;
 
@@ -1599,8 +1599,6 @@ OkCancelType ChannelImporter::ShowManualChannelPopup(
         }
         else
             delete textEdit;
-        delete popup;
-        popup = NULL;
     }
 
     bool ok = (0 == dc);

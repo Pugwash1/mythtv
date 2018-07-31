@@ -213,7 +213,7 @@ void SelectSetting::setValue(int which)
 QString SelectSetting::getSelectionLabel(void) const
 {
     if (!isSet || (current >= values.size()))
-        return QString::null;
+        return QString();
 
     return labels[current];
 }
@@ -844,7 +844,7 @@ void PathSetting::addSelection(const QString& label,
                                QString value,
                                bool select) {
     QString pathname = label;
-    if (value != QString::null)
+    if (!value.isEmpty())
         pathname = value;
 
     if (mustexist && !QFile(pathname).exists())

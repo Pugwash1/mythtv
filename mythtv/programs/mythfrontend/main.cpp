@@ -20,6 +20,10 @@ using namespace std;
 #include <QProcessEnvironment>
 #endif
 
+#ifdef Q_OS_ANDROID
+#include <QtAndroidExtras>
+#endif
+
 #include "previewgeneratorqueue.h"
 #include "referencecounter.h"
 #include "mythmiscutil.h"
@@ -263,6 +267,8 @@ namespace
 
     void cleanup()
     {
+        qApp->processEvents();
+        DestroyMythMainWindow();
 #ifdef USING_AIRPLAY
         MythRAOPDevice::Cleanup();
         MythAirplayServer::Cleanup();
@@ -286,8 +292,6 @@ namespace
             delete pmanager;
             pmanager = NULL;
         }
-
-        DestroyMythMainWindow();
 
         delete gContext;
         gContext = NULL;
@@ -1396,6 +1400,58 @@ static bool resetTheme(QString themedir, const QString &badtheme)
 
 static int reloadTheme(void)
 {
+
+#ifdef Q_OS_ANDROID
+
+    // jni code to launch the application again
+    // reinitializing the main windows causes a segfault
+    // with android
+
+    auto activity = QtAndroid::androidActivity();
+    auto packageManager = activity.callObjectMethod
+        (   "getPackageManager",
+            "()Landroid/content/pm/PackageManager;"  );
+
+    auto activityIntent = packageManager.callObjectMethod
+        (   "getLaunchIntentForPackage",
+            "(Ljava/lang/String;)Landroid/content/Intent;",
+            activity.callObjectMethod("getPackageName",
+            "()Ljava/lang/String;").object()  );
+
+    auto pendingIntent = QAndroidJniObject::callStaticObjectMethod
+        (   "android/app/PendingIntent",
+            "getActivity",
+            "(Landroid/content/Context;ILandroid/content/Intent;I)Landroid/app/PendingIntent;",
+            activity.object(),
+            jint(0),
+            activityIntent.object(),
+            QAndroidJniObject::getStaticField<jint>("android/content/Intent",
+            "FLAG_ACTIVITY_CLEAR_TOP")  );
+
+    auto alarmManager = activity.callObjectMethod
+        (   "getSystemService",
+            "(Ljava/lang/String;)Ljava/lang/Object;",
+            QAndroidJniObject::getStaticObjectField("android/content/Context",
+            "ALARM_SERVICE",
+            "Ljava/lang/String;").object()  );
+
+    alarmManager.callMethod<void>
+        (   "set",
+            "(IJLandroid/app/PendingIntent;)V",
+            QAndroidJniObject::getStaticField<jint>("android/app/AlarmManager", "RTC"),
+            jlong(QDateTime::currentMSecsSinceEpoch() + 100),
+            pendingIntent.object()  );
+
+    qApp->quit();
+    // QString title = QObject::tr("Your change will take effect the next time "
+    //                     "mythfrontend is started.");
+    //     MythScreenStack *popupStack = GetMythMainWindow()->GetStack("popup stack");    MythConfirmationDialog *okPopup =
+    //         new MythConfirmationDialog(popupStack, title, false);
+    // if (okPopup->Create())
+    //     popupStack->AddScreen(okPopup);
+    return 0;
+#else
+
     QString themename = gCoreContext->GetSetting("Theme", DEFAULT_UI_THEME);
     QString themedir = GetMythUI()->FindThemeDir(themename);
     if (themedir.isEmpty())
@@ -1437,6 +1493,7 @@ static int reloadTheme(void)
     }
 
     return 0;
+#endif // Q_OS_ANDROID else
 }
 
 static void reloadTheme_void(void)
@@ -1638,10 +1695,10 @@ static int internal_media_init()
         "MythTV's native media player."), internal_play_media);
     REG_MEDIA_HANDLER(QT_TRANSLATE_NOOP("MythControls",
         "MythDVD DVD Media Handler"), "", handleDVDMedia,
-        MEDIATYPE_DVD, QString::null);
+        MEDIATYPE_DVD, QString());
     REG_MEDIA_HANDLER(QT_TRANSLATE_NOOP("MythControls",
         "MythImage Media Handler 1/2"), "", handleGalleryMedia,
-        MEDIATYPE_DATA | MEDIATYPE_MIXED, QString::null);
+        MEDIATYPE_DATA | MEDIATYPE_MIXED, QString());
 
     QStringList extensions(ImageAdapterBase::SupportedImages()
                            + ImageAdapterBase::SupportedVideos());
@@ -1784,18 +1841,6 @@ int main(int argc, char **argv)
     setenv("QT_XCB_GL_INTEGRATION","none",0);
 #endif
 
-#ifdef Q_OS_ANDROID
-    // extra for 0 termination
-    char *newargv[argc+4+1];
-    memset(newargv, 0, sizeof(newargv));
-    memcpy(newargv, argv, sizeof(char*) * argc);
-    //newargv[argc++] = "-v";
-    //newargv[argc++] = "general,gui,playback";
-    //newargv[argc++] = "--loglevel";
-    //newargv[argc++] = "debug";
-    argv = &newargv[0];
-#endif
-
     MythFrontendCommandLineParser cmdline;
     if (!cmdline.Parse(argc, argv))
     {
@@ -1830,7 +1875,7 @@ int main(int argc, char **argv)
 #ifdef Q_OS_ANDROID
     //QApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
 #endif
-#if QT_VERSION >= 0x050300
+#if QT_VERSION >= QT_VERSION_CHECK(5,3,0)
     QApplication::setSetuidAllowed(true);
 #endif
     new QApplication(argc, argv);

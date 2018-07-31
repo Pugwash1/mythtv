@@ -161,10 +161,9 @@ class SchedGroup : public MythUICheckBoxSetting
             QObject::tr(
                 "Schedule all virtual inputs on this device as a group.  "
                 "This is more efficient than scheduling each input "
-                "individually, but can result in scheduling more "
-                "simultaneous recordings than is allowed.  Be sure to set "
-                "the maximum number of simultaneous recordings above "
-                "high enough to handle all expected cases."
+                "individually.  Additional, virtual inputs will be "
+                "automatically added as needed to fulfill the recording "
+                "load."
                 ));
     };
 };
@@ -391,8 +390,7 @@ FreqTableSelector::FreqTableSelector(const VideoSource &parent) :
 }
 
 TransFreqTableSelector::TransFreqTableSelector(uint _sourceid) :
-    sourceid(_sourceid),
-    loaded_freq_table(QString::null)
+    sourceid(_sourceid)
 {
     setLabel(QObject::tr("Channel frequency table"));
 
@@ -422,7 +420,7 @@ void TransFreqTableSelector::Load(void)
         return;
     }
 
-    loaded_freq_table = QString::null;
+    loaded_freq_table.clear();
 
     if (query.next())
     {
@@ -778,8 +776,8 @@ class VideoDevice : public CaptureCardComboBoxSetting
     VideoDevice(const CaptureCard &parent,
                 uint    minor_min = 0,
                 uint    minor_max = UINT_MAX,
-                QString card      = QString::null,
-                QString driver    = QString::null) :
+                QString card      = QString(),
+                QString driver    = QString()) :
         CaptureCardComboBoxSetting(parent, true, "videodevice")
     {
         setLabel(QObject::tr("Video device"));
@@ -815,7 +813,7 @@ class VideoDevice : public CaptureCardComboBoxSetting
         // Needed to make both compiler and doxygen happy.
         (void) absPath;
 
-        fillSelectionsFromDir(dir, 0, 255, QString::null, QString::null, false);
+        fillSelectionsFromDir(dir, 0, 255, QString(), QString(), false);
     }
 
     uint fillSelectionsFromDir(const QDir& dir,
@@ -901,7 +899,7 @@ class VBIDevice : public CaptureCardComboBoxSetting
                                    "vbidevice")
     {
         setLabel(QObject::tr("VBI device"));
-        setFilter(QString::null, QString::null);
+        setFilter(QString(), QString());
         setHelpText(QObject::tr("Device to read VBI (captions) from."));
     };
 
@@ -932,7 +930,7 @@ class VBIDevice : public CaptureCardComboBoxSetting
         // Needed to make both compiler and doxygen happy.
         (void) absPath;
 
-        fillSelectionsFromDir(dir, QString::null, QString::null);
+        fillSelectionsFromDir(dir, QString(), QString());
     }
 
     uint fillSelectionsFromDir(const QDir &dir, const QString &card,
@@ -971,15 +969,18 @@ class VBIDevice : public CaptureCardComboBoxSetting
     }
 };
 
-class ArgumentString : public LineEditSetting, public CaptureCardDBStorage
+class CommandPath : public MythUITextEditSetting
 {
   public:
-    explicit ArgumentString(const CaptureCard &parent) :
-        LineEditSetting(this, true),
-        CaptureCardDBStorage(this, parent, "audiodevice") // change to arguments
+    explicit CommandPath(const CaptureCard &parent) :
+        MythUITextEditSetting(new CaptureCardDBStorage(this, parent,
+                                                       "videodevice"))
     {
-        setLabel(QObject::tr("Arguments"));
-    }
+        setLabel(QObject::tr(""));
+        setValue("");
+        setHelpText(QObject::tr("Specify the command to run, with any "
+                                "needed arguments."));
+    };
 };
 
 class FileDevice : public MythUIFileBrowserSetting
@@ -1093,7 +1094,7 @@ class DVBCardNum : public CaptureCardComboBoxSetting
                         "should change to the name and type of your card. "
                         "If the card cannot be opened, an error message "
                         "will be displayed."));
-        fillSelections(QString::null);
+        fillSelections(QString());
     };
 
     /// \brief Adds all available cards to list
@@ -1143,7 +1144,7 @@ class DVBCardNum : public CaptureCardComboBoxSetting
     virtual void Load(void)
     {
         clearSelections();
-        addSelection(QString::null);
+        addSelection(QString());
 
         StandardSetting::Load();
 
@@ -1449,10 +1450,7 @@ void HDHomeRunTunerIndex::UpdateDevices(const QString &v)
 }
 
 HDHomeRunDeviceID::HDHomeRunDeviceID(const CaptureCard &parent) :
-    MythUITextEditSetting(new CaptureCardDBStorage(this, parent, "videodevice")),
-    _ip(QString::null),
-    _tuner(QString::null),
-    _overridedeviceid(QString::null)
+    MythUITextEditSetting(new CaptureCardDBStorage(this, parent, "videodevice"))
 {
     setLabel(tr("Device ID"));
     setHelpText(tr("Device ID of HDHomeRun device"));
@@ -1495,7 +1493,7 @@ void HDHomeRunDeviceID::Load(void)
     if (!_overridedeviceid.isEmpty())
     {
         setValue(_overridedeviceid);
-        _overridedeviceid = QString::null;
+        _overridedeviceid.clear();
     }
 }
 
@@ -1701,10 +1699,7 @@ void VBoxTunerIndex::UpdateDevices(const QString &v)
 }
 
 VBoxDeviceID::VBoxDeviceID(const CaptureCard &parent) :
-    MythUITextEditSetting(new CaptureCardDBStorage(this, parent, "videodevice")),
-    _ip(QString::null),
-    _tuner(QString::null),
-    _overridedeviceid(QString::null)
+    MythUITextEditSetting(new CaptureCardDBStorage(this, parent, "videodevice"))
 {
     setLabel(tr("Device ID"));
     setHelpText(tr("Device ID of VBox device"));
@@ -1735,7 +1730,7 @@ void VBoxDeviceID::Load(void)
     if (!_overridedeviceid.isEmpty())
     {
         setValue(_overridedeviceid);
-        _overridedeviceid = QString::null;
+        _overridedeviceid.clear();
     }
 }
 
@@ -1881,12 +1876,12 @@ class ASIDevice : public CaptureCardComboBoxSetting
         CaptureCardComboBoxSetting(parent, true, "videodevice")
     {
         setLabel(QObject::tr("ASI device"));
-        fillSelections(QString::null);
+        fillSelections(QString());
     };
 
     /// \brief Adds all available cards to list
     /// If current is >= 0 it will be considered available even
-    /// if no device exists for it in /dev/dvb/adapter*
+    /// if no device exists for it in /dev/asi*
     void fillSelections(const QString &current)
     {
         clearSelections();
@@ -1909,7 +1904,7 @@ class ASIDevice : public CaptureCardComboBoxSetting
         // for new configs (preferring non-conflicing devices).
         QMap<QString,bool> in_use;
         QString sel = current;
-        for (uint i = 0; i < (uint)sdevs.size(); i++)
+        for (uint i = 0; i < (uint)sdevs.size(); ++i)
         {
             const QString dev = sdevs[i];
             in_use[sdevs[i]] = find(db.begin(), db.end(), dev) != db.end();
@@ -1926,7 +1921,7 @@ class ASIDevice : public CaptureCardComboBoxSetting
 
         // Add the devices to the UI
         bool found = false;
-        for (uint i = 0; i < (uint)sdevs.size(); i++)
+        for (uint i = 0; i < (uint)sdevs.size(); ++i)
         {
             const QString dev = sdevs[i];
             QString desc = dev + (in_use[sdevs[i]] ? usestr : "");
@@ -1947,7 +1942,7 @@ class ASIDevice : public CaptureCardComboBoxSetting
     virtual void Load(void)
     {
         clearSelections();
-        addSelection(QString::null);
+        addSelection(QString());
         GetStorage()->Load();
         fillSelections(getValue());
     }
@@ -1960,11 +1955,13 @@ ASIConfigurationGroup::ASIConfigurationGroup(CaptureCard& a_parent,
     cardinfo(new TransTextEditSetting())
 {
     setVisible(false);
+    cardinfo->setLabel(tr("Status"));
     cardinfo->setEnabled(false);
-    cardType.addChild(device);
-    cardType.addChild(new EmptyAudioDevice(parent));
-    cardType.addChild(new EmptyVBIDevice(parent));
-    cardType.addChild(cardinfo);
+
+    cardType.addTargetedChild("ASI", device);
+    cardType.addTargetedChild("ASI", new EmptyAudioDevice(parent));
+    cardType.addTargetedChild("ASI", new EmptyVBIDevice(parent));
+    cardType.addTargetedChild("ASI", cardinfo);
 
     connect(device, SIGNAL(valueChanged(const QString&)),
             this,   SLOT(  probeCard(   const QString&)));
@@ -2429,7 +2426,7 @@ V4LConfigurationGroup::V4LConfigurationGroup(CaptureCard& a_parent,
 {
     setVisible(false);
     QString drv = "(?!ivtv|hdpvr|(saa7164(.*))).*";
-    VideoDevice *device = new VideoDevice(parent, 0, 15, QString::null, drv);
+    VideoDevice *device = new VideoDevice(parent, 0, 15, QString(), drv);
 
     cardinfo->setLabel(tr("Probed info"));
     cardinfo->setEnabled(false);
@@ -2449,7 +2446,7 @@ V4LConfigurationGroup::V4LConfigurationGroup(CaptureCard& a_parent,
 
 void V4LConfigurationGroup::probeCard(const QString &device)
 {
-    QString cn = tr("Failed to open"), ci = cn, dn = QString::null;
+    QString cn = tr("Failed to open"), ci = cn, dn;
 
     QByteArray adevice = device.toLatin1();
     int videofd = open(adevice.constData(), O_RDWR);
@@ -2474,7 +2471,7 @@ MPEGConfigurationGroup::MPEGConfigurationGroup(CaptureCard &a_parent,
 {
     setVisible(false);
     QString drv = "ivtv|(saa7164(.*))";
-    device    = new VideoDevice(parent, 0, 15, QString::null, drv);
+    device    = new VideoDevice(parent, 0, 15, QString(), drv);
     vbidevice = new VBIDevice(parent);
     vbidevice->setVisible(false);
 
@@ -2494,7 +2491,7 @@ MPEGConfigurationGroup::MPEGConfigurationGroup(CaptureCard &a_parent,
 
 void MPEGConfigurationGroup::probeCard(const QString &device)
 {
-    QString cn = tr("Failed to open"), ci = cn, dn = QString::null;
+    QString cn = tr("Failed to open"), ci = cn, dn;
 
     QByteArray adevice = device.toLatin1();
     int videofd = open(adevice.constData(), O_RDWR);
@@ -2570,7 +2567,8 @@ ExternalConfigurationGroup::ExternalConfigurationGroup(CaptureCard &a_parent,
     info(new TransTextEditSetting())
 {
     setVisible(false);
-    FileDevice *device = new FileDevice(parent);
+    CommandPath *device = new CommandPath(parent);
+    device->setLabel(tr("Command path"));
     device->setHelpText(tr("A 'black box' application controlled via "
                            "stdin, status on stderr and TransportStream "
                            "read from stdout"));
@@ -2579,6 +2577,9 @@ ExternalConfigurationGroup::ExternalConfigurationGroup(CaptureCard &a_parent,
     info->setLabel(tr("File info"));
     info->setEnabled(false);
     a_cardtype.addTargetedChild("EXTERNAL", info);
+
+    a_cardtype.addTargetedChild("EXTERNAL",
+                                new ChannelTimeout(parent, 20000, 1750));
 
     connect(device, SIGNAL(valueChanged(const QString&)),
             this,   SLOT(  probeApp(   const QString&)));
@@ -2598,13 +2599,16 @@ void ExternalConfigurationGroup::probeApp(const QString & path)
     {
         ci = tr("'%1' is valid.").arg(fileInfo.absoluteFilePath());
         if (!fileInfo.isReadable() || !fileInfo.isFile())
-            ci = tr("'%1' is not readable.").arg(fileInfo.absoluteFilePath());
+            ci = tr("WARNING: '%1' is not readable.")
+                 .arg(fileInfo.absoluteFilePath());
         if (!fileInfo.isExecutable())
-            ci = tr("'%1' is not executable.").arg(fileInfo.absoluteFilePath());
+            ci = tr("WARNING: '%1' is not executable.")
+                 .arg(fileInfo.absoluteFilePath());
     }
     else
     {
-        ci = tr("'%1' does not exist.").arg(fileInfo.absoluteFilePath());
+        ci = tr("WARNING: '%1' does not exist.")
+             .arg(fileInfo.absoluteFilePath());
     }
 
     info->setValue(ci);
@@ -2614,13 +2618,13 @@ void ExternalConfigurationGroup::probeApp(const QString & path)
 HDPVRConfigurationGroup::HDPVRConfigurationGroup(CaptureCard &a_parent,
                                                  CardType &a_cardtype) :
     parent(a_parent), cardinfo(new GroupSetting()),
-    audioinput(new TunerCardAudioInput(parent, QString::null, "HDPVR")),
+    audioinput(new TunerCardAudioInput(parent, QString(), "HDPVR")),
     vbidevice(NULL)
 {
     setVisible(false);
 
     VideoDevice *device =
-        new VideoDevice(parent, 0, 15, QString::null, "hdpvr");
+        new VideoDevice(parent, 0, 15, QString(), "hdpvr");
 
     cardinfo->setLabel(tr("Probed info"));
     cardinfo->setEnabled(false);
@@ -2640,7 +2644,7 @@ HDPVRConfigurationGroup::HDPVRConfigurationGroup(CaptureCard &a_parent,
 
 void HDPVRConfigurationGroup::probeCard(const QString &device)
 {
-    QString cn = tr("Failed to open"), ci = cn, dn = QString::null;
+    QString cn = tr("Failed to open"), ci = cn, dn;
 
     int videofd = open(device.toLocal8Bit().constData(), O_RDWR);
     if (videofd >= 0)
@@ -2698,7 +2702,7 @@ void V4L2encGroup::probeCard(const QString &device_name)
     if (m_device->getSubSettings()->size() == 0)
     {
         TunerCardAudioInput* audioinput =
-            new TunerCardAudioInput(m_parent, QString::null, "V4L2");
+            new TunerCardAudioInput(m_parent, QString(), "V4L2");
         if (audioinput->fillSelections(device_name) > 1)
         {
             audioinput->setName("AudioInput");
@@ -2723,6 +2727,8 @@ void V4L2encGroup::probeCard(const QString &device_name)
         m_device->addTargetedChild(m_DriverName,
                                    new ChannelTimeout(m_parent, 15000, 2000));
     }
+#else
+    Q_UNUSED(device_name);
 #endif // USING_V4L2
 }
 
@@ -2811,7 +2817,7 @@ QString CaptureCard::GetRawCardType(void) const
 {
     int cardid = getCardID();
     if (cardid <= 0)
-        return QString::null;
+        return QString();
     return CardUtil::GetRawInputType(cardid);
 }
 
@@ -2862,7 +2868,7 @@ bool CaptureCard::canDelete(void)
 
 void CaptureCard::deleteEntry(void)
 {
-    CardUtil::DeleteCard(getCardID());
+    CardUtil::DeleteInput(getCardID());
 }
 
 
@@ -3692,7 +3698,7 @@ void CardInput::Save(void)
     for (uint i = cardids.size() + 1;
          (i > icount) && !cardids.empty(); --i)
     {
-        CardUtil::DeleteCard(cardids.back());
+        CardUtil::DeleteInput(cardids.back());
         cardids.pop_back();
     }
 
@@ -3768,7 +3774,7 @@ void CaptureCardEditor::DeleteAllCaptureCards(bool doDelete)
     if (!doDelete)
         return;
 
-    CardUtil::DeleteAllCards();
+    CardUtil::DeleteAllInputs();
     Load();
     emit settingsChanged(this);
 }
@@ -3798,7 +3804,7 @@ void CaptureCardEditor::DeleteAllCaptureCardsOnHost(bool doDelete)
     }
 
     while (cards.next())
-        CardUtil::DeleteCard(cards.value(0).toUInt());
+        CardUtil::DeleteInput(cards.value(0).toUInt());
 
     Load();
     emit settingsChanged(this);
@@ -4209,4 +4215,3 @@ void DVBConfigurationGroup::Save(void)
     DiSEqCDev trees;
     trees.InvalidateTrees();
 }
-

@@ -422,7 +422,7 @@ class RotorHiSpeedSetting : public TransTextEditSetting
 
 static QString AngleToString(double angle)
 {
-    QString str = QString::null;
+    QString str;
     if (angle >= 0.0)
         str = QString::number(angle) +
             DeviceTree::tr("E", "Eastern Hemisphere");
@@ -705,7 +705,7 @@ static lnb_preset lnb_presets[] =
                DiSEqCDevLNB::kTypeVoltageControl,       0,  5150000),
     lnb_preset(QT_TRANSLATE_NOOP("DeviceTree", "DishPro Bandstacked"),
                DiSEqCDevLNB::kTypeBandstacked,          0, 11250000, 14350000),
-    lnb_preset(QString::null, DiSEqCDevLNB::kTypeVoltageControl),
+    lnb_preset(QString(), DiSEqCDevLNB::kTypeVoltageControl),
 };
 
 static uint FindPreset(const DiSEqCDevLNB &lnb)
@@ -1303,7 +1303,7 @@ class USALSRotorSetting : public GroupSetting
     virtual void Load(void)
     {
         double  val  = m_settings.GetValue(m_node.GetDeviceID());
-        QString hemi = QString::null;
+        QString hemi;
         double  eval = AngleToEdit(val, hemi);
         numeric->setValue(QString::number(eval));
         hemisphere->setValue(hemisphere->getValueIndex(hemi));
@@ -1369,7 +1369,7 @@ DTVDeviceConfigGroup::DTVDeviceConfigGroup(
     m_tree.Load(cardid);
 
     // initial UI setup
-    AddNodes(this, QString::null, m_tree.Root());
+    AddNodes(this, QString(), m_tree.Root());
 }
 
 DTVDeviceConfigGroup::~DTVDeviceConfigGroup(void)

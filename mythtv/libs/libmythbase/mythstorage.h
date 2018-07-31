@@ -75,7 +75,7 @@ class MBASE_PUBLIC GenericDBStorage : public SimpleDBStorage
   public:
     GenericDBStorage(StorageUser *_user,
                      QString _table, QString _column,
-                     QString _keycolumn, QString _keyvalue = QString::null) :
+                     QString _keycolumn, QString _keyvalue = QString()) :
         SimpleDBStorage(_user, _table, _column),
         keycolumn(_keycolumn), keyvalue(_keyvalue) {}
     virtual ~GenericDBStorage() { }
@@ -107,6 +107,8 @@ class MBASE_PUBLIC HostDBStorage : public SimpleDBStorage
 {
   public:
     HostDBStorage(StorageUser *_user, const QString &name);
+    using SimpleDBStorage::Save; // prevent compiler warning
+    virtual void Save(void);
 
   protected:
     virtual QString GetWhereClause(MSqlBindings &bindings) const;
@@ -120,6 +122,8 @@ class MBASE_PUBLIC GlobalDBStorage : public SimpleDBStorage
 {
   public:
     GlobalDBStorage(StorageUser *_user, const QString &name);
+    using SimpleDBStorage::Save; // prevent compiler warning
+    virtual void Save(void);
 
   protected:
     virtual QString GetWhereClause(MSqlBindings &bindings) const;

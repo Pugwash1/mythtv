@@ -26,11 +26,6 @@ using namespace std;
 
 #include "mythconfig.h"
 
-// avlib headers
-extern "C" {
-#include "libavcodec/avcodec.h"
-}
-
 // MythTV headers
 #include "mpegrecorder.h"
 #include "ringbuffer.h"
@@ -84,7 +79,6 @@ MpegRecorder::MpegRecorder(TVRec *rec) :
     // Debugging variables
     deviceIsMpegFile(false),      bufferSize(0),
     // Driver info
-    card(QString::null),          driver(QString::null),
     version(0),
     supports_sliced_vbi(false),
     // State

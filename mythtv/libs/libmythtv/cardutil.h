@@ -238,8 +238,8 @@ class MTV_PUBLIC CardUtil
                                           const uint diseqcid,
                                           bool       dvb_eitscan);
 
-    static bool         DeleteCard(uint inputid);
-    static bool         DeleteAllCards(void);
+    static bool         DeleteInput(uint inputid);
+    static bool         DeleteAllInputs(void);
     static vector<uint> GetInputList(void);
     static vector<uint> GetSchedInputList(void);
     static vector<uint> GetLiveTVInputList(void);
@@ -253,21 +253,21 @@ class MTV_PUBLIC CardUtil
         return list[0];
     }
 
-    static vector<uint> GetInputIDs(QString videodevice = QString::null,
-                                    QString rawtype     = QString::null,
-                                    QString inputname   = QString::null,
-                                    QString hostname    = QString::null);
+    static vector<uint> GetInputIDs(QString videodevice = QString(),
+                                    QString rawtype     = QString(),
+                                    QString inputname   = QString(),
+                                    QString hostname    = QString());
 
     static uint         GetChildInputCount(uint inputid);
     static vector<uint> GetChildInputIDs(uint inputid);
 
     static bool         IsInputTypePresent(const QString &rawtype,
-                                           QString hostname = QString::null);
+                                           QString hostname = QString());
     static InputTypes   GetInputTypes(void); // input types on ALL hosts
     static QStringList  GetInputTypeNames(uint sourceid); // input types for a given source id
 
     static QStringList  GetVideoDevices(const QString &rawtype,
-                                        QString hostname = QString::null);
+                                        QString hostname = QString());
 
     static QString      GetRawInputType(uint inputid)
         { return get_on_input("cardtype", inputid).toUpper(); }
@@ -277,6 +277,9 @@ class MTV_PUBLIC CardUtil
         { return get_on_input("audiodevice", inputid); }
     static QString      GetVBIDevice(uint inputid)
         { return get_on_input("vbidevice", inputid); }
+
+    static QString      GetHostname(uint inputid)
+        { return get_on_input("hostname", inputid); }
 
     static int          GetValueInt(const QString &col, uint inputid)
         { return get_on_input(col, inputid).toInt(); }
@@ -306,8 +309,6 @@ class MTV_PUBLIC CardUtil
                                          const uint quicktune,
                                          const uint schedorder,
                                          const uint livetvorder);
-
-    static bool         DeleteInput(uint inputid);
 
     // Other input functions
 
@@ -340,9 +341,9 @@ class MTV_PUBLIC CardUtil
     static QString      ProbeSubTypeName(uint inputid);
 
     static QStringList  ProbeVideoInputs(QString device,
-                                         QString inputtype = QString::null);
+                                         QString inputtype = QString());
     static QStringList  ProbeAudioInputs(QString device,
-                                         QString inputtype = QString::null);
+                                         QString inputtype = QString());
     static void         GetDeviceInputNames(const QString      &device,
                                             const QString      &inputtype,
                                             QStringList        &inputs);
@@ -352,7 +353,8 @@ class MTV_PUBLIC CardUtil
     static void ClearVideoDeviceCache();
 
     // Other
-    static bool         CloneCard(uint src_inputid, uint dst_inputid);
+    static uint         CloneCard(uint src_inputid, uint dst_inputid);
+    static uint         AddChildInput(uint parentid);
     static QString      GetFirewireChangerNode(uint inputid);
     static QString      GetFirewireChangerModel(uint inputid);
 

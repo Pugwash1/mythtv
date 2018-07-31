@@ -88,7 +88,7 @@ static int avcodec_encode_audio(AVCodecContext *avctx,
 {
     AVPacket pkt;
     AVFrame *frame;
-    int ret, samples_size, got_packet;
+    int ret, samples_size;
 
     av_init_packet(&pkt);
     pkt.data = buf;
@@ -139,8 +139,25 @@ static int avcodec_encode_audio(AVCodecContext *avctx,
         frame = NULL;
     }
 
-    got_packet = 0;
-    ret = avcodec_encode_audio2(avctx, &pkt, frame, &got_packet);
+    //  SUGGESTION
+    //  Now that avcodec_encode_audio2 is deprecated and replaced
+    //  by 2 calls, this could be optimized
+    //  into separate routines or separate threads.
+    ret = avcodec_receive_packet(avctx, &pkt);
+    if (ret != 0)
+        pkt.size=0;
+    if (ret == AVERROR(EAGAIN))
+        ret = 0;
+    if (ret == 0)
+        ret = avcodec_send_frame(avctx, frame);
+
+    if (ret < 0)
+    {
+        char error[AV_ERROR_MAX_STRING_SIZE+25];
+		strcpy(error,"audio encode error: ");
+		strcat(error, av_make_error_string(error, sizeof(error), ret));
+        LOG(VB_GENERAL, LOG_ERR, error);
+    }
 
     /* free any side data since we cannot return it */
     av_packet_free_side_data(&pkt);
@@ -201,14 +218,12 @@ static int encode_mp2_audio(audio_frame_t *aframe, uint8_t *buffer, int bufsize)
 		    "frame size (%d) does not equal required size (%d)?",
 			out_size, bufsize);
 		free(samples);
-		avcodec_close(c);
-		av_free(c);
+		avcodec_free_context(&c);
 		return 1;
 	}
 
 	free(samples);
-	avcodec_close(c);
-	av_free(c);
+	avcodec_free_context(&c);
 	
 	return 0;
 }

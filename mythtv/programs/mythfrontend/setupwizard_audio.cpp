@@ -375,7 +375,7 @@ void AudioSetupWizard::save(void)
     gCoreContext->SaveSetting("Audio48kOverride", false);
     gCoreContext->SaveSetting("HBRPassthru", true);
     gCoreContext->SaveSetting("PassThruDeviceOverride", false);
-    gCoreContext->SaveSetting("PassThruOutputDevice", QString::null);
+    gCoreContext->SaveSetting("PassThruOutputDevice", QString());
 
     int channels = m_speakerNumberButtonList->GetItemCurrent()->GetData()
                                .value<int>();
@@ -413,7 +413,7 @@ bool AudioSetupWizard::keyPressEvent(QKeyEvent *event)
 
     bool handled = false;
 
-    if (!handled && MythScreenType::keyPressEvent(event))
+    if (MythScreenType::keyPressEvent(event))
         handled = true;
 
     return handled;

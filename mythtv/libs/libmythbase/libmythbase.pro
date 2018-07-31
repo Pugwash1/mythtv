@@ -12,7 +12,7 @@ QMAKE_CLEAN += $(TARGET) $(TARGETA) $(TARGETD) $(TARGET0) $(TARGET1) $(TARGET2)
 # Input
 HEADERS += mthread.h mthreadpool.h
 HEADERS += mythsocket.h mythsocket_cb.h
-HEADERS += mythbaseexp.h mythdbcon.h mythdb.h mythdbparams.h oldsettings.h
+HEADERS += mythbaseexp.h mythdbcon.h mythdb.h mythdbparams.h
 HEADERS += verbosedefs.h mythversion.h compat.h mythconfig.h
 HEADERS += mythobservable.h mythevent.h
 HEADERS += mythtimer.h mythsignalingtimer.h mythdirs.h exitcodes.h
@@ -37,7 +37,7 @@ HEADERS += cleanupguard.h portchecker.h
 
 SOURCES += mthread.cpp mthreadpool.cpp
 SOURCES += mythsocket.cpp
-SOURCES += mythdbcon.cpp mythdb.cpp mythdbparams.cpp oldsettings.cpp
+SOURCES += mythdbcon.cpp mythdb.cpp mythdbparams.cpp
 SOURCES += mythobservable.cpp mythevent.cpp
 SOURCES += mythtimer.cpp mythsignalingtimer.cpp mythdirs.cpp
 SOURCES += lcddevice.cpp mythstorage.cpp remotefile.cpp
@@ -152,13 +152,16 @@ win32-msvc* {
     QMAKE_EXTRA_TARGETS += versionTarget
 }
 
-QT += xml sql network
-
-contains(QT_VERSION, ^5\\.[0-9]\\..*) {
-QT += widgets
-}
+QT += xml sql network widgets
 
 include ( ../libs-targetfix.pro )
 
 LIBS += -L../../external/libudfread -lmythudfread-$$LIBVERSION
 LIBS += $$EXTRA_LIBS $$LATE_LIBS
+
+test_clean.commands = -cd test/ && $(MAKE) -f Makefile clean
+clean.depends = test_clean
+QMAKE_EXTRA_TARGETS += test_clean clean
+test_distclean.commands = -cd test/ && $(MAKE) -f Makefile distclean
+distclean.depends = test_distclean
+QMAKE_EXTRA_TARGETS += test_distclean distclean

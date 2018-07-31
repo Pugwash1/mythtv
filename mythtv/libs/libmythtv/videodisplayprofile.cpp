@@ -320,7 +320,7 @@ bool ProfileItem::IsValid(QString *reason) const
     }
 
     if (reason)
-        *reason = QString::null;
+        *reason = QString();
 
     return true;
 }
@@ -378,8 +378,7 @@ pref_map_t  VideoDisplayProfile::dec_name;
 safe_list_t VideoDisplayProfile::safe_decoders;
 
 VideoDisplayProfile::VideoDisplayProfile()
-    : lock(QMutex::Recursive), last_size(0,0), last_rate(0.0f),
-      last_video_renderer(QString::null)
+    : lock(QMutex::Recursive), last_size(0,0), last_rate(0.0f)
 {
     QMutexLocker locker(&safe_lock);
     init_statics();
@@ -540,11 +539,11 @@ QString VideoDisplayProfile::GetPreference(const QString &key) const
     QMutexLocker locker(&lock);
 
     if (key.isEmpty())
-        return QString::null;
+        return QString();
 
     pref_map_t::const_iterator it = pref.find(key);
     if (it == pref.end())
-        return QString::null;
+        return QString();
 
     QString pref = *it;
     pref.detach();
@@ -852,6 +851,7 @@ QString VideoDisplayProfile::GetDecoderName(const QString &decoder)
         dec_name["vaapi"]    = QObject::tr("VAAPI acceleration");
         dec_name["dxva2"]    = QObject::tr("Windows hardware acceleration");
         dec_name["vda"]      = QObject::tr("Mac VDA hardware acceleration");
+        dec_name["mediacodec"] = QObject::tr("Android MediaCodec decoder");
     }
 
     QString ret = decoder;
@@ -907,6 +907,11 @@ QString VideoDisplayProfile::GetDecoderHelp(QString decoder)
         msg += QObject::tr(
             "Openmax will use the graphics hardware to "
             "accelerate video decoding on Raspberry Pi. ");
+
+    if (decoder == "mediacodec")
+        msg += QObject::tr(
+            "Mediacodec will use the graphics hardware to "
+            "accelerate video decoding on Android. ");
 
     return msg;
 }
@@ -1273,177 +1278,201 @@ bool VideoDisplayProfile::DeleteProfileGroup(
     return ok;
 }
 
-void VideoDisplayProfile::CreateNewProfiles(const QString &hostname)
+void VideoDisplayProfile::CreateProfiles(const QString &hostname)
 {
-    (void) QObject::tr("High Quality", "Sample: high quality");
-    DeleteProfileGroup("High Quality", hostname);
-    uint groupid = CreateProfileGroup("High Quality", hostname);
-    CreateProfile(groupid, 1, ">=", 1920, 1080, "", 0, 0,
-                  "ffmpeg", 2, true, "xv-blit", "softblend", true,
-                  "linearblend", "linearblend", "");
-    CreateProfile(groupid, 2, ">", 0, 0, "", 0, 0,
-                  "ffmpeg", 1, true, "xv-blit", "softblend", true,
-                  "yadifdoubleprocessdeint", "yadifdeint", "");
+    QStringList profiles = GetProfiles(hostname);
+    uint groupid;
 
-    (void) QObject::tr("Normal", "Sample: average quality");
-    DeleteProfileGroup("Normal", hostname);
-    groupid = CreateProfileGroup("Normal", hostname);
-    CreateProfile(groupid, 1, ">=", 1280, 720, "", 0, 0,
-                  "ffmpeg", 1, true, "xv-blit", "softblend", false,
-                  "linearblend", "linearblend", "");
-    CreateProfile(groupid, 2, ">", 0, 0, "", 0, 0,
-                  "ffmpeg", 1, true, "xv-blit", "softblend", true,
-                  "greedyhdoubleprocessdeint", "kerneldeint", "");
+#ifdef USING_XV
+    if (!profiles.contains("High Quality")) {
+        (void) QObject::tr("High Quality", "Sample: high quality");
+        groupid = CreateProfileGroup("High Quality", hostname);
+        CreateProfile(groupid, 1, ">=", 1920, 1080, "", 0, 0,
+                      "ffmpeg", 2, true, "xv-blit", "softblend", true,
+                      "linearblend", "linearblend", "");
+        CreateProfile(groupid, 2, ">", 0, 0, "", 0, 0,
+                      "ffmpeg", 1, true, "xv-blit", "softblend", true,
+                      "yadifdoubleprocessdeint", "yadifdeint", "");
+    }
 
-    (void) QObject::tr("Slim", "Sample: low CPU usage");
-    DeleteProfileGroup("Slim", hostname);
-    groupid = CreateProfileGroup("Slim", hostname);
-    CreateProfile(groupid, 1, ">=", 1280, 720, "", 0, 0,
-                  "ffmpeg", 1, true, "xv-blit", "softblend", false,
-                  "onefield", "onefield", "");
-    CreateProfile(groupid, 2, ">", 0, 0, "", 0, 0,
-                  "ffmpeg", 1, true, "xv-blit", "softblend", false,
-                  "linearblend", "linearblend", "");
-}
+    if (!profiles.contains("Normal")) {
+        (void) QObject::tr("Normal", "Sample: average quality");
+        groupid = CreateProfileGroup("Normal", hostname);
+        CreateProfile(groupid, 1, ">=", 1280, 720, "", 0, 0,
+                      "ffmpeg", 1, true, "xv-blit", "softblend", false,
+                      "linearblend", "linearblend", "");
+        CreateProfile(groupid, 2, ">", 0, 0, "", 0, 0,
+                      "ffmpeg", 1, true, "xv-blit", "softblend", true,
+                      "greedyhdoubleprocessdeint", "kerneldeint", "");
+    }
 
-void VideoDisplayProfile::CreateVDPAUProfiles(const QString &hostname)
-{
-    (void) QObject::tr("VDPAU High Quality", "Sample: VDPAU high quality");
-    DeleteProfileGroup("VDPAU High Quality", hostname);
-    uint groupid = CreateProfileGroup("VDPAU High Quality", hostname);
-    CreateProfile(groupid, 1, ">", 0, 0, "", 0, 0,
-                  "vdpau", 1, true, "vdpau", "vdpau", true,
-                  "vdpauadvanceddoublerate", "vdpauadvanced",
-                  "vdpaucolorspace=auto");
-
-    (void) QObject::tr("VDPAU Normal", "Sample: VDPAU average quality");
-    DeleteProfileGroup("VDPAU Normal", hostname);
-    groupid = CreateProfileGroup("VDPAU Normal", hostname);
-    CreateProfile(groupid, 1, ">=", 0, 720, "", 0, 0,
-                  "vdpau", 1, true, "vdpau", "vdpau", true,
-                  "vdpaubasicdoublerate", "vdpaubasic",
-                  "vdpaucolorspace=auto");
-    CreateProfile(groupid, 2, ">", 0, 0, "", 0, 0,
-                  "vdpau", 1, true, "vdpau", "vdpau", true,
-                  "vdpauadvanceddoublerate", "vdpauadvanced",
-                  "vdpaucolorspace=auto");
-
-    (void) QObject::tr("VDPAU Slim", "Sample: VDPAU low power GPU");
-    DeleteProfileGroup("VDPAU Slim", hostname);
-    groupid = CreateProfileGroup("VDPAU Slim", hostname);
-    CreateProfile(groupid, 1, ">", 0, 0, "", 0, 0,
-                  "vdpau", 1, true, "vdpau", "vdpau", true,
-                  "vdpaubobdeint", "vdpauonefield",
-                  "vdpauskipchroma,vdpaucolorspace=auto");
-}
-
-void VideoDisplayProfile::CreateVDAProfiles(const QString &hostname)
-{
-    (void) QObject::tr("VDA High Quality", "Sample: VDA high quality");
-    DeleteProfileGroup("VDA High Quality", hostname);
-    uint groupid = CreateProfileGroup("VDA High Quality", hostname);
-    CreateProfile(groupid, 1, ">", 0, 0, "", 0, 0,
-                  "vda", 2, true, "opengl", "opengl2", true,
-                  "greedyhdoubleprocessdeint", "greedyhdeint",
-                  "");
-    CreateProfile(groupid, 1, ">", 0, 0, "", 0, 0,
-                  "ffmpeg", 2, true, "opengl", "opengl2", true,
-                  "greedyhdoubleprocessdeint", "greedyhdeint",
-                  "");
-
-    (void) QObject::tr("VDA Normal", "Sample: VDA average quality");
-    DeleteProfileGroup("VDA Normal", hostname);
-    groupid = CreateProfileGroup("VDA Normal", hostname);
-    CreateProfile(groupid, 1, ">", 0, 0, "", 0, 0,
-                  "vda", 2, true, "opengl", "opengl2", true,
-                  "opengldoubleratekerneldeint", "openglkerneldeint",
-                  "");
-    CreateProfile(groupid, 2, ">", 0, 0, "", 0, 0,
-                  "ffmpeg", 2, true, "opengl", "opengl2", true,
-                  "opengldoubleratekerneldeint", "openglkerneldeint",
-                  "");
-
-    (void) QObject::tr("VDA Slim", "Sample: VDA low power GPU");
-    DeleteProfileGroup("VDA Slim", hostname);
-    groupid = CreateProfileGroup("VDA Slim", hostname);
-    CreateProfile(groupid, 1, ">", 0, 0, "", 0, 0,
-                  "vda", 2, true, "opengl", "opengl2", true,
-                  "opengldoubleratelinearblend", "opengllinearblend",
-                  "");
-    CreateProfile(groupid, 2, ">", 0, 0, "", 0, 0,
-                  "ffmpeg", 2, true, "opengl", "opengl2", true,
-                  "opengldoubleratelinearblend", "opengllinearblend",
-                  "");
-}
-
-void VideoDisplayProfile::CreateOpenGLProfiles(const QString &hostname)
-{
-    (void) QObject::tr("OpenGL High Quality", "Sample: OpenGL high quality");
-    DeleteProfileGroup("OpenGL High Quality", hostname);
-    uint groupid = CreateProfileGroup("OpenGL High Quality", hostname);
-    CreateProfile(groupid, 1, ">", 0, 0, "", 0, 0,
-                  "ffmpeg", 2, true, "opengl", "opengl2", true,
-                  "greedyhdoubleprocessdeint", "greedyhdeint",
-                  "");
-
-    (void) QObject::tr("OpenGL Normal", "Sample: OpenGL average quality");
-    DeleteProfileGroup("OpenGL Normal", hostname);
-    groupid = CreateProfileGroup("OpenGL Normal", hostname);
-    CreateProfile(groupid, 1, ">", 0, 0, "", 0, 0,
-                  "ffmpeg", 2, true, "opengl", "opengl2", true,
-                  "opengldoubleratekerneldeint", "openglkerneldeint",
-                  "");
-
-    (void) QObject::tr("OpenGL Slim", "Sample: OpenGL low power GPU");
-    DeleteProfileGroup("OpenGL Slim", hostname);
-    groupid = CreateProfileGroup("OpenGL Slim", hostname);
-    CreateProfile(groupid, 1, ">", 0, 0, "", 0, 0,
-                  "ffmpeg", 1, true, "opengl", "opengl2", true,
-                  "opengldoubleratelinearblend", "opengllinearblend",
-                  "");
-}
-
-void VideoDisplayProfile::CreateVAAPIProfiles(const QString &hostname)
-{
-    (void) QObject::tr("VAAPI Normal", "Sample: VAAPI average quality");
-    DeleteProfileGroup("VAAPI Normal", hostname);
-    uint groupid = CreateProfileGroup("VAAPI Normal", hostname);
-    CreateProfile(groupid, 1, ">", 0, 0, "", 0, 0,
-                  "vaapi", 2, true, "openglvaapi", "opengl2", true,
-                  "vaapibobdeint", "vaapionefield",
-                  "");
-    CreateProfile(groupid, 2, ">", 0, 0, "", 0, 0,
-                  "ffmpeg", 2, true, "opengl", "opengl2", true,
-                  "opengldoubleratekerneldeint", "openglkerneldeint",
-                  "");
-}
-
-// upgrade = 1 means adding high quality
-void VideoDisplayProfile::CreateOpenMAXProfiles(const QString &hostname, int upgrade)
-{
-#ifdef USING_OPENGLES
-    (void) QObject::tr("OpenMAX High Quality", "Sample: OpenMAX High Quality");
-    DeleteProfileGroup("OpenMAX High Quality", hostname);
-    uint groupid = CreateProfileGroup("OpenMAX High Quality", hostname);
-    CreateProfile(groupid, 1, ">", 0, 0, "", 0, 0,
-                  "openmax", 4, true, "openmax", "opengl", true,
-                  "openmaxadvanced", "onefield",
-                  "");
+    if (!profiles.contains("Slim")) {
+        (void) QObject::tr("Slim", "Sample: low CPU usage");
+        groupid = CreateProfileGroup("Slim", hostname);
+        CreateProfile(groupid, 1, ">=", 1280, 720, "", 0, 0,
+                      "ffmpeg", 1, true, "xv-blit", "softblend", false,
+                      "onefield", "onefield", "");
+        CreateProfile(groupid, 2, ">", 0, 0, "", 0, 0,
+                      "ffmpeg", 1, true, "xv-blit", "softblend", false,
+                      "linearblend", "linearblend", "");
+    }
 #endif
-    if (!upgrade) {
+
+#ifdef USING_VDPAU
+    if (!profiles.contains("VDPAU High Quality")) {
+        (void) QObject::tr("VDPAU High Quality", "Sample: VDPAU high quality");
+        groupid = CreateProfileGroup("VDPAU High Quality", hostname);
+        CreateProfile(groupid, 1, ">", 0, 0, "", 0, 0,
+                      "vdpau", 1, true, "vdpau", "vdpau", true,
+                      "vdpauadvanceddoublerate", "vdpauadvanced",
+                      "vdpaucolorspace=auto");
+    }
+
+    if (!profiles.contains("VDPAU Normal")) {
+        (void) QObject::tr("VDPAU Normal", "Sample: VDPAU average quality");
+        groupid = CreateProfileGroup("VDPAU Normal", hostname);
+        CreateProfile(groupid, 1, ">=", 0, 720, "", 0, 0,
+                      "vdpau", 1, true, "vdpau", "vdpau", true,
+                      "vdpaubasicdoublerate", "vdpaubasic",
+                      "vdpaucolorspace=auto");
+        CreateProfile(groupid, 2, ">", 0, 0, "", 0, 0,
+                      "vdpau", 1, true, "vdpau", "vdpau", true,
+                      "vdpauadvanceddoublerate", "vdpauadvanced",
+                      "vdpaucolorspace=auto");
+    }
+
+    if (!profiles.contains("VDPAU Slim")) {
+        (void) QObject::tr("VDPAU Slim", "Sample: VDPAU low power GPU");
+        groupid = CreateProfileGroup("VDPAU Slim", hostname);
+        CreateProfile(groupid, 1, ">", 0, 0, "", 0, 0,
+                      "vdpau", 1, true, "vdpau", "vdpau", true,
+                      "vdpaubobdeint", "vdpauonefield",
+                      "vdpauskipchroma,vdpaucolorspace=auto");
+    }
+#endif
+
+#if defined(Q_OS_MACX)
+    if (!profiles.contains("VDA High Quality")) {
+        (void) QObject::tr("VDA High Quality", "Sample: VDA high quality");
+        groupid = CreateProfileGroup("VDA High Quality", hostname);
+        CreateProfile(groupid, 1, ">", 0, 0, "", 0, 0,
+                      "vda", 2, true, "opengl", "opengl2", true,
+                      "greedyhdoubleprocessdeint", "greedyhdeint",
+                      "");
+        CreateProfile(groupid, 1, ">", 0, 0, "", 0, 0,
+                      "ffmpeg", 2, true, "opengl", "opengl2", true,
+                      "greedyhdoubleprocessdeint", "greedyhdeint",
+                      "");
+    }
+
+    if (!profiles.contains("VDA Normal")) {
+        (void) QObject::tr("VDA Normal", "Sample: VDA average quality");
+        groupid = CreateProfileGroup("VDA Normal", hostname);
+        CreateProfile(groupid, 1, ">", 0, 0, "", 0, 0,
+                      "vda", 2, true, "opengl", "opengl2", true,
+                      "opengldoubleratekerneldeint", "openglkerneldeint",
+                      "");
+        CreateProfile(groupid, 2, ">", 0, 0, "", 0, 0,
+                      "ffmpeg", 2, true, "opengl", "opengl2", true,
+                      "opengldoubleratekerneldeint", "openglkerneldeint",
+                      "");
+    }
+
+    if (!profiles.contains("VDA Slim")) {
+        (void) QObject::tr("VDA Slim", "Sample: VDA low power GPU");
+        groupid = CreateProfileGroup("VDA Slim", hostname);
+        CreateProfile(groupid, 1, ">", 0, 0, "", 0, 0,
+                      "vda", 2, true, "opengl", "opengl2", true,
+                      "opengldoubleratelinearblend", "opengllinearblend",
+                      "");
+        CreateProfile(groupid, 2, ">", 0, 0, "", 0, 0,
+                      "ffmpeg", 2, true, "opengl", "opengl2", true,
+                      "opengldoubleratelinearblend", "opengllinearblend",
+                      "");
+    }
+#endif
+
+#ifdef USING_OPENGL_VIDEO
+    if (!profiles.contains("OpenGL High Quality")) {
+        (void) QObject::tr("OpenGL High Quality",
+                           "Sample: OpenGL high quality");
+        groupid = CreateProfileGroup("OpenGL High Quality", hostname);
+        CreateProfile(groupid, 1, ">", 0, 0, "", 0, 0,
+                      "ffmpeg", 2, true, "opengl", "opengl2", true,
+                      "greedyhdoubleprocessdeint", "greedyhdeint",
+                      "");
+    }
+
+    if (!profiles.contains("OpenGL Normal")) {
+        (void) QObject::tr("OpenGL Normal", "Sample: OpenGL average quality");
+        groupid = CreateProfileGroup("OpenGL Normal", hostname);
+        CreateProfile(groupid, 1, ">", 0, 0, "", 0, 0,
+                      "ffmpeg", 2, true, "opengl", "opengl2", true,
+                      "opengldoubleratekerneldeint", "openglkerneldeint",
+                      "");
+    }
+
+    if (!profiles.contains("OpenGL Slim")) {
+        (void) QObject::tr("OpenGL Slim", "Sample: OpenGL low power GPU");
+        groupid = CreateProfileGroup("OpenGL Slim", hostname);
+        CreateProfile(groupid, 1, ">", 0, 0, "", 0, 0,
+                      "ffmpeg", 1, true, "opengl", "opengl2", true,
+                      "opengldoubleratelinearblend", "opengllinearblend",
+                      "");
+    }
+#endif
+
+#ifdef USING_GLVAAPI
+    if (!profiles.contains("VAAPI Normal")) {
+        (void) QObject::tr("VAAPI Normal", "Sample: VAAPI average quality");
+        groupid = CreateProfileGroup("VAAPI Normal", hostname);
+        CreateProfile(groupid, 1, ">", 0, 0, "", 0, 0,
+                      "vaapi", 2, true, "openglvaapi", "opengl2", true,
+                      "vaapibobdeint", "vaapionefield",
+                      "");
+        CreateProfile(groupid, 2, ">", 0, 0, "", 0, 0,
+                      "ffmpeg", 2, true, "opengl", "opengl2", true,
+                      "opengldoubleratekerneldeint", "openglkerneldeint",
+                      "");
+    }
+#endif
+
+#ifdef USING_OPENMAX
+#ifdef USING_OPENGLES
+    if (!profiles.contains("OpenMAX High Quality")) {
+        (void) QObject::tr("OpenMAX High Quality",
+                           "Sample: OpenMAX High Quality");
+        groupid = CreateProfileGroup("OpenMAX High Quality", hostname);
+        CreateProfile(groupid, 1, ">", 0, 0, "", 0, 0,
+                      "openmax", 4, true, "openmax", "opengl", true,
+                      "openmaxadvanced", "onefield",
+                      "");
+    }
+#endif
+
+    if (!profiles.contains("OpenMAX Normal")) {
         (void) QObject::tr("OpenMAX Normal", "Sample: OpenMAX Normal");
-        DeleteProfileGroup("OpenMAX Normal", hostname);
         uint groupid = CreateProfileGroup("OpenMAX Normal", hostname);
         CreateProfile(groupid, 1, ">", 0, 0, "", 0, 0,
                       "openmax", 4, true, "openmax", "softblend", false,
                       "openmaxadvanced", "onefield",
                       "");
     }
-}
+#endif
 
-void VideoDisplayProfile::CreateProfiles(const QString &hostname)
-{
-    CreateNewProfiles(hostname);
+#ifdef USING_MEDIACODEC
+    if (!profiles.contains("MediaCodec Normal")) {
+        (void) QObject::tr("MediaCodec Normal",
+                           "Sample: MediaCodec Normal");
+        groupid = CreateProfileGroup("MediaCodec Normal", hostname);
+        CreateProfile(groupid, 1, "", "", "",
+                      "mediacodec", 4, true, "opengl",
+                      "opengl2", true,
+                      "none", "none",
+                      "");
+    }
+#endif
+
 }
 
 QStringList VideoDisplayProfile::GetVideoRenderers(const QString &decoder)
@@ -1754,7 +1783,7 @@ QString VideoDisplayProfile::GetBestVideoRenderer(const QStringList &renderers)
     init_statics();
 
     uint    top_priority = 0;
-    QString top_renderer = QString::null;
+    QString top_renderer;
 
     QStringList::const_iterator it = renderers.begin();
     for (; it != renderers.end(); ++it)

@@ -6,6 +6,7 @@
 #define ERR QString("VDADec error: ")
 
 #include "mythframe.h"
+#include "mythavutil.h"
 #include "util-osx-cocoa.h"
 #include "privatedecoder_vda.h"
 #include "util-osx.h"
@@ -16,6 +17,7 @@
 
 extern "C" {
 #include "libavformat/avformat.h"
+#include "libavutil/imgutils.h"
 }
 VDALibrary *gVDALib = NULL;
 
@@ -549,7 +551,7 @@ int  PrivateDecoderVDA::GetFrame(AVStream *stream,
     if (!m_lib || !stream)
         return result;
 
-    AVCodecContext *avctx = stream->codec;
+    AVCodecContext *avctx = gCodecMap->getCodecContext(stream);
     if (!avctx)
         return result;
 
@@ -657,8 +659,9 @@ int  PrivateDecoderVDA::GetFrame(AVStream *stream,
     {
         CVPixelBufferLockBaseAddress(vdaframe.buffer, 0);
         uint8_t* base = (uint8_t*)CVPixelBufferGetBaseAddressOfPlane(vdaframe.buffer, 0);
-        AVPicture img_in;
-        avpicture_fill(&img_in, base, in_fmt, frame->width, frame->height);
+        AVFrame img_in;
+        av_image_fill_arrays(img_in.data, img_in.linesize,
+            base, in_fmt, frame->width, frame->height, IMAGE_ALIGN);
         m_copyCtx.Copy(frame, &img_in, in_fmt);
         CVPixelBufferUnlockBaseAddress(vdaframe.buffer, 0);
     }

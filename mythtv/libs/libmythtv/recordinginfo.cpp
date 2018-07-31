@@ -1176,9 +1176,15 @@ void RecordingInfo::FinishedRecording(bool allowReRecord)
     {
         recstatus = RecStatus::Recorded;
 
+#if QT_VERSION < QT_VERSION_CHECK(5,8,0)
         uint starttime = recstartts.toTime_t();
         uint endtime   = recendts.toTime_t();
         int64_t duration = ((int64_t)endtime - (int64_t)starttime) * 1000000;
+#else
+        qint64 starttime = recstartts.toSecsSinceEpoch();
+        qint64 endtime   = recendts.toSecsSinceEpoch();
+        int64_t duration = (endtime - starttime) * 1000000;
+#endif
         SaveTotalDuration(duration);
 
         QString msg = "Finished recording";
@@ -1565,6 +1571,8 @@ void RecordingInfo::SubstituteMatches(QString &str)
     str.replace("%RECSTATUS%", QString::number(recstatus));
     str.replace("%RECTYPE%", QString::number(rectype));
     str.replace("%REACTIVATE%", IsReactivated() ? "1" : "0");
+    str.replace("%INPUTNAME%", GetInputName());
+    str.replace("%CHANNUM%", GetChanNum());
 
     ProgramInfo::SubstituteMatches(str);
 }

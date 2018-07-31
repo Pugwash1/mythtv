@@ -140,10 +140,9 @@ include ( ../libs-targetfix.pro )
 
 LIBS += $$EXTRA_LIBS $$LATE_LIBS
 
-android {
-    DEPENDPATH += ../libmythbase
-    INCLUDEPATH += ../libmythbase
-    HEADERS += ../libmyth/programtypes.h
-    SOURCES += ../libmyth/programtypes.cpp
-    LIBS += -L../libmythbase -lmythbase-$${LIBVERSION}
-}
+test_clean.commands = -cd test/ && $(MAKE) -f Makefile clean
+clean.depends = test_clean
+QMAKE_EXTRA_TARGETS += test_clean clean
+test_distclean.commands = -cd test/ && $(MAKE) -f Makefile distclean
+distclean.depends = test_distclean
+QMAKE_EXTRA_TARGETS += test_distclean distclean

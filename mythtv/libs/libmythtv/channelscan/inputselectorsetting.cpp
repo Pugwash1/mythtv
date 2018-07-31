@@ -99,7 +99,7 @@ void InputSelector::SetSourceID(const QString &_sourceid)
 uint InputSelector::GetCardID(void) const
 {
     uint    cardid    = 0;
-    QString inputname = QString::null;
+    QString inputname;
 
     Parse(getValue(), cardid, inputname);
 
@@ -109,7 +109,7 @@ uint InputSelector::GetCardID(void) const
 QString InputSelector::GetInputName(void) const
 {
     uint    cardid    = 0;
-    QString inputname = QString::null;
+    QString inputname;
 
     Parse(getValue(), cardid, inputname);
 
@@ -121,7 +121,7 @@ bool InputSelector::Parse(const QString &cardid_inputname,
                           QString       &inputname)
 {
     cardid    = 0;
-    inputname = QString::null;
+    inputname.clear();
 
     int sep0 = cardid_inputname.indexOf(':');
     if (sep0 < 1)

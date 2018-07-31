@@ -3,52 +3,96 @@ This code was resynced upstream to:
 git://source.ffmpeg.org/ffmpeg.git at n3.0-1-g0aa2fbd on February 19th, 2016 (jya) (release/3.0 branch, release 3.0)
 git://source.ffmpeg.org/ffmpeg.git at n3.0-3-gb80083a on February 26th, 2016 (jya) (release/3.0 branch, release 3.0)
 git://source.ffmpeg.org/ffmpeg.git at n3.2-3-g7568b0f on November 14th, 2016 (jya) (release/3.2 branch, release 3.2)
+git://source.ffmpeg.org/ffmpeg.git at n3.4.1-5-g4a53ecb on February 5th, 2018 (Peter Bennett) (release/3.4 branch, release 3.4.1)
+
+As of May 22 2018 we resync the code to the MythTV fork of FFmpeg (git@github.com:MythTV/FFmpeg.git).
+All changes to the FFmpeg code must be made in that repository, master branch and cherry-picked to release branch currently in use.
+
+git@github.com:MythTV/FFmpeg.git at n4.0-43-ge4e7472e73 on May 24, 2018 (release/4.0 branch) 
+git@github.com:FFmpeg/FFmpeg.git at n4.0-39-gda399903c7 (Peter Bennett)
+
+Procedure for FFmpeg resync in future
+=====================================
+- Clone MythTV FFmpeg fork
+git clone git@github.com:MythTV/FFmpeg.git
+- create a branch to track the current ffmpeg release branch (Release/4.0)
+- Add a remote for main FFmpeg
+git remote add ffmpeg git@github.com:FFmpeg/FFmpeg.git
+git fetch ffmpeg
+- Look for any changes that are in MythTV FFmpeg since last sync
+git log mythtv/external/FFmpeg/
+- If the log contains any changes check if they are in the MythTV/FFmpeg repository
+  and if not commit them into MythTV/FFmpeg/master and cherry-pick them into the 
+  current release branch (e.g. release/4.0).
+- Merge updates:
+git checkout master
+git merge ffmpeg/master
+git checkout release/4.0
+git merge ffmpeg/release/4.0
+- Checkout release/4.0 and in MythTV directory checkout master.
+- Delete entire FFmpeg dierctory structure from MythTV directory and copy
+  in the contents of the ffmpeg repository.
+- Test MythTV build and playback.
+- Add and commit all changes with comments identifying
+  ffmpeg/FFmpeg Release/4.0 description (git describe)
+  MythTV/FFmpeg Release/4.0 description (git describe).
+
+This file (README.sync) will no longer contain details of each FFmpeg resync
 
 List of files modified from original FFmpeg:
-Makefile
-README.sync
-common.mak
-configure
-libavcodec/Makefile
-libavcodec/audiotoolboxdec.c    // dual language support
-libavcodec/avcodec.h            // add subtitle support
-libavcodec/codec_desc.c         // add subtitle codec description
-libavcodec/dvbsubdec.c          // DVB subtitles fixes
-libavcodec/dvbsub_parser.c      // Fix for #5978
-libavcodec/dvdsubdec.c
-libavcodec/get_bits.h
-libavcodec/golomb.h
-libavcodec/h264_refs.c
-libavcodec/libavcodec.v
-libavcodec/mpeg12dec.c          // CEA-708/608 support
-libavcodec/mpeg4videodec.c      // fixes for #3001 + fix for h263 frame rate
-libavcodec/mpegaudio_parser.c   // add support for dual language
-libavcodec/mpegaudio_template.c // small change to reduce verbosity
-libavcodec/mpegaudiodec.c
-libavcodec/mpegaudiodecheader.c // Add support for dual language detection
-libavcodec/mpegaudiodecheader.h
-libavcodec/mpegvideo.c          // CEA-708/608 support
-libavcodec/mpegvideo.h          // rename member as it cause compilation with C++,  CEA-708/608 support
-libavcodec/utils-mythtv.c <- new file
-libavcodec/pcm.c                // Fix to allow playing stream marked with 0 channels
-libavcodec/pgssubdec.c          // support for forced display of PGS subtitle
-libavformat/Makefile
-libavformat/allformats.c        // add MythTV mpegts demuxer
-libavformat/avformat.h          // extra field to all callbacks for stream change
-libavformat/format.c
-libavformat/mov.c               // Fix http streaming of iPhone videos (Fix from xbmc)
-libavformat/mpeg.c              // support for AAC/LATM, mpeg2vbi stream and stream change callback
-libavformat/mpeg.h              // AAC/LATM stream type definition
-libavformat/mpegts-mythtv.c  <- new file
-libavformat/mpegts-mythtv.h  <- new file
-libavformat/mpegts.c            // rename some functions so they do not conflict with mythtv mpegts demuxer
-libavformat/mpegts.h
-libavformat/utils-mythtv.c  <- new file
-libavformat/utils.c             // fix to make Myth mpegts demux higher priority than FFmpeg's own, some minor diff to prevent corner cases crash
-libavformat/rtpdec_mpegts.c <- header change
-libavformat/rtsp.c <- header change
-libavformat/wtvdec.c <- header change
-libavutil/bswap.h
-libavutil/frame.c               // CEA-708/608 AVFrame members addition
-libpostproc/Makefile
-library.mak                     // change so it doesn't install pkgconfig info
+
+	modified:   Makefile
+	new file:   README.sync
+	modified:   configure
+	modified:   ffbuild/common.mak
+	modified:   ffbuild/library.mak
+	modified:   fftools/Makefile
+	modified:   libavcodec/Makefile
+	modified:   libavcodec/audiotoolboxdec.c
+	modified:   libavcodec/avcodec.h
+	modified:   libavcodec/codec_desc.c
+	modified:   libavcodec/dvbsub_parser.c
+	modified:   libavcodec/dvbsubdec.c
+	modified:   libavcodec/dvdsubdec.c
+	modified:   libavcodec/get_bits.h
+	modified:   libavcodec/golomb.h
+	modified:   libavcodec/h264_refs.c
+	modified:   libavcodec/internal.h
+	modified:   libavcodec/libavcodec.v
+	modified:   libavcodec/mpeg12dec.c
+	modified:   libavcodec/mpeg4videodec.c
+	modified:   libavcodec/mpegaudio_parser.c
+	modified:   libavcodec/mpegaudiodec_template.c
+	modified:   libavcodec/mpegaudiodecheader.c
+	modified:   libavcodec/mpegaudiodecheader.h
+	modified:   libavcodec/mpegvideo.c
+	modified:   libavcodec/mpegvideo.h
+	modified:   libavcodec/pcm.c
+	modified:   libavcodec/pgssubdec.c
+	new file:   libavcodec/utils-mythtv.c
+	modified:   libavdevice/opengl_enc.c
+	modified:   libavformat/Makefile
+	modified:   libavformat/allformats.c
+	modified:   libavformat/avformat.h
+	modified:   libavformat/format.c
+	modified:   libavformat/isom.h
+	modified:   libavformat/libavformat.v
+	modified:   libavformat/mov.c
+	modified:   libavformat/mpeg.c
+	modified:   libavformat/mpeg.h
+	new file:   libavformat/mpegts-mythtv.c
+	new file:   libavformat/mpegts-mythtv.h
+	modified:   libavformat/mpegts.c
+	modified:   libavformat/mpegts.h
+	modified:   libavformat/os_support.h
+	modified:   libavformat/rtpdec_mpegts.c
+	modified:   libavformat/rtsp.c
+	new file:   libavformat/utils-mythtv.c
+	modified:   libavformat/utils.c
+	modified:   libavformat/wtvdec.c
+	modified:   libavutil/frame.c
+	modified:   libavutil/frame.h
+	modified:   libavutil/timer.h
+	modified:   libpostproc/Makefile
+	modified:   libpostproc/postprocess.c
+

@@ -584,17 +584,6 @@ void RecordingRule::ToMap(InfoMap &infoMap) const
     hours   = minutes / 60;
     minutes = minutes % 60;
 
-#if QT_VERSION < QT_VERSION_CHECK(5, 0, 0)
-
-    infoMap["lenmins"] = QCoreApplication::translate("(Common)", "%n minute(s)",
-        "", QCoreApplication::UnicodeUTF8, minutes);
-
-    QString minstring  = QCoreApplication::translate("(Common)", "%n minute(s)",
-        "",QCoreApplication::UnicodeUTF8, minutes);
-
-    QString hourstring = QCoreApplication::translate("(Common)", "%n hour(s)",
-        "", QCoreApplication::UnicodeUTF8, hours);
-#else
     infoMap["lenmins"] = QCoreApplication::translate("(Common)", "%n minute(s)",
         "", minutes);
 
@@ -603,8 +592,6 @@ void RecordingRule::ToMap(InfoMap &infoMap) const
 
     QString hourstring = QCoreApplication::translate("(Common)", "%n hour(s)",
         "", hours);
-
-#endif
 
     if (hours > 0)
     {
@@ -634,8 +621,9 @@ void RecordingRule::ToMap(InfoMap &infoMap) const
         if (m_type == kWeeklyRecord)
         {
             int daynum = (m_findday + 5) % 7 + 1;
-            findfrom = QString("%1, %2").arg(QDate::shortDayName(daynum))
-                                        .arg(findfrom);
+            findfrom = QString("%1, %2")
+		 .arg(gCoreContext->GetQLocale().dayName(daynum, QLocale::ShortFormat))
+		 .arg(findfrom);
         }
         infoMap["subtitle"] = tr("(%1 or later) %3",
                                  "e.g. (Sunday or later) program "

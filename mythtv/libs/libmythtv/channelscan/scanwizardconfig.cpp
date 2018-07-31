@@ -31,10 +31,12 @@ void ScanWizard::SetupConfig(
     scanConfig = new ScanOptionalConfig(scanType);
     services = new DesiredServices();
     ftaOnly = new FreeToAirOnly();
+    addFullTS = new AddFullTS();
     trustEncSI = new TrustEncSISetting();
 
     addChild(services);
     addChild(ftaOnly);
+    addChild(addFullTS);
     addChild(trustEncSI);
 
     addChild(videoSource);
@@ -70,6 +72,11 @@ bool ScanWizard::DoFreeToAirOnly(void) const
     return ftaOnly->getValue().toInt();
 }
 
+bool ScanWizard::DoAddFullTS(void) const
+{
+    return addFullTS->getValue().toInt();
+}
+
 bool ScanWizard::DoTestDecryption(void) const
 {
     return trustEncSI->getValue().toInt();
@@ -81,7 +88,7 @@ bool ScanWizard::DoTestDecryption(void) const
 void ScanTypeSetting::SetInput(const QString &cardids_inputname)
 {
     uint    cardid    = 0;
-    QString inputname = QString::null;
+    QString inputname;
     if (!InputSelector::Parse(cardids_inputname, cardid, inputname))
         return;
 
@@ -317,7 +324,8 @@ QString ScanOptionalConfig::GetFrequencyTable(void) const
 bool ScanOptionalConfig::GetFrequencyTableRange(
     QString &start, QString &end) const
 {
-    start = end  = QString::null;
+    start.clear();
+    end.clear();
 
     int st = scanType->getValue().toInt();
     if (ScanTypeSetting::FullScan_ATSC == st)

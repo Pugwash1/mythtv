@@ -38,6 +38,10 @@
 #include "mythuiactions.h"              // for ACTION_0, ACTION_1, etc
 #include "tv_actions.h"                 // for ACTION_MENUTEXT, etc
 
+extern "C" {
+#include "libavutil/imgutils.h"
+}
+
 static bool       ft_loaded = false;
 static FT_Library ft_library;
 
@@ -1873,7 +1877,8 @@ void MHIBitmap::CreateFromMPEG(const unsigned char *data, int length)
     MythAVFrame picture;
     AVPacket pkt;
     uint8_t *buff = NULL;
-    int gotPicture = 0, len;
+    bool gotPicture = false;
+    int len;
     m_image = QImage();
 
     // Find the mpeg2 video decoder.
@@ -1895,22 +1900,33 @@ void MHIBitmap::CreateFromMPEG(const unsigned char *data, int length)
     memcpy(pkt.data, data, length);
     buff = pkt.data;
 
-    while (pkt.size > 0 && ! gotPicture)
+    // Get a picture from the packet. Allow 9 loops for
+    // packet to be decoded. It should take only 2-3 loops
+    for (int limit=0; limit<10 && !gotPicture; limit++)
     {
-        len = avcodec_decode_video2(c, picture, &gotPicture, &pkt);
-        if (len < 0) // Error
+        len = avcodec_receive_frame(c, picture);
+        if (len == 0)
+            gotPicture = true;
+        if (len == AVERROR(EAGAIN))
+            len = 0;
+        if (len == 0)
+            len = avcodec_send_packet(c, &pkt);
+        if (len == AVERROR(EAGAIN) || len == AVERROR_EOF)
+            len = 0;
+        else if (len < 0) // Error
+        {
+            char error[AV_ERROR_MAX_STRING_SIZE];
+            LOG(VB_GENERAL, LOG_ERR,
+                QString("[mhi] video decode error: %1 (%2)")
+                .arg(av_make_error_string(error, sizeof(error), len))
+                .arg(gotPicture));
             goto Close;
-        pkt.data += len;
-        pkt.size -= len;
-    }
-
-    if (!gotPicture)
-    {
-        pkt.data = NULL;
-        pkt.size = 0;
-        // Process any buffered data
-        if (avcodec_decode_video2(c, picture, &gotPicture, &pkt) < 0)
-            goto Close;
+        }
+        else
+        {
+            pkt.data = NULL;
+            pkt.size = 0;
+        }
     }
 
     if (gotPicture)
@@ -1920,17 +1936,18 @@ void MHIBitmap::CreateFromMPEG(const unsigned char *data, int length)
         m_image = QImage(nContentWidth, nContentHeight, QImage::Format_ARGB32);
         m_opaque = true; // MPEG images are always opaque.
 
-        AVPicture retbuf;
-        memset(&retbuf, 0, sizeof(AVPicture));
+        AVFrame retbuf;
+        memset(&retbuf, 0, sizeof(AVFrame));
 
         int bufflen = nContentWidth * nContentHeight * 3;
         unsigned char *outputbuf = (unsigned char*)av_malloc(bufflen);
 
-        avpicture_fill(&retbuf, outputbuf, AV_PIX_FMT_RGB24,
-                       nContentWidth, nContentHeight);
+        av_image_fill_arrays(retbuf.data, retbuf.linesize,
+            outputbuf, AV_PIX_FMT_RGB24,
+            nContentWidth, nContentHeight,IMAGE_ALIGN);
 
         AVFrame *tmp = picture;
-        m_copyCtx->Copy(&retbuf, AV_PIX_FMT_RGB24, (AVPicture*)tmp, c->pix_fmt,
+        m_copyCtx->Copy(&retbuf, AV_PIX_FMT_RGB24, (AVFrame*)tmp, c->pix_fmt,
                      nContentWidth, nContentHeight);
 
         uint8_t * buf = outputbuf;
@@ -1953,8 +1970,7 @@ void MHIBitmap::CreateFromMPEG(const unsigned char *data, int length)
 Close:
     pkt.data = buff;
     av_packet_unref(&pkt);
-    avcodec_close(c);
-    av_free(c);
+    avcodec_free_context(&c);
 }
 
 // Scale the bitmap.  Only used for image derived from MPEG I-frames.

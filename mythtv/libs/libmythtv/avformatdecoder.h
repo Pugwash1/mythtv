@@ -24,7 +24,6 @@ extern "C" {
 #include "mythframe.h"
 #include "libavcodec/avcodec.h"
 #include "libavformat/avformat.h"
-#include "libavcodec/audioconvert.h"
 }
 
 #include "avfringbuffer.h"
@@ -244,7 +243,7 @@ class AvFormatDecoder : public DecoderBase
     void SeekReset(long long, uint skipFrames, bool doFlush, bool discardFrames);
 
     inline bool DecoderWillDownmix(const AVCodecContext *ctx);
-    bool DoPassThrough(const AVCodecContext *ctx, bool withProfile=true);
+    bool DoPassThrough(const AVCodecParameters *ctx, bool withProfile=true);
     bool SetupAudioStream(void);
     void SetupAudioStreamSubIndexes(int streamIndex);
     void RemoveAudioStreams();
@@ -323,6 +322,9 @@ class AvFormatDecoder : public DecoderBase
     bool pts_detected;
     bool reordered_pts_detected;
     bool pts_selected;
+    // set use_frame_timing true to utilize the pts values in returned
+    // frames. Set fale to use deprecated method.
+    bool use_frame_timing;
 
     bool force_dts_timestamps;
 
@@ -330,6 +332,7 @@ class AvFormatDecoder : public DecoderBase
     MythCodecID video_codec_id;
 
     int maxkeyframedist;
+    int averror_count;
 
     // Caption/Subtitle/Teletext decoders
     uint             ignore_scte;

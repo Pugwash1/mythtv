@@ -31,13 +31,13 @@ const int DBUtil::kUnknownVersionNumber = INT_MIN;
  *  \brief Constructs the DBUtil object.
  */
 DBUtil::DBUtil(void)
-    : m_versionString(QString::null), m_versionMajor(-1), m_versionMinor(-1),
+    : m_versionMajor(-1), m_versionMinor(-1),
       m_versionPoint(-1)
 {
 }
 
 /** \fn DBUtil::GetDBMSVersion(void)
- *  \brief Returns the QString version name of the DBMS or QString::null in
+ *  \brief Returns the QString version name of the DBMS or QString() in
  *         the event of an error.
  */
 QString DBUtil::GetDBMSVersion(void)
@@ -231,7 +231,7 @@ MythDBBackupStatus DBUtil::BackupDB(QString &filename, bool disableRotation)
     {
         LOG(VB_GENERAL, LOG_CRIT, QString("Database backup script does "
                                           "not exist: %1").arg(backupScript));
-        backupScript = QString::null;
+        backupScript.clear();
     }
 
     bool result = false;
@@ -502,7 +502,7 @@ QString DBUtil::GetBackupDirectory()
         {
             LOG(VB_FILE, LOG_INFO, "GetBackupDirectory() - ignoring " +
                                    directory + ", using /tmp");
-            directory = QString::null;
+            directory.clear();
         }
     }
 
@@ -595,7 +595,7 @@ bool DBUtil::DoBackup(const QString &backupScript, QString &filename,
         .arg(dbParams.dbUserName).arg(dbParams.dbPassword)
         .arg(dbParams.dbName).arg(dbSchemaVer)
         .arg(backupDirectory).arg(backupFilename).arg(rotate);
-    QString tempDatabaseConfFile = QString::null;
+    QString tempDatabaseConfFile;
     bool hastemp = CreateTemporaryDBConf(privateinfo, tempDatabaseConfFile);
     if (!hastemp)
         LOG(VB_GENERAL, LOG_ERR, LOC + "Attempting backup, anyway.");
@@ -689,7 +689,7 @@ bool DBUtil::DoBackup(QString &filename)
     QString privateinfo = QString(
         "[client]\npassword=%1\n[mysqldump]\npassword=%2\n")
         .arg(dbParams.dbPassword).arg(dbParams.dbPassword);
-    QString tempExtraConfFile = QString::null;
+    QString tempExtraConfFile;
     if (!CreateTemporaryDBConf(privateinfo, tempExtraConfFile))
         return false;
 
@@ -752,7 +752,7 @@ bool DBUtil::DoBackup(QString &filename)
 
 /** \fn DBUtil::QueryDBMSVersion(void)
  *  \brief Reads and returns the QString version name from the DBMS or
- *         returns QString::null in the event of an error.
+ *         returns QString() in the event of an error.
  */
 bool DBUtil::QueryDBMSVersion(void)
 {
@@ -770,7 +770,7 @@ bool DBUtil::QueryDBMSVersion(void)
             LOG(VB_GENERAL, LOG_ERR, LOC +
                 "Unable to determine MySQL version.");
             MythDB::DBError("DBUtil Querying DBMS version", query);
-            dbmsVersion = QString::null;
+            dbmsVersion.clear();
         }
         else
             dbmsVersion = query.value(0).toString();

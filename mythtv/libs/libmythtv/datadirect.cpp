@@ -527,9 +527,7 @@ DataDirectProcessor::DataDirectProcessor(uint lp, QString user, QString pass) :
     m_listingsProvider(lp % DD_PROVIDER_COUNT),
     m_userid(user),                   m_password(pass),
     m_tmpDir("/tmp"),                 m_cacheData(false),
-    m_inputFilename(""),              m_tmpPostFile(QString::null),
-    m_tmpResultFile(QString::null),   m_tmpDDPFile(QString::null),
-    m_cookieFile(QString::null),      m_cookieFileDT()
+    m_inputFilename(""),              m_cookieFileDT()
 {
     {
         QMutexLocker locker(&user_agent_lock);
@@ -794,7 +792,7 @@ bool DataDirectProcessor::UpdateChannelsUnsafe(
         uint    freqid     = dd_station_info.value(3).toUInt();
         QString chan_major = dd_station_info.value(4).toString();
         QString chan_minor = dd_station_info.value(5).toString();
-        QString tvformat   = QString::null;
+        QString tvformat;
         QString channum    = process_dd_station(
             sourceid, chan_major, chan_minor, tvformat, freqid);
 
@@ -1174,7 +1172,7 @@ bool DataDirectProcessor::GrabData(const QDateTime &pstartDate,
     QString err = "";
     QString ddurl = m_providers[m_listingsProvider].webServiceURL;
     QString inputfile = m_inputFilename;
-    QString cache_dd_data = QString::null;
+    QString cache_dd_data;
 
     if (m_cacheData)
     {
@@ -1769,7 +1767,7 @@ QString DataDirectProcessor::GetRawUDLID(const QString &lineupid) const
 {
     RawLineupMap::const_iterator it = m_rawLineups.find(lineupid);
     if (it == m_rawLineups.end())
-        return QString::null;
+        return QString();
     return (*it).udl_id;
 }
 
@@ -1777,7 +1775,7 @@ QString DataDirectProcessor::GetRawZipCode(const QString &lineupid) const
 {
     RawLineupMap::const_iterator it = m_rawLineups.find(lineupid);
     if (it == m_rawLineups.end())
-        return QString::null;
+        return QString();
     return (*it).zipcode;
 }
 
@@ -1928,7 +1926,7 @@ bool DataDirectProcessor::ParseLineups(const QString &documentFile)
 
     QTextStream stream(&file);
     bool in_form = false;
-    QString get_action = QString::null;
+    QString get_action;
     QMap<QString,QString> name_value;
 
     m_rawLineups.clear();
@@ -2134,7 +2132,7 @@ static QString get_setting(QString line, QString key)
     kfind = key + "=";
     beg = llow.indexOf(kfind);
     if (beg < 0)
-        return QString::null;
+        return QString();
 
     int i = beg + kfind.length();
     while (i < line.length() && !line[i].isSpace() && line[i] != '>')
@@ -2143,7 +2141,7 @@ static QString get_setting(QString line, QString key)
     if (i < line.length() && (line[i].isSpace() || line[i] == '>'))
         return line.mid(beg + kfind.length(), i - beg - kfind.length());
 
-    return QString::null;
+    return QString();
 }
 
 static bool has_setting(QString line, QString key)

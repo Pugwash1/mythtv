@@ -178,11 +178,37 @@ void CC708Window::DefineWindow(int _priority,         int _visible,
 // end, row_count and column_count are NOT updated.
 void CC708Window::Resize(uint new_rows, uint new_columns)
 {
+
     if (!GetExists() || text == NULL)
     {
         true_row_count = 0;
         true_column_count = 0;
     }
+
+    //We need to shrink Rows, at times Scroll (row >= (int)true_row_count)) fails and we
+    // Don't scroll caption line resulting in overwriting the same.
+    // Ex: [CAPTIONING FUNDED BY CBS SPORTS
+    //     DIVISION]NG FUNDED BY CBS SPORTS
+
+    if(new_rows < true_row_count || new_columns < true_column_count)
+    {
+      delete [] text;
+      text = new CC708Character [new_rows * new_columns];
+      true_row_count = new_rows;
+      true_column_count = new_columns;
+      pen.row = 0;
+      pen.column = 0;
+      Clear();
+      SetChanged();
+      SetExists(true);
+      LOG(VB_VBI,
+          LOG_DEBUG,
+          QString("Shrinked nr %1 nc %2 rc %3 cc %4 tr %5 tc %6").arg(new_rows) .arg(
+              new_columns) .arg(row_count) .arg(column_count) .arg(true_row_count) .arg(
+                  true_column_count));
+      return;
+    }
+
     if (new_rows > true_row_count || new_columns > true_column_count)
     {
         new_rows = max(new_rows, true_row_count);
@@ -571,8 +597,22 @@ void CC708Window::DecrPenLocation(void)
 
 void CC708Window::SetPenLocation(uint row, uint column)
 {
-    Scroll(row, column);
-    LimitPenLocation();
+  //Clear current row in case we are reseting Pen Location.
+  LOG(VB_VBI,
+      LOG_DEBUG,
+      QString("SetPenLocation nr %1 nc %2 rc %3 cc %4 tr %5 tc %6").arg(row).arg(
+          column).arg(row_count).arg(column_count).arg(true_row_count).arg(
+          true_column_count));
+     if(0 == row)
+     {
+          Scroll(true_row_count, column);
+          pen.row = row;
+     }
+     else
+     {
+          Scroll(row, column);
+     }
+     LimitPenLocation();
 }
 
 void CC708Window::LimitPenLocation(void)

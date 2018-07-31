@@ -1381,8 +1381,10 @@ void GuideGrid::fillChannelInfos(bool gotostartchannel)
     m_currentStartChannel = 0;
 
     uint avail = 0;
+    const ChannelUtil::OrderBy ordering = m_channelOrdering == "channum" ?
+        ChannelUtil::kChanOrderByChanNum : ChannelUtil::kChanOrderByName;
     ChannelInfoList channels = ChannelUtil::LoadChannels(0, 0, avail, true,
-                                         ChannelUtil::kChanOrderByChanNum,
+                                         ordering,
                                          ChannelUtil::kChanGroupByChanid,
                                          0,
                                          (m_changrpid < 0) ? 0 : m_changrpid);
@@ -1751,7 +1753,7 @@ void GuideUpdateProgramRow::fillProgramRowInfosWith(int row,
             (double) m_timeCount;
     }
 
-    int arrow = 0;
+    int arrow = GridTimeNormal;
     int cnt = 0;
     int spread = 1;
     QDateTime lastprog;
@@ -1767,11 +1769,11 @@ void GuideUpdateProgramRow::fillProgramRowInfosWith(int row,
         spread = 1;
         if (pginfo->GetScheduledStartTime() != lastprog)
         {
-            arrow = 0;
+            arrow = GridTimeNormal;
             if (pginfo->GetScheduledStartTime() < m_firstTime.addSecs(-300))
-                arrow = arrow + 1;
+                arrow |= GridTimeStartsBefore;
             if (pginfo->GetScheduledEndTime() > m_lastTime.addSecs(2100))
-                arrow = arrow + 2;
+                arrow |= GridTimeEndsAfter;
 
             if (pginfo->spread != -1)
             {

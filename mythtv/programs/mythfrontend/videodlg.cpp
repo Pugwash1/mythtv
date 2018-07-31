@@ -1,6 +1,7 @@
 #include <set>
 #include <map>
 #include <functional>   //not2
+#include <memory>
 
 #include <QApplication>
 #include <QTimer>
@@ -358,7 +359,7 @@ namespace
         bool            m_bConnected;
     };
 
-    FanartLoader fanartLoader;
+    std::unique_ptr<FanartLoader> fanartLoader;
 
     struct CopyMetadataDestination
     {
@@ -401,7 +402,9 @@ namespace
                 }
                 else
                 {
-                    fanartLoader.LoadImage(filename, image);
+                    if (fanartLoader == nullptr)
+                        fanartLoader.reset(new FanartLoader);
+                    fanartLoader->LoadImage(filename, image);
                 }
             }
         }
@@ -2469,7 +2472,10 @@ void VideoDialog::VideoMenu()
     m_menuPopup = new MythDialogBox(menu, m_popupStack, "videomenupopup");
 
     if (m_menuPopup->Create())
+    {
         m_popupStack->AddScreen(m_menuPopup);
+        connect(m_menuPopup, SIGNAL(Closed(QString,int)), SLOT(popupClosed(QString,int)));
+    }
     else
         delete m_menuPopup;
 }
@@ -2533,9 +2539,26 @@ void VideoDialog::DisplayMenu()
     m_menuPopup = new MythDialogBox(menu, m_popupStack, "videomenupopup");
 
     if (m_menuPopup->Create())
+    {
         m_popupStack->AddScreen(m_menuPopup);
+        connect(m_menuPopup, SIGNAL(Closed(QString,int)), SLOT(popupClosed(QString,int)));
+    }
     else
         delete m_menuPopup;
+}
+
+// Switch from the display menu to the actions menu on second
+// menu press
+
+void VideoDialog::popupClosed(QString which, int result)
+{
+    m_menuPopup = NULL;
+
+    if (result == -2)
+    {
+        if (which == "display")
+            VideoMenu();
+    }
 }
 
 /** \fn VideoDialog::CreateViewMenu()
