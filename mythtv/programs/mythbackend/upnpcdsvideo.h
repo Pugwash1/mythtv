@@ -25,23 +25,23 @@ class UPnpCDSVideo : public UPnpCDSExtension
     public:
 
         UPnpCDSVideo( );
-        virtual ~UPnpCDSVideo() {}
+        virtual ~UPnpCDSVideo() = default;
 
     protected:
 
-        virtual bool             IsBrowseRequestForUs( UPnpCDSRequest *pRequest );
-        virtual bool             IsSearchRequestForUs( UPnpCDSRequest *pRequest );
+        bool IsBrowseRequestForUs( UPnpCDSRequest *pRequest ) override; // UPnpCDSExtension
+        bool IsSearchRequestForUs( UPnpCDSRequest *pRequest ) override; // UPnpCDSExtension
 
-        virtual void             CreateRoot ( );
+        void CreateRoot ( ) override; // UPnpCDSExtension
 
-        virtual bool             LoadMetadata( const UPnpCDSRequest *pRequest,
-                                                UPnpCDSExtensionResults *pResults,
-                                                IDTokenMap tokens,
-                                                QString currentToken );
-        virtual bool             LoadChildren( const UPnpCDSRequest *pRequest,
-                                               UPnpCDSExtensionResults *pResults,
-                                               IDTokenMap tokens,
-                                               QString currentToken );
+        bool LoadMetadata( const UPnpCDSRequest *pRequest,
+                           UPnpCDSExtensionResults *pResults,
+                           IDTokenMap tokens,
+                           QString currentToken ) override; // UPnpCDSExtension
+        bool LoadChildren( const UPnpCDSRequest *pRequest,
+                           UPnpCDSExtensionResults *pResults,
+                           IDTokenMap tokens,
+                           QString currentToken ) override; // UPnpCDSExtension
     private:
         bool LoadSeries( const UPnpCDSRequest *pRequest,
                      UPnpCDSExtensionResults *pResults,

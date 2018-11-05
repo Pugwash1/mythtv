@@ -7,7 +7,7 @@
 #include "mythlogging.h"
 
 #define LOC QString("IPTVSigMon[%1](%2): ") \
-            .arg(capturecardnum).arg(channel->GetDevice())
+            .arg(inputid).arg(channel->GetDevice())
 
 /** \brief Initializes signal lock and signal values.
  *
@@ -55,7 +55,7 @@ void IPTVSignalMonitor::Stop(void)
 {
     LOG(VB_CHANNEL, LOG_INFO, LOC + "Stop() -- begin");
     SignalMonitor::Stop();
-    GetIPTVChannel()->SetStreamData(NULL);
+    GetIPTVChannel()->SetStreamData(nullptr);
     m_streamHandlerStarted = false;
     LOG(VB_CHANNEL, LOG_INFO, LOC + "Stop() -- end");
 }

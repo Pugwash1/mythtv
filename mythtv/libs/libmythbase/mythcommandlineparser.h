@@ -7,7 +7,7 @@
 #include <QString>
 #include <QVariant>
 
-#include <stdint.h>   // for uint64_t
+#include <cstdint>   // for uint64_t
 
 #include "mythbaseexp.h"
 #include "mythlogging.h"
@@ -22,7 +22,7 @@ class MBASE_PUBLIC CommandLineArg : public ReferenceCounter
                    QString help, QString longhelp);
     CommandLineArg(QString name, QVariant::Type type, QVariant def);
     explicit CommandLineArg(QString name);
-   ~CommandLineArg() {};
+   ~CommandLineArg() = default;
 
     CommandLineArg* SetGroup(QString group)         { m_group = group;
                                                       return this; }

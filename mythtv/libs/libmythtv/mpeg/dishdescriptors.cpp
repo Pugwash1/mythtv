@@ -21,7 +21,7 @@ QString DishEventNameDescriptor::Name(uint compression_type) const
 const unsigned char *DishEventDescriptionDescriptor::DescriptionRaw(void) const
 {
     if (DescriptorLength() <= 2)
-        return NULL;
+        return nullptr;
 
     bool offset = (_data[3] & 0xf8) == 0x80;
     return _data + ((offset) ? 4 : 3);
@@ -300,6 +300,7 @@ volatile bool      DishContentDescriptor::dishCategoryDescExists = false;
 
 QString dish_theme_type_to_string(uint theme_type)
 {
+    // cppcheck-suppress variableScope
     static const char *themes[kThemeLast] =
     {
         "", "Movie", "Sports", "News/Business", "Family/Children", "Education",

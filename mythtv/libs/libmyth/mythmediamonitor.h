@@ -26,9 +26,9 @@ class MonitorThread : public MThread
 {
   public:
     MonitorThread(MediaMonitor* pMon,  unsigned long interval);
-    ~MonitorThread() { wait(); m_Monitor = NULL; }
+    ~MonitorThread() { wait(); m_Monitor = nullptr; }
     void setMonitor(MediaMonitor* pMon) { m_Monitor = pMon; }
-    virtual void run(void);
+    void run(void) override; // MThread
 
   protected:
     QPointer<MediaMonitor> m_Monitor;
@@ -89,7 +89,7 @@ class MPUBLIC MediaMonitor : public QObject
 
   protected:
     MediaMonitor(QObject *par, unsigned long interval, bool allowEject);
-    virtual ~MediaMonitor() {}
+    virtual ~MediaMonitor() = default;
 
     void AttemptEject(MythMediaDevice *device);
     void CheckDevices(void);
@@ -97,7 +97,7 @@ class MPUBLIC MediaMonitor : public QObject
     virtual bool AddDevice(MythMediaDevice* pDevice) = 0;
     bool RemoveDevice(const QString &dev);
     bool shouldIgnore(const MythMediaDevice *device);
-    bool eventFilter(QObject *obj, QEvent *event);
+    bool eventFilter(QObject *obj, QEvent *event) override; // QObject
 
     const QString listDevices(void);
 

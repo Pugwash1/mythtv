@@ -1,5 +1,7 @@
 #include <unistd.h>
 #include <zlib.h>
+#undef Z_NULL
+#define Z_NULL nullptr
 
 // Qt headers
 #include <QDir>
@@ -466,7 +468,7 @@ bool DDStructureParser::characters(const QString& pchars)
 
             gCoreContext->SaveSettingOnHost("DataDirectMessage",
                                             ExpirationDateMessage,
-                                            NULL);
+                                            nullptr);
         }
     }
     if (currtagname == "callSign")
@@ -1157,7 +1159,7 @@ bool DataDirectProcessor::GrabNextSuggestedTime(void)
     {
         gCoreContext->SaveSettingOnHost(
             "MythFillSuggestedRunTime",
-            nextSuggestedTime.toString(Qt::ISODate), NULL);
+            nextSuggestedTime.toString(Qt::ISODate), nullptr);
     }
 
     return nextSuggestedTime.isValid();
@@ -2121,11 +2123,11 @@ static QString get_setting(QString line, QString key)
 {
     QString llow = line.toLower();
     QString kfind = key + "=\"";
-    int beg = llow.indexOf(kfind), end = -1;
+    int beg = llow.indexOf(kfind);
 
     if (beg >= 0)
     {
-        end = llow.indexOf("\"", beg + kfind.length());
+        int end = llow.indexOf("\"", beg + kfind.length());
         return line.mid(beg + kfind.length(), end - beg - kfind.length());
     }
 

@@ -45,8 +45,8 @@ class UPNPScanner : public QObject
   public:
    ~UPNPScanner();
 
-    static void         Enable(bool enable, UPNPSubscription *sub = NULL);
-    static UPNPScanner* Instance(UPNPSubscription *sub = NULL);
+    static void         Enable(bool enable, UPNPSubscription *sub = nullptr);
+    static UPNPScanner* Instance(UPNPSubscription *sub = nullptr);
 
     void StartFullScan(void);
     void GetInitialMetadata(VideoMetadataListManager::metadata_list* list,
@@ -57,8 +57,8 @@ class UPNPScanner : public QObject
     QMap<QString,QString> ServerList(void);
 
   protected:
-    virtual void customEvent(QEvent *event);
-    virtual void timerEvent(QTimerEvent * event);
+    void customEvent(QEvent *event) override; // QObject
+    void timerEvent(QTimerEvent * event) override; // QObject
 
   private slots:
     void Start();

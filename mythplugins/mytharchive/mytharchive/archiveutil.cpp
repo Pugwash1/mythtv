@@ -1,13 +1,9 @@
-// POSIX headers
+// C++ headers
+#include <cerrno>
+#include <cstdlib>
+#include <iostream>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <errno.h>
-
-// ANSI C headers
-#include <cstdlib>
-
-// C++ headers
-#include <iostream>
 using namespace std;
 
 // qt
@@ -183,11 +179,10 @@ bool extractDetailsFromFilename(const QString &inFile,
 
 ProgramInfo *getProgramInfoForFile(const QString &inFile)
 {
-    ProgramInfo *pinfo = NULL;
+    ProgramInfo *pinfo = nullptr;
     QString chanID, startTime;
-    bool bIsMythRecording = false;
 
-    bIsMythRecording = extractDetailsFromFilename(inFile, chanID, startTime);
+    bool bIsMythRecording = extractDetailsFromFilename(inFile, chanID, startTime);
 
     if (bIsMythRecording)
     {
@@ -201,7 +196,7 @@ ProgramInfo *getProgramInfoForFile(const QString &inFile)
         else
         {
             delete pinfo;
-            pinfo = NULL;
+            pinfo = nullptr;
         }
     }
 

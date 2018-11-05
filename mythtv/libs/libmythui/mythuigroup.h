@@ -13,13 +13,13 @@ class MUI_PUBLIC MythUIGroup : public MythUIComposite
 
   public:
     MythUIGroup(MythUIType *parent, const QString &name);
-   ~MythUIGroup();
+   ~MythUIGroup() = default;
 
-    void Reset(void);
+    void Reset(void) override; // MythUIType
 
   protected:
-    virtual void CopyFrom(MythUIType *base);
-    virtual void CreateCopy(MythUIType *parent);
+    void CopyFrom(MythUIType *base) override; // MythUIType
+    void CreateCopy(MythUIType *parent) override; // MythUIType
 };
 
 #endif

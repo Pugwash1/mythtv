@@ -24,11 +24,11 @@
  *
  */
 
+#include <cstdint>
+#include <cstdlib>
 #include <iostream>
-#include <stdint.h>
 #include <sys/wait.h>  // for WIFEXITED and WEXITSTATUS
 #include <unistd.h>
-#include <cstdlib>
 
 #include <mythconfig.h>
 #if CONFIG_DARWIN or defined(__FreeBSD__)
@@ -398,13 +398,12 @@ int NativeArchive::getFieldList(QStringList &fieldList, const QString &tableName
 int NativeArchive::exportRecording(QDomElement   &itemNode,
                                    const QString &saveDirectory)
 {
-    QString chanID, startTime, title = "", filename = "";
-    bool doDelete = false;
+    QString chanID, startTime;
     QString dbVersion = gCoreContext->GetSetting("DBSchemaVer", "");
 
-    title = fixFilename(itemNode.attribute("title"));
-    filename = itemNode.attribute("filename");
-    doDelete = (itemNode.attribute("delete", "0") == "0");
+    QString title = fixFilename(itemNode.attribute("title"));
+    QString filename = itemNode.attribute("filename");
+    bool doDelete = (itemNode.attribute("delete", "0") == "0");
     LOG(VB_JOBQUEUE, LOG_INFO, QString("Archiving %1 (%2), do delete: %3")
             .arg(title).arg(filename).arg(doDelete));
 
@@ -621,15 +620,13 @@ int NativeArchive::exportRecording(QDomElement   &itemNode,
 int NativeArchive::exportVideo(QDomElement   &itemNode,
                                const QString &saveDirectory)
 {
-    QString title = "", filename = "";
-    bool doDelete = false;
     QString dbVersion = gCoreContext->GetSetting("DBSchemaVer", "");
     int intID = 0, categoryID = 0;
     QString coverFile = "";
 
-    title = fixFilename(itemNode.attribute("title"));
-    filename = itemNode.attribute("filename");
-    doDelete = (itemNode.attribute("delete", "0") == "0");
+    QString title = fixFilename(itemNode.attribute("title"));
+    QString filename = itemNode.attribute("filename");
+    bool doDelete = (itemNode.attribute("delete", "0") == "0");
     LOG(VB_JOBQUEUE, LOG_INFO, QString("Archiving %1 (%2), do delete: %3")
             .arg(title).arg(filename).arg(doDelete));
 
@@ -1559,8 +1556,6 @@ static int doImportArchive(const QString &inFile, int chanID)
 
 static int grabThumbnail(QString inFile, QString thumbList, QString outFile, int frameCount)
 {
-    av_register_all();
-
     // Open recording
     LOG(VB_JOBQUEUE, LOG_INFO, QString("grabThumbnail(): Opening '%1'")
             .arg(inFile));
@@ -1574,7 +1569,7 @@ static int grabThumbnail(QString inFile, QString thumbList, QString outFile, int
     }
 
     // Getting stream information
-    int ret = avformat_find_stream_info(inputFC, NULL);
+    int ret = avformat_find_stream_info(inputFC, nullptr);
     if (ret < 0)
     {
         LOG(VB_JOBQUEUE, LOG_ERR,
@@ -1615,14 +1610,14 @@ static int grabThumbnail(QString inFile, QString thumbList, QString outFile, int
     // get decoder for video stream
     AVCodec * codec = avcodec_find_decoder(codecCtx->codec_id);
 
-    if (codec == NULL)
+    if (codec == nullptr)
     {
         LOG(VB_JOBQUEUE, LOG_ERR, "Couldn't find codec for video stream");
         return 1;
     }
 
     // open codec
-    if (avcodec_open2(codecCtx, codec, NULL) < 0)
+    if (avcodec_open2(codecCtx, codec, nullptr) < 0)
     {
         LOG(VB_JOBQUEUE, LOG_ERR, "Couldn't open codec for video stream");
         return 1;
@@ -1907,8 +1902,6 @@ static int64_t getFrameCount(const QString &filename, float fps)
 
 static int getFileInfo(QString inFile, QString outFile, int lenMethod)
 {
-    av_register_all();
-
     // Open recording
     LOG(VB_JOBQUEUE , LOG_INFO, QString("getFileInfo(): Opening '%1'")
             .arg(inFile));
@@ -1922,7 +1915,7 @@ static int getFileInfo(QString inFile, QString outFile, int lenMethod)
     }
 
     // Getting stream information
-    int ret = avformat_find_stream_info(inputFC, NULL);
+    int ret = avformat_find_stream_info(inputFC, nullptr);
 
     if (ret < 0)
     {
@@ -2108,7 +2101,7 @@ static int getFileInfo(QString inFile, QString outFile, int lenMethod)
                 stream.setAttribute("channels", par->channels);
 
                 AVDictionaryEntry *metatag =
-                    av_dict_get(st->metadata, "language", NULL, 0);
+                    av_dict_get(st->metadata, "language", nullptr, 0);
                 if (metatag)
                     stream.setAttribute("language", metatag->value);
                 else
@@ -2146,7 +2139,7 @@ static int getFileInfo(QString inFile, QString outFile, int lenMethod)
                 stream.setAttribute("codec", codec.trimmed());
 
                 AVDictionaryEntry *metatag =
-                    av_dict_get(st->metadata, "language", NULL, 0);
+                    av_dict_get(st->metadata, "language", nullptr, 0);
                 if (metatag)
                     stream.setAttribute("language", metatag->value);
                 else
@@ -2252,7 +2245,7 @@ class MPUBLIC MythArchiveHelperCommandLineParser : public MythCommandLineParser
 {
   public:
     MythArchiveHelperCommandLineParser();
-    void LoadArguments(void);
+    void LoadArguments(void) override; // MythCommandLineParser
 };
 
 MythArchiveHelperCommandLineParser::MythArchiveHelperCommandLineParser() :
@@ -2397,7 +2390,7 @@ int main(int argc, char **argv)
     {
         LOG(VB_GENERAL, LOG_ERR, "Failed to init MythContext, exiting.");
         delete gContext;
-        gContext = NULL;
+        gContext = nullptr;
         return GENERIC_EXIT_NO_MYTHCONTEXT;
     }
 
@@ -2557,7 +2550,7 @@ int main(int argc, char **argv)
         cmdline.PrintHelp();
 
     delete gContext;
-    gContext = NULL;
+    gContext = nullptr;
 
     exit(res);
 }

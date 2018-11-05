@@ -17,7 +17,7 @@
 class DeviceReaderCB
 {
   protected:
-    virtual ~DeviceReaderCB() {}
+    virtual ~DeviceReaderCB() = default;
   public:
     virtual void ReaderPaused(int fd) = 0;
     virtual void PriorityEvent(int fd) = 0;
@@ -61,7 +61,7 @@ class DeviceReadBuffer : protected MThread
     uint GetUsed(void) const;
 
   private:
-    virtual void run(void); // MThread
+    void run(void) override; // MThread
 
     void SetPaused(bool);
     void IncrWritePointer(uint len);

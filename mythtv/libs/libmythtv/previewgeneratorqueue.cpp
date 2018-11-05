@@ -24,7 +24,7 @@ using std::max;
 
 #define LOC QString("PreviewQueue: ")
 
-PreviewGeneratorQueue *PreviewGeneratorQueue::s_pgq = NULL;
+PreviewGeneratorQueue *PreviewGeneratorQueue::s_pgq = nullptr;
 
 /**
  * Create the singleton queue of preview generators.  This should be
@@ -58,7 +58,7 @@ void PreviewGeneratorQueue::TeardownPreviewGeneratorQueue()
     s_pgq->exit(0);
     s_pgq->wait();
     delete s_pgq;
-    s_pgq = NULL;
+    s_pgq = nullptr;
 }
 
 /*
@@ -115,7 +115,7 @@ PreviewGeneratorQueue::~PreviewGeneratorQueue()
     {
         if ((*it).gen)
             (*it).gen->deleteLater();
-        (*it).gen = NULL;
+        (*it).gen = nullptr;
     }
     locker.unlock();
     wait();
@@ -226,7 +226,7 @@ bool PreviewGeneratorQueue::event(QEvent *e)
     if (e->type() != (QEvent::Type) MythEvent::MythEventMessage)
         return QObject::event(e);
 
-    MythEvent *me = (MythEvent*)e;
+    MythEvent *me = static_cast<MythEvent*>(e);
     if (me->Message() == "GET_PREVIEW")
     {
         const QStringList &list = me->ExtraDataList();
@@ -236,7 +236,6 @@ bool PreviewGeneratorQueue::event(QEvent *e)
         QSize outputsize;
         QString outputfile;
         long long time = -1LL;
-        bool time_fmt_sec;
         if (it != list.end())
             token = (*it++);
         if (it != list.end())
@@ -250,7 +249,7 @@ bool PreviewGeneratorQueue::event(QEvent *e)
         QString fn;
         if (it != list.end())
         {
-            time_fmt_sec = (*it++).toInt() != 0;
+            bool time_fmt_sec = (*it++).toInt() != 0;
             fn = GeneratePreviewImage(evinfo, outputsize, outputfile,
                                       time, time_fmt_sec, token);
         }
@@ -284,7 +283,7 @@ bool PreviewGeneratorQueue::event(QEvent *e)
 
             if ((*it).gen)
                 (*it).gen->deleteLater();
-            (*it).gen           = NULL;
+            (*it).gen           = nullptr;
             (*it).genStarted    = false;
             if (me->Message() == "PREVIEW_SUCCESS")
             {
@@ -496,7 +495,7 @@ QString PreviewGeneratorQueue::GeneratePreviewImage(
 
         bool preview_exists = previewLastModified.isValid();
 
-        if (0)
+        if (false)
         {
             QString alttext = (bookmark_ts.isValid()) ? QString() :
                 QString("\n\t\t\tcmp_ts:               %1")
@@ -551,7 +550,7 @@ QString PreviewGeneratorQueue::GeneratePreviewImage(
             LOG(VB_PLAYBACK, LOG_INFO, LOC +
                 QString("Requested preview for '%1'").arg(key));
         }
-        else if (attempts >= m_maxAttempts)
+        else
         {
             LOG(VB_GENERAL, LOG_ERR, LOC +
                 QString("Attempted to generate preview for '%1' "
@@ -683,7 +682,7 @@ void PreviewGeneratorQueue::SetPreviewGenerator(
                 if (!g->GetToken().isEmpty())
                     state.tokens.insert(g->GetToken());
                 g->deleteLater();
-                g = NULL;
+                g = nullptr;
             }
         }
         else

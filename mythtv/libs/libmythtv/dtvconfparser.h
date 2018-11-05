@@ -32,11 +32,9 @@
 #ifndef _DTVCONFPARSER_H_
 #define _DTVCONFPARSER_H_
 
-// POSIX headers
-#include <stdint.h>
-#include <unistd.h>
-
 // C++ headers
+#include <cstdint>
+#include <unistd.h>
 #include <vector>
 using namespace std;
 
@@ -83,7 +81,7 @@ class DTVConfParser
     enum cardtype_t { ATSC, OFDM, QPSK, QAM, DVBS2, UNKNOWN };
 
     DTVConfParser(enum cardtype_t _type, uint sourceid, const QString &_file);
-    virtual ~DTVConfParser() { }
+    virtual ~DTVConfParser() = default;
 
     return_t Parse(void);
 

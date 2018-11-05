@@ -1,8 +1,8 @@
 #ifndef _CLASSIC_COMMDETECTOR_H_
 #define _CLASSIC_COMMDETECTOR_H_
 
-// POSIX headers
-#include <stdint.h>
+// C++ headers
+#include <cstdint>
 
 // Qt headers
 #include <QObject>
@@ -56,21 +56,21 @@ class ClassicCommDetector : public CommDetectorBase
                             const QDateTime& recordingStopsAt_in);
         virtual void deleteLater(void);
 
-        bool go();
-        void GetCommercialBreakList(frm_dir_map_t &comms);
-        void recordingFinished(long long totalFileSize);
-        void requestCommBreakMapUpdate(void);
+        bool go() override; // CommDetectorBase
+        void GetCommercialBreakList(frm_dir_map_t &comms) override; // CommDetectorBase
+        void recordingFinished(long long totalFileSize) override; // CommDetectorBase
+        void requestCommBreakMapUpdate(void) override; // CommDetectorBase
 
         void PrintFullMap(
             ostream &out, const frm_dir_map_t *comm_breaks,
-            bool verbose) const;
+            bool verbose) const override; // CommDetectorBase
 
         void logoDetectorBreathe();
 
         friend class ClassicLogoDetector;
 
     protected:
-        virtual ~ClassicCommDetector() {}
+        virtual ~ClassicCommDetector() = default;
 
     private:
         typedef struct frameblock

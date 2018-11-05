@@ -7,14 +7,12 @@
 //
 
 #include "config.h"
-#include <stdint.h>
-#include <inttypes.h>
-
-// C
-#include <cmath>
-#include <cstdlib>
 
 // C++
+#include <cinttypes>
+#include <cmath>
+#include <cstdint>
+#include <cstdlib>
 #include <iostream>
 using namespace std;
 
@@ -43,7 +41,7 @@ Synaesthesia::Synaesthesia(void) :
     m_outWidth(0),
     m_outHeight(0),
 
-    m_outputImage(NULL),
+    m_outputImage(nullptr),
 
     m_fgRedSlider(0.0),  m_fgGreenSlider(0.5),
     m_bgRedSlider(0.75), m_bgGreenSlider(0.4),
@@ -188,10 +186,10 @@ int Synaesthesia::bitReverser(int i)
 
 void Synaesthesia::fft(double *x, double *y)
 {
-    int n2 = NumSamples, n1;
+    int n2 = NumSamples;
     for (int twoToTheK = 1; twoToTheK < NumSamples; twoToTheK *= 2)
     {
-        n1 = n2;
+        int n1 = n2;
         n2 /= 2;
         for (int j = 0; j < n2; j++)
         {
@@ -647,20 +645,20 @@ bool Synaesthesia::draw(QPainter *p, const QColor &back)
 static class SynaesthesiaFactory : public VisFactory
 {
   public:
-    const QString &name(void) const
+    const QString &name(void) const override // VisFactory
     {
         static QString name = QCoreApplication::translate("Visualizers",
                                                           "Synaesthesia");
         return name;
     }
 
-    uint plugins(QStringList *list) const
+    uint plugins(QStringList *list) const override // VisFactory
     {
         *list << name();
         return 1;
     }
 
-    VisualBase *create(MainVisual *parent,  const QString &pluginName) const
+    VisualBase *create(MainVisual *parent,  const QString &pluginName) const override // VisFactory
     {
         (void)parent;
         (void)pluginName;

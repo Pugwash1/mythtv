@@ -38,7 +38,7 @@ class MTV_PUBLIC MythSystemEventHandler : public QObject
     QString EventNameToSetting(const QString &name);
 
     // Custom Event Handler
-    void customEvent(QEvent *e);
+    void customEvent(QEvent *e) override; // QObject
 };
 
 /** \class MythSystemEventEditor
@@ -52,7 +52,7 @@ class MTV_PUBLIC MythSystemEventEditor : public RawSettingsEditor
     Q_OBJECT
 
   public:
-    MythSystemEventEditor(MythScreenStack *parent, const char *name = 0);
+    MythSystemEventEditor(MythScreenStack *parent, const char *name = nullptr);
 };
 
 #endif

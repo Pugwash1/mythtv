@@ -26,7 +26,7 @@
 #include "dvbstreamhandler.h"
 
 #define LOC QString("DVBSigMon[%1](%2): ") \
-            .arg(capturecardnum).arg(channel->GetDevice())
+            .arg(inputid).arg(channel->GetDevice())
 
 /**
  *  \brief Initializes signal lock and signal values.
@@ -59,7 +59,7 @@ DVBSignalMonitor::DVBSignalMonitor(int db_cardnum, DVBChannel* _channel,
       rotorPosition    (tr("Rotor Progress"),     "pos",
                         100,    true,      0,   100, 0),
       streamHandlerStarted(false),
-      streamHandler(NULL)
+      streamHandler(nullptr)
 {
     // These two values should probably come from the database...
     int wait = 3000; // timeout when waiting on signal
@@ -108,7 +108,7 @@ DVBSignalMonitor::DVBSignalMonitor(int db_cardnum, DVBChannel* _channel,
     if (minimum_update_rate > 30)
         usleep(minimum_update_rate * 1000);
 
-    streamHandler = DVBStreamHandler::Get(_channel->GetCardNum());
+    streamHandler = DVBStreamHandler::Get(_channel->GetCardNum(), inputid);
 }
 
 /** \fn DVBSignalMonitor::~DVBSignalMonitor()
@@ -117,7 +117,7 @@ DVBSignalMonitor::DVBSignalMonitor(int db_cardnum, DVBChannel* _channel,
 DVBSignalMonitor::~DVBSignalMonitor()
 {
     Stop();
-    DVBStreamHandler::Return(streamHandler);
+    DVBStreamHandler::Return(streamHandler, inputid);
 }
 
 // documented in dtvsignalmonitor.h
@@ -154,7 +154,7 @@ void DVBSignalMonitor::Stop(void)
     if (GetStreamData())
         streamHandler->RemoveListener(GetStreamData());
     streamHandlerStarted = false;
-    streamHandler->SetRetuneAllowed(false, NULL, NULL);
+    streamHandler->SetRetuneAllowed(false, nullptr, nullptr);
     LOG(VB_CHANNEL, LOG_INFO, LOC + "Stop() -- end");
 }
 

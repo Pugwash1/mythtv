@@ -3,7 +3,7 @@
 #ifndef TELETEXTREADER_H
 #define TELETEXTREADER_H
 
-#include <stdint.h>
+#include <cstdint>
 #include <map>
 
 #include <QString>
@@ -72,7 +72,7 @@ class TeletextReader
 {
   public:
     TeletextReader();
-    virtual ~TeletextReader();
+    virtual ~TeletextReader() = default;
 
     // OSD/Player methods
     void Reset(void);

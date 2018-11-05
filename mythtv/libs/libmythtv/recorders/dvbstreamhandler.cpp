@@ -21,8 +21,7 @@
 #include "diseqc.h" // for rotor retune
 #include "mythlogging.h"
 
-#define LOC      QString("DVBSH%1(%2): ").arg(_recorder_ids_string) \
-                                         .arg(_device)
+#define LOC      QString("DVBSH[%1](%2): ").arg(_inputid).arg(_device)
 
 QMap<QString,bool> DVBStreamHandler::_rec_supports_ts_monitoring;
 QMutex             DVBStreamHandler::_rec_supports_ts_monitoring_lock;
@@ -32,7 +31,7 @@ QMap<QString,uint>              DVBStreamHandler::_handlers_refcnt;
 QMutex                          DVBStreamHandler::_handlers_lock;
 
 DVBStreamHandler *DVBStreamHandler::Get(const QString &devname,
-                                        int recorder_id)
+                                        int inputid)
 {
     QMutexLocker locker(&_handlers_lock);
 
@@ -41,20 +40,27 @@ DVBStreamHandler *DVBStreamHandler::Get(const QString &devname,
 
     if (it == _handlers.end())
     {
-        _handlers[devname] = new DVBStreamHandler(devname);
+        _handlers[devname] = new DVBStreamHandler(devname, inputid);
         _handlers_refcnt[devname] = 1;
+
+        LOG(VB_RECORD, LOG_INFO,
+            QString("DVBSH[%1]: Creating new stream handler %2")
+            .arg(inputid).arg(devname));
     }
     else
     {
         _handlers_refcnt[devname]++;
+        uint rcount = _handlers_refcnt[devname];
+        LOG(VB_RECORD, LOG_INFO,
+            QString("DVBSH[%1]: Using existing stream handler for %2")
+            .arg(inputid)
+            .arg(devname) + QString(" (%1 in use)").arg(rcount));
     }
 
-    _handlers[devname]->AddRecorderId(recorder_id);
     return _handlers[devname];
 }
 
-void DVBStreamHandler::Return(DVBStreamHandler * & ref,
-                              int recorder_id)
+void DVBStreamHandler::Return(DVBStreamHandler * & ref, int inputid)
 {
     QMutexLocker locker(&_handlers_lock);
 
@@ -65,39 +71,39 @@ void DVBStreamHandler::Return(DVBStreamHandler * & ref,
         return;
 
     QMap<QString,DVBStreamHandler*>::iterator it = _handlers.find(devname);
-    if (it != _handlers.end())
-        (*it)->DelRecorderId(recorder_id);
 
     if (*rit > 1)
     {
-        ref = NULL;
+        ref = nullptr;
         (*rit)--;
         return;
     }
 
     if ((it != _handlers.end()) && (*it == ref))
     {
+        LOG(VB_RECORD, LOG_INFO, QString("dVBSH[%1]: Closing handler for %2")
+            .arg(inputid).arg(devname));
         delete *it;
         _handlers.erase(it);
     }
     else
     {
         LOG(VB_GENERAL, LOG_ERR,
-            QString("DVBSH Error: Couldn't find handler for %1") .arg(devname));
+            QString("DVBSH[%1] Error: Couldn't find handler for %2")
+            .arg(inputid).arg(devname));
     }
 
     _handlers_refcnt.erase(rit);
-    ref = NULL;
+    ref = nullptr;
 }
 
-DVBStreamHandler::DVBStreamHandler(const QString &dvb_device) :
-    StreamHandler(dvb_device),
-    _dvr_dev_path(CardUtil::GetDeviceName(DVB_DEV_DVR, _device)),
-    _allow_retune(false),
-
-    _sigmon(NULL),
-    _dvbchannel(NULL),
-    _drb(NULL)
+DVBStreamHandler::DVBStreamHandler(const QString &dvb_device, int inputid)
+    : StreamHandler(dvb_device, inputid)
+    , _dvr_dev_path(CardUtil::GetDeviceName(DVB_DEV_DVR, _device))
+    , _allow_retune(false)
+    , _sigmon(nullptr)
+    , _dvbchannel(nullptr)
+    , _drb(nullptr)
 {
     setObjectName("DVBRead");
 }
@@ -176,7 +182,7 @@ void DVBStreamHandler::RunTS(void)
     }
     memset(buffer, 0, buffer_size);
 
-    DeviceReadBuffer *drb = NULL;
+    DeviceReadBuffer *drb = nullptr;
     if (_needs_buffering)
     {
         drb = new DeviceReadBuffer(this, true, false);
@@ -235,7 +241,7 @@ void DVBStreamHandler::RunTS(void)
         {
             // timeout gets reset by select, so we need to create new one
             struct timeval timeout = { 0, 50 /* ms */ * 1000 /* -> usec */ };
-            int ret = select(dvr_fd+1, &fd_select_set, NULL, NULL, &timeout);
+            int ret = select(dvr_fd+1, &fd_select_set, nullptr, nullptr, &timeout);
             if (ret == -1 && errno != EINTR)
             {
                 LOG(VB_GENERAL, LOG_ERR, LOC + "select() failed" + ENO);
@@ -286,7 +292,7 @@ void DVBStreamHandler::RunTS(void)
 
     {
         QMutexLocker locker(&_start_stop_lock);
-        _drb = NULL;
+        _drb = nullptr;
     }
 
     if (drb)
@@ -517,8 +523,8 @@ void DVBStreamHandler::SetRetuneAllowed(
     else
     {
         _allow_retune = false;
-        _sigmon       = NULL;
-        _dvbchannel   = NULL;
+        _sigmon       = nullptr;
+        _dvbchannel   = nullptr;
     }
 }
 

@@ -13,22 +13,15 @@
 
 
 TvPlayWindow::TvPlayWindow(MythScreenStack *parent, const char *name)
-  : MythScreenType(parent, name), m_progressBar(NULL), m_progress(0)
+  : MythScreenType(parent, name), m_progressBar(nullptr), m_progress(0)
 {
     SetCanTakeFocus(true);
 }
 
-TvPlayWindow::~TvPlayWindow()
-{
-}
-
 bool TvPlayWindow::Create()
 {
-    bool foundtheme = false;
-
     // Load the theme for this screen
-    foundtheme = CopyWindowFromBase("videowindow", this);
-
+    bool foundtheme = CopyWindowFromBase("videowindow", this);
     if (!foundtheme)
     {
         LOG(VB_GENERAL, LOG_ERR,
@@ -91,7 +84,8 @@ bool TvPlayWindow::gestureEvent(MythGestureEvent *event)
                     break;
             }
             break;
-
+        default:
+            break;
     }
 #else
     if (event->gesture() == MythGestureEvent::Click)

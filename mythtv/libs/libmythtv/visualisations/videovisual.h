@@ -49,8 +49,8 @@ class VideoVisual : public MythTV::Visual
                       QPaintDevice* device) = 0;
     virtual QString Name(void) = 0;
 
-    virtual void add(const void *b, unsigned long b_len, unsigned long w, int c, int p);
-    virtual void prepare();
+    void add(const void *b, unsigned long b_len, unsigned long w, int c, int p) override; // Visual
+    void prepare() override; // Visual
 
   protected:
     VisualNode* GetNode(void);
@@ -73,7 +73,7 @@ class VideoVisualFactory
         m_nextVideoVisualFactory = g_videoVisualFactory;
         g_videoVisualFactory = this;
     }
-    virtual ~VideoVisualFactory() { }
+    virtual ~VideoVisualFactory() = default;
     virtual const QString &name(void) const = 0;
     virtual VideoVisual* Create(AudioPlayer *audio,
                                 MythRender *render) const = 0;

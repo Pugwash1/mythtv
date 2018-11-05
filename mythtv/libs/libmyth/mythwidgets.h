@@ -39,7 +39,7 @@ class MPUBLIC MythComboBox: public QComboBox
     Q_OBJECT
 
   public:
-    MythComboBox(bool rw, QWidget* parent=0, const char* name="MythComboBox");
+    MythComboBox(bool rw, QWidget* parent=nullptr, const char* name="MythComboBox");
 
     void setHelpText(const QString &help);
 
@@ -61,9 +61,9 @@ class MPUBLIC MythComboBox: public QComboBox
   protected:
     void Teardown(void);
     virtual ~MythComboBox(); // use deleteLater for thread safety
-    virtual void keyPressEvent (QKeyEvent *e);
-    virtual void focusInEvent(QFocusEvent *e);
-    virtual void focusOutEvent(QFocusEvent *e);
+    void keyPressEvent (QKeyEvent *e) override;  // QWidget
+    void focusInEvent(QFocusEvent *e) override;  // QWidget
+    void focusOutEvent(QFocusEvent *e) override; // QWidget
     void Init(void);
 
   private:
@@ -77,7 +77,7 @@ class MPUBLIC MythSpinBox: public QSpinBox
     Q_OBJECT
 
   public:
-    MythSpinBox(QWidget* parent = NULL, const char* name = "MythSpinBox",
+    MythSpinBox(QWidget* parent = nullptr, const char* name = "MythSpinBox",
                 bool allow_single_step = false);
 
     void setHelpText(const QString&);
@@ -89,9 +89,9 @@ class MPUBLIC MythSpinBox: public QSpinBox
     void changeHelpText(QString);
 
   protected:
-    virtual void keyPressEvent(QKeyEvent* e);
-    virtual void focusInEvent(QFocusEvent *e);
-    virtual void focusOutEvent(QFocusEvent *e);
+    void keyPressEvent(QKeyEvent* e) override;   // QWidget
+    void focusInEvent(QFocusEvent *e) override;  // QWidget
+    void focusOutEvent(QFocusEvent *e) override; // QWidget
 
   private:
     QString helptext;
@@ -103,7 +103,7 @@ class MPUBLIC MythSlider: public QSlider
     Q_OBJECT
 
   public:
-    MythSlider(QWidget* parent=0, const char* name="MythSlider");
+    MythSlider(QWidget* parent=nullptr, const char* name="MythSlider");
 
     void setHelpText(const QString&);
 
@@ -111,9 +111,9 @@ class MPUBLIC MythSlider: public QSlider
     void changeHelpText(QString);
 
   protected:
-    virtual void keyPressEvent (QKeyEvent* e);
-    virtual void focusInEvent(QFocusEvent *e);
-    virtual void focusOutEvent(QFocusEvent *e);
+    void keyPressEvent (QKeyEvent* e) override;  // QWidget
+    void focusInEvent(QFocusEvent *e) override;  // QWidget
+    void focusOutEvent(QFocusEvent *e) override; // QWidget
 
   private:
     QString helptext;
@@ -124,9 +124,9 @@ class MPUBLIC MythLineEdit : public QLineEdit
     Q_OBJECT
 
   public:
-    MythLineEdit(QWidget *parent=NULL, const char *name="MythLineEdit");
+    MythLineEdit(QWidget *parent=nullptr, const char *name="MythLineEdit");
     MythLineEdit(const QString &text,
-                 QWidget *parent=NULL, const char *name="MythLineEdit");
+                 QWidget *parent=nullptr, const char *name="MythLineEdit");
 
     void setHelpText(const QString&);;
     void setRW(bool readwrite = true) { rw = readwrite; };
@@ -145,11 +145,11 @@ class MPUBLIC MythLineEdit : public QLineEdit
     void Teardown(void);
     virtual ~MythLineEdit(); // use deleteLater for thread safety
 
-    virtual void keyPressEvent(QKeyEvent *e);
-    virtual void focusInEvent(QFocusEvent *e);
-    virtual void focusOutEvent(QFocusEvent *e);
-    virtual void hideEvent(QHideEvent *e);
-    virtual void mouseDoubleClickEvent(QMouseEvent *e);
+    void keyPressEvent(QKeyEvent *e) override;   // QWidget
+    void focusInEvent(QFocusEvent *e) override;  // QWidget
+    void focusOutEvent(QFocusEvent *e) override; // QWidget
+    void hideEvent(QHideEvent *e) override;      // QWidget
+    void mouseDoubleClickEvent(QMouseEvent *e) override; // QWidget
 
   private:
     QString helptext;
@@ -199,9 +199,9 @@ class MPUBLIC MythRemoteLineEdit : public QTextEdit
   protected:
     void Teardown(void);
     virtual ~MythRemoteLineEdit(); // use deleteLater for thread safety
-    virtual void focusInEvent(QFocusEvent *e);
-    virtual void focusOutEvent(QFocusEvent *e);
-    virtual void keyPressEvent(QKeyEvent *e);
+    void focusInEvent(QFocusEvent *e) override;  // QWidget
+    void focusOutEvent(QFocusEvent *e) override; // QWidget
+    void keyPressEvent(QKeyEvent *e) override;   // QWidget
 
   private slots:
     void    startCycle(QString current_choice, QString set);
@@ -252,8 +252,8 @@ class MPUBLIC MythPushButton : public QPushButton
 
     void setHelpText(const QString &help);
 
-    void keyPressEvent(QKeyEvent *e);
-    void keyReleaseEvent(QKeyEvent *e);
+    void keyPressEvent(QKeyEvent *e) override; // QWidget
+    void keyReleaseEvent(QKeyEvent *e) override; // QWidget
 
     void toggleText(void);
 
@@ -261,8 +261,8 @@ class MPUBLIC MythPushButton : public QPushButton
     void changeHelpText(QString);
 
   protected:
-    void focusInEvent(QFocusEvent *e);
-    void focusOutEvent(QFocusEvent *e);
+    void focusInEvent(QFocusEvent *e) override; // QWidget
+    void focusOutEvent(QFocusEvent *e) override; // QWidget
 
   private:
     QColor origcolor;
@@ -278,9 +278,9 @@ class MPUBLIC MythCheckBox: public QCheckBox
     Q_OBJECT
 
   public:
-    MythCheckBox(QWidget *parent = 0, const char *name = "MythCheckBox");
+    MythCheckBox(QWidget *parent = nullptr, const char *name = "MythCheckBox");
     MythCheckBox(const QString &text,
-                 QWidget *parent = 0, const char *name = "MythCheckBox");
+                 QWidget *parent = nullptr, const char *name = "MythCheckBox");
 
     void setHelpText(const QString&);
 
@@ -288,9 +288,9 @@ class MPUBLIC MythCheckBox: public QCheckBox
     void changeHelpText(QString);
 
   protected:
-    virtual void keyPressEvent(QKeyEvent* e);
-    virtual void focusInEvent(QFocusEvent *e);
-    virtual void focusOutEvent(QFocusEvent *e);
+    void keyPressEvent(QKeyEvent* e) override;   // QWidget
+    void focusInEvent(QFocusEvent *e) override;  // QWidget
+    void focusOutEvent(QFocusEvent *e) override; // QWidget
 
   private:
     QString helptext;
@@ -301,7 +301,7 @@ class MPUBLIC MythRadioButton: public QRadioButton
     Q_OBJECT
 
   public:
-    MythRadioButton(QWidget* parent = 0, const char* name = "MythRadioButton");
+    MythRadioButton(QWidget* parent = nullptr, const char* name = "MythRadioButton");
 
     void setHelpText(const QString&);
 
@@ -309,9 +309,9 @@ class MPUBLIC MythRadioButton: public QRadioButton
     void changeHelpText(QString);
 
   protected:
-    virtual void keyPressEvent(QKeyEvent* e);
-    virtual void focusInEvent(QFocusEvent *e);
-    virtual void focusOutEvent(QFocusEvent *e);
+    void keyPressEvent(QKeyEvent* e) override;   // QWidget
+    void focusInEvent(QFocusEvent *e) override;  // QWidget
+    void focusOutEvent(QFocusEvent *e) override; // QWidget
 
   private:
     QString helptext;
@@ -325,7 +325,7 @@ class MPUBLIC MythListBox: public QListWidget
     MythListBox(QWidget       *parent,
                 const QString &name = QString("MythListBox"));
 
-    virtual void keyPressEvent(QKeyEvent* e);
+    void keyPressEvent(QKeyEvent* e) override; // QWidget
 
     QString currentText(void) const { return text(currentRow()); }
 
@@ -345,8 +345,11 @@ class MPUBLIC MythListBox: public QListWidget
     void setHelpText(const QString&);
 
   protected:
-    void focusInEvent(QFocusEvent *e);
-    void focusOutEvent(QFocusEvent *e);
+    void focusInEvent(QFocusEvent *e) override;  // QWidget
+    void focusOutEvent(QFocusEvent *e) override; // QWidget
+    // Not an override because the underlying QWidget::ensurePolished
+    // function isn't virtual.  This is a new virtual function which
+    // calls QListWidget::ensurePolished.
     virtual void ensurePolished(void) const;
 
     bool itemVisible(uint row) const;
@@ -376,8 +379,8 @@ class MPUBLIC MythLabel: public QLabel
     Q_OBJECT
 
 public:
-    MythLabel(QWidget* parent = 0, const char* name = "MythLabel");
-    MythLabel(const QString& text, QWidget* parent = 0,
+    MythLabel(QWidget* parent = nullptr, const char* name = "MythLabel");
+    MythLabel(const QString& text, QWidget* parent = nullptr,
               const char* name = "MythLabel");
 };
 
@@ -386,8 +389,8 @@ class MPUBLIC MythGroupBox: public QGroupBox
     Q_OBJECT
 
 public:
-    MythGroupBox(QWidget* parent = 0, const char* name = "MythGroupBox");
-    MythGroupBox(const QString& text, QWidget* parent = 0,
+    MythGroupBox(QWidget* parent = nullptr, const char* name = "MythGroupBox");
+    MythGroupBox(const QString& text, QWidget* parent = nullptr,
                  const char* name = "MythGroupBox");
 };
 

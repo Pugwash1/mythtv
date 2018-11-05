@@ -17,11 +17,11 @@ class FIFOWriter;
 class FIFOThread : public MThread
 {
   public:
-    FIFOThread() : MThread("FIFOThread"), m_parent(NULL), m_id(-1) {}
-    virtual ~FIFOThread() { wait(); m_parent = NULL; m_id = -1; }
+    FIFOThread() : MThread("FIFOThread"), m_parent(nullptr), m_id(-1) {}
+    virtual ~FIFOThread() { wait(); m_parent = nullptr; m_id = -1; }
     void SetId(int id) { m_id = id; }
     void SetParent(FIFOWriter *parent) { m_parent = parent; }
-    virtual void run(void);
+    void run(void) override; // MThread
   private:
     FIFOWriter *m_parent;
     int m_id;

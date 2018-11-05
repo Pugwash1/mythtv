@@ -92,7 +92,7 @@ bool SourceManager::findScripts()
     QString busymessage = tr("Searching for scripts");
 
     MythScreenStack *popupStack = GetMythMainWindow()->GetStack("weather stack");
-    if (popupStack == NULL)
+    if (popupStack == nullptr)
         popupStack = GetMythMainWindow()->GetStack("popup stack");
 
     MythUIBusyDialog *busyPopup = new MythUIBusyDialog(busymessage, popupStack,
@@ -105,7 +105,7 @@ bool SourceManager::findScripts()
     else
     {
         delete busyPopup;
-        busyPopup = NULL;
+        busyPopup = nullptr;
     }
 
     qApp->processEvents();
@@ -145,7 +145,7 @@ bool SourceManager::findScripts()
     if (busyPopup)
     {
         busyPopup->Close();
-        busyPopup = NULL;
+        busyPopup = nullptr;
     }
 
     return m_scripts.count() > 0;
@@ -195,7 +195,7 @@ void SourceManager::setupSources()
 
 ScriptInfo *SourceManager::getSourceByName(const QString &name)
 {
-    ScriptInfo *src = 0;
+    ScriptInfo *src = nullptr;
     for (int x = 0; x < m_scripts.size(); x++)
     {
         src = m_scripts.at(x);
@@ -210,7 +210,7 @@ ScriptInfo *SourceManager::getSourceByName(const QString &name)
         LOG(VB_GENERAL, LOG_ERR, "No Source found for " + name);
     }
 
-    return NULL;
+    return nullptr;
 }
 
 QStringList SourceManager::getLocationList(ScriptInfo *si, const QString &str)
@@ -230,10 +230,9 @@ WeatherSource *SourceManager::needSourceFor(int id, const QString &loc,
                                             units_t units)
 {
     // matching source exists?
-    WeatherSource *src;
     for (int x = 0; x < m_sources.size(); x++)
     {
-        src = m_sources.at(x);
+        WeatherSource *src = m_sources.at(x);
         if (src->getId() == id && src->getLocale() == loc &&
             src->getUnits() == units)
         {
@@ -242,10 +241,9 @@ WeatherSource *SourceManager::needSourceFor(int id, const QString &loc,
     }
 
     // no matching source, make one
-    ScriptInfo *si;
     for (int x = 0; x < m_scripts.size(); x++)
     {
-        si = m_scripts.at(x);
+        ScriptInfo *si = m_scripts.at(x);
         if (si->id == id)
         {
             WeatherSource *ws = new WeatherSource(si);
@@ -259,35 +257,32 @@ WeatherSource *SourceManager::needSourceFor(int id, const QString &loc,
     LOG(VB_GENERAL, LOG_ERR, LOC +
         QString("NeedSourceFor: Unable to find source for %1, %2, %3")
             .arg(id).arg(loc).arg(units));
-    return NULL;
+    return nullptr;
 }
 
 void SourceManager::startTimers()
 {
-    WeatherSource *src;
     for (int x = 0; x < m_sources.size(); x++)
     {
-        src = m_sources.at(x);
+        WeatherSource *src = m_sources.at(x);
         src->startUpdateTimer();
     }
 }
 
 void SourceManager::stopTimers()
 {
-    WeatherSource *src;
     for (int x = 0; x < m_sources.size(); x++)
     {
-        src = m_sources.at(x);
+        WeatherSource *src = m_sources.at(x);
         src->stopUpdateTimer();
     }
 }
 
 void SourceManager::doUpdate(bool forceUpdate)
 {
-    WeatherSource *src;
     for (int x = 0; x < m_sources.size(); x++)
     {
-        src = m_sources.at(x);
+        WeatherSource *src = m_sources.at(x);
         if (src->inUse())
             src->startUpdate(forceUpdate);
     }
@@ -296,13 +291,11 @@ void SourceManager::doUpdate(bool forceUpdate)
 bool SourceManager::findPossibleSources(QStringList types,
                                         QList<ScriptInfo *> &sources)
 {
-    ScriptInfo *si;
-    bool handled;
     for (int x = 0; x < m_scripts.size(); x++)
     {
-        si = m_scripts.at(x);
+        ScriptInfo *si = m_scripts.at(x);
         QStringList stypes = si->types;
-        handled = true;
+        bool handled = true;
         int i;
         for (i = 0; i < types.count() && handled; ++i)
         {

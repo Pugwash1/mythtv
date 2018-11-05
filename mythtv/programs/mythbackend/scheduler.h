@@ -38,8 +38,8 @@ class SchedInputInfo
         schedgroup(false),
         group_inputs(),
         conflicting_inputs(),
-        conflictlist(NULL) {};
-    ~SchedInputInfo(void) {};
+        conflictlist(nullptr) {};
+    ~SchedInputInfo(void) = default;
 
     uint inputid;
     uint sgroupid;
@@ -53,7 +53,7 @@ class Scheduler : public MThread, public MythScheduler
 {
   public:
     Scheduler(bool runthread, QMap<int, EncoderLink *> *tvList,
-              QString recordTbl = "record", Scheduler *master_sched = NULL);
+              QString recordTbl = "record", Scheduler *master_sched = nullptr);
     ~Scheduler();
 
     void Stop(void);
@@ -85,8 +85,8 @@ class Scheduler : public MThread, public MythScheduler
     // true iff there are conflicts
     bool GetAllPending(RecList &retList, int recRuleId = 0) const;
     bool GetAllPending(ProgramList &retList, int recRuleId = 0) const;
-    virtual void GetAllPending(QStringList &strList) const;
-    virtual QMap<QString,ProgramInfo*> GetRecording(void) const;
+    void GetAllPending(QStringList &strList) const override; // MythScheduler
+    QMap<QString,ProgramInfo*> GetRecording(void) const override; // MythScheduler
 
     enum SchedSortColumn { kSortTitle, kSortLastRecorded, kSortNextRecording,
                            kSortPriority, kSortType };
@@ -124,7 +124,7 @@ class Scheduler : public MThread, public MythScheduler
     void AddChildInput(uint parentid, uint childid);
 
   protected:
-    virtual void run(void); // MThread
+    void run(void) override; // MThread
 
   private:
     enum OpenEndType {
@@ -163,10 +163,10 @@ class Scheduler : public MThread, public MythScheduler
     bool FindNextConflict(const RecList &cardlist,
                           const RecordingInfo *p, RecConstIter &iter,
                           OpenEndType openEnd = openEndNever,
-                          uint *paffinity = NULL) const;
+                          uint *paffinity = nullptr) const;
     const RecordingInfo *FindConflict(const RecordingInfo *p,
                                       OpenEndType openEnd = openEndNever,
-                                      uint *affinity = NULL,
+                                      uint *affinity = nullptr,
                                       bool checkAll = false)
         const;
     void MarkOtherShowings(RecordingInfo *p);

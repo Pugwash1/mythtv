@@ -53,7 +53,7 @@ class ScanMonitor :
     explicit ScanMonitor(ChannelScanner *cs) : channelScanner(cs) { }
     virtual void deleteLater(void);
 
-    virtual void customEvent(QEvent*);
+    void customEvent(QEvent*) override; // QObject
 
     // Values from 1-100 of scan completion
     void ScanPercentComplete(int pct);
@@ -64,19 +64,19 @@ class ScanMonitor :
     void ScanErrored(const QString &error);
 
     // SignalMonitorListener
-    virtual void AllGood(void) { }
-    virtual void StatusSignalLock(const SignalMonitorValue&);
-    virtual void StatusChannelTuned(const SignalMonitorValue&);
-    virtual void StatusSignalStrength(const SignalMonitorValue&);
+    void AllGood(void) override { } // SignalMonitorListener
+    void StatusSignalLock(const SignalMonitorValue&) override; // SignalMonitorListener
+    void StatusChannelTuned(const SignalMonitorValue&) override; // SignalMonitorListener
+    void StatusSignalStrength(const SignalMonitorValue&) override; // SignalMonitorListener
 
     // DVBSignalMonitorListener
-    virtual void StatusSignalToNoise(const SignalMonitorValue&);
-    virtual void StatusBitErrorRate(const SignalMonitorValue&) { }
-    virtual void StatusUncorrectedBlocks(const SignalMonitorValue&) { }
-    virtual void StatusRotorPosition(const SignalMonitorValue&);
+    void StatusSignalToNoise(const SignalMonitorValue&) override; // DVBSignalMonitorListener
+    void StatusBitErrorRate(const SignalMonitorValue&) override { } // DVBSignalMonitorListener
+    void StatusUncorrectedBlocks(const SignalMonitorValue&) override { } // DVBSignalMonitorListener
+    void StatusRotorPosition(const SignalMonitorValue&) override; // DVBSignalMonitorListener
 
   private:
-    ~ScanMonitor() { }
+    ~ScanMonitor() = default;
 
     ChannelScanner *channelScanner;
 };
@@ -90,7 +90,7 @@ class ScannerEvent : public QEvent
   public:
 
     explicit ScannerEvent(QEvent::Type t) :
-        QEvent(t), str(""), intvalue(0), cfg_ptr(NULL) { ; }
+        QEvent(t), str(""), intvalue(0), cfg_ptr(nullptr) { ; }
 
     QString strValue()              const { return str; }
     void    strValue(const QString& _str) { str = _str; }
@@ -116,7 +116,7 @@ class ScannerEvent : public QEvent
     static Type SetStatusChannelTuned;
 
   private:
-    ~ScannerEvent() { }
+    ~ScannerEvent() = default;
 
   private:
     QString str;

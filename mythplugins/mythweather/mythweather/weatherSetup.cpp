@@ -21,23 +21,16 @@
 
 GlobalSetup::GlobalSetup(MythScreenStack *parent, const QString &name)
     : MythScreenType(parent, name),
-      m_backgroundCheckbox(NULL), m_timeoutSpinbox(NULL),
-      m_timeout(0),               m_hold_timeout(0),
-      m_finishButton(NULL)
-{
-}
-
-GlobalSetup::~GlobalSetup()
+      m_backgroundCheckbox(nullptr), m_timeoutSpinbox(nullptr),
+      m_timeout(0),                  m_hold_timeout(0),
+      m_finishButton(nullptr)
 {
 }
 
 bool GlobalSetup::Create()
 {
-    bool foundtheme = false;
-
     // Load the theme for this screen
-    foundtheme = LoadWindowFromXML("weather-ui.xml", "global-setup", this);
-
+    bool foundtheme = LoadWindowFromXML("weather-ui.xml", "global-setup", this);
     if (!foundtheme)
         return false;
 
@@ -92,8 +85,8 @@ ScreenSetup::ScreenSetup(MythScreenStack *parent, const QString &name,
     : MythScreenType(parent, name),
       m_sourceManager(srcman ? srcman : new SourceManager()),
       m_createdSrcMan(srcman ? false : true),
-      m_helpText(NULL),     m_activeList(NULL),
-      m_inactiveList(NULL), m_finishButton(NULL)
+      m_helpText(nullptr),     m_activeList(nullptr),
+      m_inactiveList(nullptr), m_finishButton(nullptr)
 {
     m_sourceManager->clearSources();
     m_sourceManager->findScripts();
@@ -103,7 +96,7 @@ ScreenSetup::~ScreenSetup()
 {
     if (m_createdSrcMan)
         delete m_sourceManager;
-    m_sourceManager = NULL;
+    m_sourceManager = nullptr;
 
     // Deallocate the ScreenListInfo objects created for the inactive screen list.
     for (int i=0; i < m_inactiveList->GetCount(); i++)
@@ -124,11 +117,8 @@ ScreenSetup::~ScreenSetup()
 
 bool ScreenSetup::Create()
 {
-    bool foundtheme = false;
-
     // Load the theme for this screen
-    foundtheme = LoadWindowFromXML("weather-ui.xml", "screen-setup", this);
-
+    bool foundtheme = LoadWindowFromXML("weather-ui.xml", "screen-setup", this);
     if (!foundtheme)
         return false;
 
@@ -179,9 +169,8 @@ bool ScreenSetup::keyPressEvent(QKeyEvent *event)
     if (GetFocusWidget() && GetFocusWidget()->keyPressEvent(event))
         return true;
 
-    bool handled = false;
     QStringList actions;
-    handled = GetMythMainWindow()->TranslateKeyPress("Weather", event, actions);
+    bool handled = GetMythMainWindow()->TranslateKeyPress("Weather", event, actions);
 
     for (int i = 0; i < actions.size() && !handled; i++)
     {
@@ -298,10 +287,9 @@ void ScreenSetup::loadData()
         // available to satisfy the requirements.
         if (m_sourceManager->findPossibleSources(type_strs, scriptList))
         {
-            ScriptInfo *script;
             for (int x = 0; x < scriptList.size(); x++)
             {
-                script = scriptList.at(x);
+                ScriptInfo *script = scriptList.at(x);
                 si->sources.append(script->name);
             }
             MythUIButtonListItem *item =
@@ -713,10 +701,10 @@ void ScreenSetup::customEvent(QEvent *event)
 SourceSetup::SourceSetup(MythScreenStack *parent, const QString &name)
     : MythScreenType(parent, name)
 {
-    m_sourceList = NULL;
-    m_updateSpinbox = m_retrieveSpinbox = NULL;
-    m_finishButton = NULL;
-    m_sourceText = NULL;
+    m_sourceList = nullptr;
+    m_updateSpinbox = m_retrieveSpinbox = nullptr;
+    m_finishButton = nullptr;
+    m_sourceText = nullptr;
 }
 
 SourceSetup::~SourceSetup()
@@ -731,11 +719,8 @@ SourceSetup::~SourceSetup()
 
 bool SourceSetup::Create()
 {
-    bool foundtheme = false;
-
     // Load the theme for this screen
-    foundtheme = LoadWindowFromXML("weather-ui.xml", "source-setup", this);
-
+    bool foundtheme = LoadWindowFromXML("weather-ui.xml", "source-setup", this);
     if (!foundtheme)
         return false;
 
@@ -898,9 +883,9 @@ LocationDialog::LocationDialog(MythScreenStack *parent, const QString &name,
                                SourceManager *srcman)
     : MythScreenType(parent, name),
       m_screenListInfo(new ScreenListInfo(*si)),   m_sourceManager(srcman),
-      m_retScreen(retScreen), m_locationList(NULL),
-      m_locationEdit(NULL),   m_searchButton(NULL),
-      m_resultsText(NULL),    m_sourceText(NULL)
+      m_retScreen(retScreen), m_locationList(nullptr),
+      m_locationEdit(nullptr),m_searchButton(nullptr),
+      m_resultsText(nullptr), m_sourceText(nullptr)
 {
     TypeListMap::iterator it = si->types.begin();
     for (; it != si->types.end(); ++it)
@@ -918,11 +903,8 @@ LocationDialog::~LocationDialog()
 
 bool LocationDialog::Create()
 {
-    bool foundtheme = false;
-
     // Load the theme for this screen
-    foundtheme = LoadWindowFromXML("weather-ui.xml", "setup-location", this);
-
+    bool foundtheme = LoadWindowFromXML("weather-ui.xml", "setup-location", this);
     if (!foundtheme)
         return false;
 
@@ -969,7 +951,7 @@ void LocationDialog::doSearch()
     else
     {
         delete busyPopup;
-        busyPopup = NULL;
+        busyPopup = nullptr;
     }
        
 
@@ -1032,7 +1014,7 @@ void LocationDialog::doSearch()
     if (busyPopup)
     {
         busyPopup->Close();
-        busyPopup = NULL;
+        busyPopup = nullptr;
     }
 
     m_resultsText->SetText(tr("Search Complete. Results: %1").arg(numresults));

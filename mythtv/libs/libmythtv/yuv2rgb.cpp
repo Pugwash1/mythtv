@@ -23,13 +23,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
+#include <algorithm>
+#include <cinttypes>
+#include <climits>
 #include <cstdio>
 #include <cstdlib>
-#include <algorithm>
-#include <inttypes.h>
-#include <limits.h>
 #include "mythconfig.h"
-#include "mythtvexp.h"      // for MUNUSED
 
 #if HAVE_MMX
 extern "C" {
@@ -71,8 +70,7 @@ int has_altivec(void)
 static void yuv420_argb32_non_mmx(unsigned char *image, unsigned char *py,
                            unsigned char *pu, unsigned char *pv,
                            int h_size, int v_size, int rgb_stride,
-                           int y_stride, int uv_stride, int alphaones)
-   MUNUSED; /* <- suppress compiler warning */
+                           int y_stride, int uv_stride, int alphaones);
 
 /* CPU_MMXEXT/CPU_MMX adaptation layer */
 
@@ -359,7 +357,7 @@ static void mmx_argb32 (uint8_t * image,
  *  \param mode must be MODE_RGB
  *  \param bpp must be 32
  *
- *  \return function pointer or NULL if converter could not be found.
+ *  \return function pointer or nullptr if converter could not be found.
  */
 yuv2rgb_fun yuv2rgb_init_mmxext (int bpp, int mode)
 {
@@ -373,7 +371,7 @@ yuv2rgb_fun yuv2rgb_init_mmxext (int bpp, int mode)
     (void)bpp;
     (void)mode;
 
-    return NULL; /* Fallback to C */
+    return nullptr; /* Fallback to C */
 }
 
 /** \fn yuv2rgb_init_mmx (int bpp, int mode)
@@ -383,7 +381,7 @@ yuv2rgb_fun yuv2rgb_init_mmxext (int bpp, int mode)
  *  \param mode must be MODE_RGB
  *  \param bpp must be 32
  *
- *  \return function pointer or NULL if converter could not be found.
+ *  \return function pointer or nullptr if converter could not be found.
  */
 yuv2rgb_fun yuv2rgb_init_mmx (int bpp, int mode)
 {
@@ -396,7 +394,7 @@ yuv2rgb_fun yuv2rgb_init_mmx (int bpp, int mode)
     if ((bpp == 32) && (mode == MODE_RGB))
         return yuv420_argb32_non_mmx;
 
-    return NULL;
+    return nullptr;
 }
 
 #define SCALE_BITS 10

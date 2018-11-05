@@ -53,10 +53,10 @@ class MPUBLIC MythWizard : public MythDialog
     Q_PROPERTY(QFont titleFont READ titleFont WRITE setTitleFont)
 
 public:
-    MythWizard(MythMainWindow* parent, const char* name = 0);
+    MythWizard(MythMainWindow* parent, const char* name = nullptr);
     virtual ~MythWizard();
 
-    void Show();
+    void Show() override; // MythDialog
 
     void setFont(const QFont & font);
 
@@ -85,9 +85,9 @@ public:
     MythPushButton * finishButton() const;
     MythPushButton * cancelButton() const;
 
-    bool eventFilter(QObject *, QEvent *);
+    bool eventFilter(QObject *, QEvent *) override; // QObject
 
-    virtual void keyPressEvent(QKeyEvent *);
+    void keyPressEvent(QKeyEvent *) override; // QWidget
 
 public slots:
     virtual void setBackEnabled(QWidget *, bool);

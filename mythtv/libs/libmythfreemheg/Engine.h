@@ -73,9 +73,10 @@ class MHEngine: public MHEG {
     MHEngine(MHContext *context);
     virtual ~MHEngine();
 
-    virtual void SetBooting() { m_fBooting = true; }
+    void SetBooting() override // MHEG
+        { m_fBooting = true; }
 
-    virtual void DrawDisplay(QRegion toDraw);
+    void DrawDisplay(QRegion toDraw) override; // MHEG
 
     void BootApplication(const char *fileName);
     void TransitionToScene(const MHObjectRef &);
@@ -85,7 +86,7 @@ class MHEngine: public MHEG {
 
     // Look up an object by its object reference.  In nearly all cases we want to throw
     // an exception if it isn't found.  In a very few cases where we don't fail this
-    // returns NULL if it isn't there.
+    // returns nullptr if it isn't there.
     MHRoot *FindObject(const MHObjectRef &objr, bool failOnNotFound = true);
 
     // Called when an event is triggered.  Either queues the event or finds a link that matches.
@@ -110,14 +111,14 @@ class MHEngine: public MHEG {
 
     // Run synchronous actions and process any asynchronous events until the queues are empty.
     // Returns the number of milliseconds until wake-up or 0 if none.
-    virtual int RunAll(void);
+    int RunAll(void) override; // MHEG
 
     // Run synchronous actions.
     void RunActions();
     // Generate a UserAction event i.e. a key press.
-    virtual void GenerateUserAction(int nCode);
-    virtual void EngineEvent(int nCode);
-    virtual void StreamStarted(MHStream*, bool bStarted);
+    void GenerateUserAction(int nCode) override; // MHEG
+    void EngineEvent(int nCode) override; // MHEG
+    void StreamStarted(MHStream*, bool bStarted) override; // MHEG
 
     // Called from an ingredient to request a load of external content.
     void RequestExternalContent(MHIngredient *pRequester);
@@ -173,11 +174,11 @@ class MHEngine: public MHEG {
     QStack<MHApplication*> m_ApplicationStack;
     MHApplication *CurrentApp() {
         if (m_ApplicationStack.isEmpty())
-            return NULL;
+            return nullptr;
         else
             return m_ApplicationStack.top();
     }
-    MHScene *CurrentScene() { return CurrentApp() == NULL ? NULL : CurrentApp()->m_pCurrentScene; }
+    MHScene *CurrentScene() { return CurrentApp() == nullptr ? nullptr : CurrentApp()->m_pCurrentScene; }
 
     // Action stack.  Actions may generate synchronous events which fire links and add
     // new actions.  These new actions have to be processed before we continue with other

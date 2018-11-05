@@ -19,23 +19,19 @@
 BookmarkEditor::BookmarkEditor(Bookmark *site, bool edit,
                                MythScreenStack *parent, const char *name)
     : MythScreenType (parent, name),
-      m_site(site),               m_siteName(""),
-      m_siteCategory(),           m_editing(edit),
-      m_titleText(NULL),          m_categoryEdit(NULL),
-      m_nameEdit(NULL),           m_urlEdit(NULL),
-      m_isHomepage(NULL),
-      m_okButton(NULL),           m_cancelButton(NULL),
-      m_findCategoryButton(NULL), m_searchDialog(NULL)
+      m_site(site),                  m_siteName(""),
+      m_siteCategory(),              m_editing(edit),
+      m_titleText(nullptr),          m_categoryEdit(nullptr),
+      m_nameEdit(nullptr),           m_urlEdit(nullptr),
+      m_isHomepage(nullptr),
+      m_okButton(nullptr),           m_cancelButton(nullptr),
+      m_findCategoryButton(nullptr), m_searchDialog(nullptr)
 {
     if (m_editing)
     {
         m_siteCategory = m_site->category;
         m_siteName = m_site->name;
     }
-}
-
-BookmarkEditor::~BookmarkEditor()
-{
 }
 
 bool BookmarkEditor::Create()
@@ -94,9 +90,8 @@ bool BookmarkEditor::keyPressEvent(QKeyEvent *event)
     if (GetFocusWidget()->keyPressEvent(event))
         return true;
 
-    bool handled = false;
     QStringList actions;
-    handled = GetMythMainWindow()->TranslateKeyPress("News", event, actions);
+    bool handled = GetMythMainWindow()->TranslateKeyPress("News", event, actions);
 
     if (!handled && MythScreenType::keyPressEvent(event))
         handled = true;
@@ -146,7 +141,7 @@ void BookmarkEditor::slotFindCategory(void)
     if (!m_searchDialog->Create())
     {
         delete m_searchDialog;
-        m_searchDialog = NULL;
+        m_searchDialog = nullptr;
         return;
     }
 

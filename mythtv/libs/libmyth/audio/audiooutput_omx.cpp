@@ -1,8 +1,8 @@
 #include "audiooutput_omx.h"
 
-#include <cstddef>
-#include <cassert>
 #include <algorithm> // max/min
+#include <cassert>
+#include <cstddef>
 #include <vector>
 
 #include <OMX_Core.h>
@@ -603,7 +603,7 @@ AudioOutputSettings* AudioOutputOMX::GetOutputSettings(bool /*passthrough*/)
     if (!m_audiorender.IsValid())
     {
         LOG(VB_GENERAL, LOG_ERR, LOC + __func__ + " No audio render");
-        return NULL;
+        return nullptr;
     }
 
     m_audiorender.Shutdown();
@@ -619,7 +619,7 @@ AudioOutputSettings* AudioOutputOMX::GetOutputSettings(bool /*passthrough*/)
         LOG(VB_AUDIO, LOG_ERR, LOC + QString(
                 "SetParameter AudioPortFormat PCM error %1")
             .arg(Error2String(e)));
-        return NULL;
+        return nullptr;
     }
 
     OMX_AUDIO_PARAM_PCMMODETYPE pcm;
@@ -631,13 +631,12 @@ AudioOutputSettings* AudioOutputOMX::GetOutputSettings(bool /*passthrough*/)
         LOG(VB_AUDIO, LOG_ERR, LOC + QString(
                 "GetParameter AudioPcm error %1")
             .arg(Error2String(e)));
-        return NULL;
+        return nullptr;
     }
 
     AudioOutputSettings *settings = new AudioOutputSettings();
 
-    int rate;
-    while ((rate = settings->GetNextRate()))
+    while (int rate = settings->GetNextRate())
     {
         pcm.nSamplingRate = rate;
         if (OMX_ErrorNone == m_audiorender.SetParameter(OMX_IndexParamAudioPcm, &pcm))

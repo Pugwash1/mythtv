@@ -45,9 +45,9 @@ class ProgLister : public ScheduleCommon
                         const QString &title = QString());
     ~ProgLister();
 
-    bool Create(void);
-    bool keyPressEvent(QKeyEvent *);
-    void customEvent(QEvent *);
+    bool Create(void) override; // MythScreenType
+    bool keyPressEvent(QKeyEvent *) override; // MythScreenType
+    void customEvent(QEvent *) override; // ScheduleCommon
 
   protected slots:
     void HandleSelected(MythUIButtonListItem *item);
@@ -65,18 +65,18 @@ class ProgLister : public ScheduleCommon
     void ShowOldRecordedMenu(void);
 
   private:
-    void Load(void);
+    void Load(void) override; // MythScreenType
 
     void FillViewList(const QString &view);
     void FillItemList(bool restorePosition, bool updateDisp = true);
 
     void ClearCurrentProgramInfo(void);
-    void UpdateDisplay(const ProgramInfo *selected = NULL);
+    void UpdateDisplay(const ProgramInfo *selected = nullptr);
     void RestoreSelection(const ProgramInfo *selected, int selectedOffset);
     void UpdateButtonList(void);
     void UpdateKeywordInDB(const QString &text, const QString &oldValue);
 
-    virtual void ShowMenu(void); // MythScreenType
+    void ShowMenu(void) override; // MythScreenType
     void ShowDeleteItemMenu(void);
     void ShowDeleteOldSeriesMenu(void);
 
@@ -87,7 +87,7 @@ class ProgLister : public ScheduleCommon
     SortBy GetSortBy(void) const;
     void SortList(SortBy sortby, bool reverseSort);
 
-    virtual ProgramInfo *GetCurrentProgram(void) const;
+    ProgramInfo *GetCurrentProgram(void) const override; // ScheduleCommon
 
     bool PowerStringToSQL(
         const QString &qphrase, QString &output, MSqlBindings &bindings) const;

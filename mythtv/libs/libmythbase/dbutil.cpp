@@ -1,8 +1,8 @@
 #include <climits>
-#include <stdlib.h>
-#include <stdio.h>
-#include <sys/types.h>
+#include <cstdio>
+#include <cstdlib>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #include <QDir>
@@ -239,7 +239,7 @@ MythDBBackupStatus DBUtil::BackupDB(QString &filename, bool disableRotation)
 
     gCoreContext->SaveSettingOnHost(
         "BackupDBLastRunStart",
-        MythDate::toString(MythDate::current(), MythDate::kDatabase), NULL);
+        MythDate::toString(MythDate::current(), MythDate::kDatabase), nullptr);
 
     if (!backupScript.isEmpty())
     {
@@ -254,7 +254,7 @@ MythDBBackupStatus DBUtil::BackupDB(QString &filename, bool disableRotation)
 
     gCoreContext->SaveSettingOnHost(
         "BackupDBLastRunEnd",
-        MythDate::toString(MythDate::current(), MythDate::kDatabase), NULL);
+        MythDate::toString(MythDate::current(), MythDate::kDatabase), nullptr);
 
     if (query.isConnected())
     {

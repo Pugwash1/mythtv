@@ -38,8 +38,8 @@
 
 LyricsView::LyricsView(MythScreenStack *parent, MythScreenType *parentScreen)
          :MusicCommon(parent, parentScreen, "lyricsview"),
-         m_lyricsList(NULL), m_statusText(NULL), m_loadingState(NULL), m_bufferStatus(NULL),
-         m_bufferProgress(NULL), m_lyricData(NULL), m_autoScroll(true)
+         m_lyricsList(nullptr), m_statusText(nullptr), m_loadingState(nullptr), m_bufferStatus(nullptr),
+         m_bufferProgress(nullptr), m_lyricData(nullptr), m_autoScroll(true)
 {
     m_currentView = MV_LYRICS;
 
@@ -51,7 +51,7 @@ LyricsView::~LyricsView()
     if (m_lyricData)
     {
         m_lyricData->disconnect();
-        m_lyricData = NULL;
+        m_lyricData = nullptr;
     }
 
     gCoreContext->removeListener(this);
@@ -60,10 +60,9 @@ LyricsView::~LyricsView()
 bool LyricsView::Create(void)
 {
     QString windowName = gPlayer->getPlayMode() == MusicPlayer::PLAYMODE_RADIO ? "streamlyricsview" : "trackslyricsview";
-    bool err = false;
 
     // Load the theme for this screen
-    err = LoadWindowFromXML("music-ui.xml", windowName, this);
+    bool err = LoadWindowFromXML("music-ui.xml", windowName, this);
 
     if (!err)
         return false;
@@ -233,24 +232,24 @@ void LyricsView::ShowMenu(void)
 
     if (m_lyricData)
     {
-        menu->AddItem(tr("Find Lyrics"), NULL, createFindLyricsMenu());
+        menu->AddItem(tr("Find Lyrics"), nullptr, createFindLyricsMenu());
 
         if (gPlayer->getPlayMode() != MusicPlayer::PLAYMODE_RADIO)
         {
             if (m_lyricData->lyrics()->count())
-                menu->AddItem(tr("Edit Lyrics"), NULL, NULL);
+                menu->AddItem(tr("Edit Lyrics"), nullptr, nullptr);
             else
-                menu->AddItem(tr("Add Lyrics"), NULL, NULL);
+                menu->AddItem(tr("Add Lyrics"), nullptr, nullptr);
 
             if (m_lyricData->lyrics()->count() && m_lyricData->changed())
-                menu->AddItem(tr("Save Lyrics"), NULL, NULL);
+                menu->AddItem(tr("Save Lyrics"), nullptr, nullptr);
         }
 
         if (!m_autoScroll)
-            menu->AddItem(tr("Auto Scroll Lyrics"), NULL, NULL);
+            menu->AddItem(tr("Auto Scroll Lyrics"), nullptr, nullptr);
     }
 
-    menu->AddItem(tr("Other Options"), NULL, createMainMenu());
+    menu->AddItem(tr("Other Options"), nullptr, createMainMenu());
 
     MythScreenStack *popupStack = GetMythMainWindow()->GetStack("popup stack");
 
@@ -292,7 +291,7 @@ bool LyricsView::keyPressEvent(QKeyEvent *event)
         {
             handled = GetMythMainWindow()->TranslateKeyPress("Global", event, actions);
             if (actions.contains("UP") || actions.contains("DOWN") ||
-                actions.contains("PAGEUP") || actions.contains("PAGEUP"))
+                actions.contains("PAGEUP") || actions.contains("PAGEDOWN"))
                 m_autoScroll = false;
         }
 
@@ -331,9 +330,6 @@ bool LyricsView::keyPressEvent(QKeyEvent *event)
     if (!handled && MusicCommon::keyPressEvent(event))
         handled = true;
 
-    if (!handled && MythScreenType::keyPressEvent(event))
-        handled = true;
-
     return handled;
 }
 
@@ -367,10 +363,10 @@ void LyricsView::findLyrics(const QString &grabber)
             m_lyricData->save();
 
         m_lyricData->disconnect();
-        m_lyricData = NULL;
+        m_lyricData = nullptr;
     }
 
-    MusicMetadata *mdata = NULL;
+    MusicMetadata *mdata = nullptr;
 
     if (gPlayer->getPlayMode() == MusicPlayer::PLAYMODE_RADIO)
     {
@@ -505,24 +501,21 @@ EditLyricsDialog::EditLyricsDialog(
     MythScreenStack *parent, LyricsData *sourceData) :
     MythScreenType(parent, "EditLyricsDialog"),
     m_sourceData(sourceData),
-    m_grabberEdit(NULL),
-    m_syncronizedCheck(NULL),
-    m_titleEdit(NULL),
-    m_artistEdit(NULL),
-    m_albumEdit(NULL),
-    m_lyricsEdit(NULL),
-    m_cancelButton(NULL),
-    m_okButton(NULL)
+    m_grabberEdit(nullptr),
+    m_syncronizedCheck(nullptr),
+    m_titleEdit(nullptr),
+    m_artistEdit(nullptr),
+    m_albumEdit(nullptr),
+    m_lyricsEdit(nullptr),
+    m_cancelButton(nullptr),
+    m_okButton(nullptr)
 {
 }
 
 bool EditLyricsDialog::Create(void)
 {
-    bool foundtheme = false;
-
     // Load the theme for this screen
-    foundtheme = LoadWindowFromXML("music-ui.xml", "editlyrics", this);
-
+    bool foundtheme = LoadWindowFromXML("music-ui.xml", "editlyrics", this);
     if (!foundtheme)
         return false;
 
@@ -692,8 +685,3 @@ void EditLyricsDialog::cancelPressed(void )
     emit haveResult(false);
     Close();
 }
-
-EditLyricsDialog::~EditLyricsDialog()
-{
-}
-

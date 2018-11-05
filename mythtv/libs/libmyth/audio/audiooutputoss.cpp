@@ -1,15 +1,14 @@
+#include <cerrno>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
+#include <ctime>
 #include <fcntl.h>
+#include <iostream>
+#include <sys/ioctl.h>
 #include <sys/time.h>
 #include <unistd.h>
-#include <time.h>
 
-#include <sys/ioctl.h>
-#include <cerrno>
-#include <cstring>
-
-#include <iostream>
 #include "config.h"
 
 #if HAVE_SYS_SOUNDCARD_H
@@ -50,17 +49,16 @@ AudioOutputSettings* AudioOutputOSS::GetOutputSettings(bool /*digital*/)
     QByteArray device = main_device.toLatin1();
     audiofd = open(device.constData(), O_WRONLY | O_NONBLOCK);
 
-    AudioFormat fmt;
-    int rate, formats = 0;
+    int formats = 0;
 
     if (audiofd < 0)
     {
         VBERRENO(QString("Error opening audio device (%1)").arg(main_device));
         delete settings;
-        return NULL;
+        return nullptr;
     }
 
-    while ((rate = settings->GetNextRate()))
+    while (int rate = settings->GetNextRate())
     {
         int rate2 = rate;
         if(ioctl(audiofd, SNDCTL_DSP_SPEED, &rate2) >= 0
@@ -74,7 +72,7 @@ AudioOutputSettings* AudioOutputOSS::GetOutputSettings(bool /*digital*/)
     {
         int ofmt;
 
-        while ((fmt = settings->GetNextFormat()))
+        while (AudioFormat fmt = settings->GetNextFormat())
         {
             switch (fmt)
             {

@@ -13,20 +13,20 @@
  *
  * ============================================================ */
 
-#include <iostream>
-#include <string>
-#include <unistd.h>
+#include <arpa/inet.h>
+#include <csignal>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <cstdio>
+#include <fcntl.h>
+#include <iostream>
 #include <map>
-#include <sys/types.h>
+#include <netinet/in.h>
+#include <string>
 #include <sys/socket.h>
 #include <sys/time.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <fcntl.h>
-#include <signal.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include "zmserver.h"
 
@@ -55,7 +55,6 @@ int main(int argc, char **argv)
     struct sockaddr_in myaddr;      // server address
     struct sockaddr_in remoteaddr;  // client address
     struct timeval timeout;         // maximum time to wait for data
-    int res;                        // result from select()
     int fdmax;                      // maximum file descriptor number
     int listener;                   // listening socket descriptor
     int newfd;                      // newly accept()ed socket descriptor
@@ -276,7 +275,7 @@ int main(int argc, char **argv)
         timeout.tv_usec = 0;
 
         read_fds = master; // copy it
-        res = select(fdmax+1, &read_fds, NULL, NULL, &timeout);
+        int res = select(fdmax+1, &read_fds, nullptr, nullptr, &timeout);
 
         if (res == -1)
         {

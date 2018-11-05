@@ -42,15 +42,15 @@ class CommDetector2 : public CommDetectorBase
         bool showProgress, bool fullSpeed, MythPlayer* player,
         int chanid, const QDateTime& startts, const QDateTime& endts,
         const QDateTime& recstartts, const QDateTime& recendts, bool useDB);
-    virtual bool go(void);
-    virtual void GetCommercialBreakList(frm_dir_map_t &comms);
-    virtual void recordingFinished(long long totalFileSize);
-    virtual void requestCommBreakMapUpdate(void);
-    virtual void PrintFullMap(
-        ostream &out, const frm_dir_map_t *comm_breaks, bool verbose) const;
+    bool go(void) override; // CommDetectorBase
+    void GetCommercialBreakList(frm_dir_map_t &comms) override; // CommDetectorBase
+    void recordingFinished(long long totalFileSize) override; // CommDetectorBase
+    void requestCommBreakMapUpdate(void) override; // CommDetectorBase
+    void PrintFullMap(ostream &out, const frm_dir_map_t *comm_breaks,
+                      bool verbose) const override; // CommDetectorBase
 
   private:
-    virtual ~CommDetector2() {}
+    virtual ~CommDetector2() = default;
 
     void reportState(int elapsed_sec, long long frameno, long long nframes,
             unsigned int passno, unsigned int npasses);

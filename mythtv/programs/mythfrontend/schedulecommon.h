@@ -19,15 +19,15 @@ class ScheduleCommon : public MythScreenType
   protected:
     ScheduleCommon(MythScreenStack *parent, const QString &name)
         : MythScreenType(parent, name) {};
-   ~ScheduleCommon() {};
+   ~ScheduleCommon() = default;
 
     void ShowUpcoming(const QString &title, const QString &seriesid) const;
     void EditScheduled(ProgramInfo *pginfo);
     void EditScheduled(RecordingInfo *recinfo);
     void MakeOverride(RecordingInfo *recinfo);
 
-    virtual void customEvent(QEvent*);
-    virtual ProgramInfo *GetCurrentProgram(void) const { return NULL; };
+    void customEvent(QEvent*) override; // MythUIType
+    virtual ProgramInfo *GetCurrentProgram(void) const { return nullptr; };
 
   public slots:
     virtual void ShowDetails(void) const;

@@ -33,7 +33,7 @@ class PrivUdpSocket : public QUdpSocket
 public:
     PrivUdpSocket(QObject *parent, QNetworkAddressEntry host) :
         QUdpSocket(parent), m_host(host) { };
-    ~PrivUdpSocket() { };
+    ~PrivUdpSocket() = default;
     QNetworkAddressEntry host()
     {
         return m_host;
@@ -68,7 +68,7 @@ void PrivTcpServer::incomingConnection(qt_socket_fd_t socket)
 
 ServerPool::ServerPool(QObject *parent) : QObject(parent),
     m_listening(false), m_maxPendingConn(30), m_port(0),
-    m_proxy(QNetworkProxy::NoProxy), m_lastUdpSocket(NULL)
+    m_proxy(QNetworkProxy::NoProxy), m_lastUdpSocket(nullptr)
 {
 }
 
@@ -369,24 +369,22 @@ QList<QHostAddress> ServerPool::DefaultBroadcastIPv6(void)
 
 void ServerPool::close(void)
 {
-    PrivTcpServer *server;
     while (!m_tcpServers.isEmpty())
     {
-        server = m_tcpServers.takeLast();
+        PrivTcpServer *server = m_tcpServers.takeLast();
         server->disconnect();
         server->close();
         server->deleteLater();
     }
 
-    PrivUdpSocket *socket;
     while (!m_udpSockets.isEmpty())
     {
-        socket = m_udpSockets.takeLast();
+        PrivUdpSocket *socket = m_udpSockets.takeLast();
         socket->disconnect();
         socket->close();
         socket->deleteLater();
     }
-    m_lastUdpSocket = NULL;
+    m_lastUdpSocket = nullptr;
     m_listening = false;
 }
 
@@ -754,7 +752,7 @@ int ServerPool::tryBindingPort(int baseport, int range)
  * server:   QTcpServer object to use
  * baseport: port to listen on. If port is 0, a port is chosen automatically.
  * range:    range of ports to try (default 1)
- * isipv6:   is set to true if IPv6 was successful (default NULL)
+ * isipv6:   is set to true if IPv6 was successful (default nullptr)
  *
  * Returns port used on success; otherwise returns -1.
  */
@@ -820,7 +818,7 @@ int ServerPool::tryListeningPort(QTcpServer *server, int baseport,
  * socket:   QUdpSocket object to use
  * baseport: port to bind to.
  * range:    range of ports to try (default 1)
- * isipv6:   is set to true if IPv6 was successful (default NULL)
+ * isipv6:   is set to true if IPv6 was successful (default nullptr)
  *
  * Returns port used on success; otherwise returns -1.
  */

@@ -9,8 +9,8 @@
 #ifndef _CHANNEL_IMPORTER_H_
 #define _CHANNEL_IMPORTER_H_
 
-// ANSI C headers
-#include <string.h>
+// C++ headers
+#include <cstring>
 
 // Qt headers
 #include <QMap>
@@ -89,7 +89,7 @@ class MTV_PUBLIC ChannelImporter
         m_success(success),
         m_service_requirements(service_requirements) { }
 
-    void Process(const ScanDTVTransportList&);
+    void Process(const ScanDTVTransportList&, int sourceid = -1);
 
   protected:
     typedef enum
@@ -205,7 +205,7 @@ class MTV_PUBLIC ChannelImporter
     static QString FormatChannel(
         const ScanDTVTransport          &transport,
         const ChannelInsertInfo         &chan,
-        const ChannelImporterBasicStats *info = NULL);
+        const ChannelImporterBasicStats *info = nullptr);
 
     static QString SimpleFormatChannel(
         const ScanDTVTransport          &transport,

@@ -20,13 +20,13 @@ class HTTPTSStreamHandler : public IPTVStreamHandler
 {
     friend class HTTPReader;
   public:
-    static HTTPTSStreamHandler* Get(const IPTVTuningData& tuning);
-    static void Return(HTTPTSStreamHandler * & ref);
+    static HTTPTSStreamHandler* Get(const IPTVTuningData& tuning, int inputid);
+    static void Return(HTTPTSStreamHandler * & ref, int inputid);
 
 protected:
-    explicit HTTPTSStreamHandler(const IPTVTuningData &tuning);
+    explicit HTTPTSStreamHandler(const IPTVTuningData &tuning, int inputid);
     virtual ~HTTPTSStreamHandler(void);
-    virtual void run(void);
+    void run(void) override; // MThread
 
   protected:
     HTTPReader*             m_reader;
@@ -43,7 +43,7 @@ class MTV_PUBLIC HTTPReader : public QObject
 
   public:
     explicit HTTPReader(HTTPTSStreamHandler* parent) :
-        m_parent(parent), m_reply(NULL), m_buffer(NULL), m_ok(true), m_size(0) {}
+        m_parent(parent), m_reply(nullptr), m_buffer(nullptr), m_ok(true), m_size(0) {}
     void Cancel(void);
     bool DownloadStream(const QUrl url);
 

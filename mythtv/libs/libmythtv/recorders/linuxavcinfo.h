@@ -23,7 +23,7 @@ using namespace std;
 class LinuxAVCInfo : public AVCInfo
 {
   public:
-    LinuxAVCInfo() : fw_handle(NULL) { }
+    LinuxAVCInfo() : fw_handle(nullptr) { }
 
     bool Update(uint64_t _guid, raw1394handle_t handle,
                 uint _port, uint _node);
@@ -31,10 +31,10 @@ class LinuxAVCInfo : public AVCInfo
     bool OpenPort(void);
     bool ClosePort(void);
 
-    virtual bool SendAVCCommand(
+    bool SendAVCCommand(
         const vector<uint8_t> &cmd,
         vector<uint8_t>       &result,
-        int                    retry_cnt);
+        int                    retry_cnt)  override; // AVCInfo
 
     bool IsPortOpen(void) const { return fw_handle; }
 

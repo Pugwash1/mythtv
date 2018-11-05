@@ -38,6 +38,7 @@
 #include "mythuihelper.h"
 #include "mythuidefines.h"
 #include "langsettings.h"
+#include "mythcodeccontext.h"
 
 #ifdef USING_AIRPLAY
 #include "AirPlay/mythraopconnection.h"
@@ -63,6 +64,90 @@ static HostSpinBoxSetting *AudioReadAhead()
         "likely to occur when adjusting audio sync to a negative value. "
         "If using high negative audio sync values you may need to set a large "
         "value here. Default is 100."));
+    return gc;
+}
+
+#ifdef USING_VAAPI2
+static HostTextEditSetting *VAAPIDevice()
+{
+    HostTextEditSetting *ge = new HostTextEditSetting("VAAPIDevice");
+
+    ge->setLabel(MainGeneralSettings::tr("Decoder Device for VAAPI2 hardware decoding"));
+
+    ge->setValue("");
+
+    QString help = MainGeneralSettings::tr(
+        "Use this if your system does not detect the VAAPI device. "
+        "Example: '/dev/dri/renderD128'.");
+
+    ge->setHelpText(help);
+
+    return ge;
+}
+#endif
+
+static HostCheckBoxSetting *PlaybackAVSync2()
+{
+    HostCheckBoxSetting *gc = new HostCheckBoxSetting("PlaybackAVSync2");
+
+    gc->setLabel(PlaybackSettings::tr("Enable new timestamp based playback speed (AVSync2)"));
+
+    gc->setHelpText(PlaybackSettings::tr("Simplified timing and synchronization method. "
+        "This may offer smoother video playback. Note there is a setting that can be used "
+        "for fine tuning playback (press right arrow)."));
+    gc->setValue(false);
+
+    return gc;
+}
+
+static HostSpinBoxSetting *AVSync2AdjustMS()
+// was previously *DecodeExtraAudio()
+{
+    HostSpinBoxSetting *gc = new HostSpinBoxSetting("AVSync2AdjustMS",1,40,1,1);
+
+    gc->setLabel(PlaybackSettings::tr("AVSync2 audio correction (ms)"));
+
+    gc->setValue(10);
+
+    gc->setHelpText(PlaybackSettings::tr(
+        "When using AVSync2, if video playback is speeding up and slowing down every few seconds, reduce "
+        "this value. For quicker recovery of audio sync after jumps, increase this value. "
+        "Values can be from 1 to 40. Default is 10."));
+    return gc;
+}
+
+static HostCheckBoxSetting *OpenGLYV12()
+{
+    HostCheckBoxSetting *gc = new HostCheckBoxSetting("OpenGLYV12");
+
+    gc->setLabel(PlaybackSettings::tr("Allow YV12 (YUV 4:2:0) pixel format for OpenGL"));
+
+    gc->setHelpText(PlaybackSettings::tr("Disabling one or more pixel formats may help with picture "
+                                         "problems when using "
+                                         "OpenGL video rendering. By default YV12 is disabled for "
+                                         "android and enabled for other systems."));
+#ifdef ANDROID
+#define YV12DEFAULT false
+#else
+#define YV12DEFAULT true
+#endif
+
+    gc->setValue(YV12DEFAULT);
+
+    return gc;
+}
+
+static HostCheckBoxSetting *OpenGLUYVY()
+{
+    HostCheckBoxSetting *gc = new HostCheckBoxSetting("OpenGLUYVY");
+
+    gc->setLabel(PlaybackSettings::tr("Allow UYVY (YUV 4:2:2) pixel format for OpenGL"));
+
+    gc->setHelpText(PlaybackSettings::tr("Disabling one or more pixel formats may help with picture "
+                                         "problems when using "
+                                         "OpenGL video rendering. By default UYVY is enabled. "));
+    gc->setValue(true);
+
     return gc;
 }
 
@@ -937,6 +1022,9 @@ void PlaybackProfileItemConfig::decoderChanged(const QString &dec)
 
     decoder->setHelpText(VideoDisplayProfile::GetDecoderHelp(dec));
 
+    QString vrenderer2 = vidrend->getValue();
+    vrenderChanged(vrenderer2);
+
     InitLabel();
 }
 
@@ -944,6 +1032,9 @@ void PlaybackProfileItemConfig::vrenderChanged(const QString &renderer)
 {
     QStringList osds    = VideoDisplayProfile::GetOSDs(renderer);
     QStringList deints  = VideoDisplayProfile::GetDeinterlacers(renderer);
+    QString decodername = decoder->getValue();
+    QStringList decoderdeints  = MythCodecContext::GetDeinterlacers(decodername);
+    deints.append(decoderdeints);
     QString     losd    = osdrend->getValue();
     QString     ldeint0 = deint0->getValue();
     QString     ldeint1 = deint1->getValue();
@@ -1056,10 +1147,6 @@ PlaybackProfileConfig::PlaybackProfileConfig(const QString &profilename,
         profile_name, gCoreContext->GetHostName());
     items = VideoDisplayProfile::LoadDB(groupid);
     InitUI(parent);
-}
-
-PlaybackProfileConfig::~PlaybackProfileConfig()
-{
 }
 
 void PlaybackProfileItemConfig::InitLabel(void)
@@ -1403,7 +1490,8 @@ static HostComboBoxSetting *MenuTheme()
     return gc;
 }
 
-static HostComboBoxSetting MUNUSED *DecodeVBIFormat()
+#if 0
+static HostComboBoxSetting *DecodeVBIFormat()
 {
     QString beVBI = gCoreContext->GetSetting("VbiFormat");
     QString fmt = beVBI.toLower().left(4);
@@ -1426,6 +1514,7 @@ static HostComboBoxSetting MUNUSED *DecodeVBIFormat()
 
     return gc;
 }
+#endif
 
 static HostComboBoxSetting *SubtitleCodec()
 {
@@ -1654,6 +1743,23 @@ static HostCheckBoxSetting *EndOfRecordingExitPrompt()
     gc->setHelpText(PlaybackSettings::tr("If enabled, a menu will be displayed "
                                          "allowing you to delete the recording "
                                          "when it has finished playing."));
+    return gc;
+}
+
+static HostCheckBoxSetting *MusicChoiceEnabled()
+{
+    HostCheckBoxSetting *gc = new HostCheckBoxSetting("MusicChoiceEnabled");
+
+    gc->setLabel(PlaybackSettings::tr("Enable Music Choice"));
+
+    gc->setValue(false);
+
+    gc->setHelpText(PlaybackSettings::tr("Enable this to improve playing of Music Choice channels "
+                                         "or recordings from those channels. "
+                                         "These are audio channels with slide show "
+                                         "from some cable providers. "
+                                         "In unusual situations this could cause lip sync problems "
+                                         "watching normal videos or TV shows."));
     return gc;
 }
 
@@ -3019,6 +3125,67 @@ static HostTextEditSetting *UDPNotifyPort()
     return ge;
 }
 
+#ifdef USING_LIBCEC
+static HostCheckBoxSetting *CECEnabled()
+{
+    HostCheckBoxSetting *gc = new HostCheckBoxSetting("libCECEnabled");
+    gc->setLabel(MainGeneralSettings::tr("Enable CEC Control "
+                                         "interface"));
+    gc->setHelpText(MainGeneralSettings::tr("This enables "
+        "controlling MythFrontend from a TV remote or powering the TV "
+        "on and off from a MythTV remote "
+        "if you have compatible hardware. "
+        "These settings only take effect after a restart."));
+    gc->setValue(true);
+    return gc;
+}
+
+static HostCheckBoxSetting *CECPowerOnTVAllowed()
+{
+    HostCheckBoxSetting *gc = new HostCheckBoxSetting("PowerOnTVAllowed");
+    gc->setLabel(MainGeneralSettings::tr("Allow Power On TV"));
+    gc->setHelpText(MainGeneralSettings::tr("Enables your TV to be powered "
+        "on from MythTV remote or when MythTV starts "
+        "if you have compatible hardware."));
+    gc->setValue(true);
+    return gc;
+}
+
+static HostCheckBoxSetting *CECPowerOffTVAllowed()
+{
+    HostCheckBoxSetting *gc = new HostCheckBoxSetting("PowerOffTVAllowed");
+    gc->setLabel(MainGeneralSettings::tr("Allow Power Off TV"));
+    gc->setHelpText(MainGeneralSettings::tr("Enables your TV to be powered "
+        "off from MythTV remote or when MythTV starts "
+        "if you have compatible hardware."));
+    gc->setValue(true);
+    return gc;
+}
+
+static HostCheckBoxSetting *CECPowerOnTVOnStart()
+{
+    HostCheckBoxSetting *gc = new HostCheckBoxSetting("PowerOnTVOnStart");
+    gc->setLabel(MainGeneralSettings::tr("Power on TV At Start"));
+    gc->setHelpText(MainGeneralSettings::tr("Powers "
+        "on your TV when you start MythTV "
+        "if you have compatible hardware."));
+    gc->setValue(true);
+    return gc;
+}
+
+static HostCheckBoxSetting *CECPowerOffTVOnExit()
+{
+    HostCheckBoxSetting *gc = new HostCheckBoxSetting("PowerOffTVOnExit");
+    gc->setLabel(MainGeneralSettings::tr("Power off TV At Exit"));
+    gc->setHelpText(MainGeneralSettings::tr("Powers "
+        "off your TV when you exit MythTV "
+        "if you have compatible hardware."));
+    gc->setValue(true);
+    return gc;
+}
+
+#endif //USING_LIBCEC
+
 #ifdef USING_AIRPLAY
 // AirPlay Settings
 static HostCheckBoxSetting *AirPlayEnabled()
@@ -3120,7 +3287,7 @@ static HostCheckBoxSetting *AirPlayFullScreen()
 //{
 //    TransLabelSetting *ts = new TransLabelSetting();
 //
-//    if (MythRAOPConnection::LoadKey() == NULL)
+//    if (MythRAOPConnection::LoadKey() == nullptr)
 //    {
 //        ts->setValue(MainGeneralSettings::tr("AirTunes RSA key couldn't be "
 //            "loaded. Check http://www.mythtv.org/wiki/AirTunes/AirPlay. "
@@ -3708,7 +3875,7 @@ class ShutDownRebootSetting : public GroupSetting
   public:
     ShutDownRebootSetting();
   private slots:
-    void childChanged(StandardSetting *);
+    void childChanged(StandardSetting *) override; // StandardSetting
   private:
     StandardSetting * m_overrideExitMenu;
     StandardSetting * m_haltCommand;
@@ -3782,6 +3949,22 @@ MainGeneralSettings::MainGeneralSettings()
     remotecontrol->addChild(NetworkControlEnabled());
     remotecontrol->addChild(NetworkControlPort());
     remotecontrol->addChild(UDPNotifyPort());
+#ifdef USING_LIBCEC
+    HostCheckBoxSetting *cec = CECEnabled();
+    remotecontrol->addChild(cec);
+    m_CECPowerOnTVAllowed = CECPowerOnTVAllowed();
+    m_CECPowerOffTVAllowed = CECPowerOffTVAllowed();
+    m_CECPowerOnTVOnStart = CECPowerOnTVOnStart();
+    m_CECPowerOffTVOnExit = CECPowerOffTVOnExit();
+    cec->addTargetedChild("1",m_CECPowerOnTVAllowed);
+    cec->addTargetedChild("1",m_CECPowerOffTVAllowed);
+    cec->addTargetedChild("1",m_CECPowerOnTVOnStart);
+    cec->addTargetedChild("1",m_CECPowerOffTVOnExit);
+    connect(m_CECPowerOnTVAllowed, SIGNAL(valueChanged(bool)),
+            this, SLOT(cecChanged(bool)));
+    connect(m_CECPowerOffTVAllowed, SIGNAL(valueChanged(bool)),
+            this, SLOT(cecChanged(bool)));
+#endif // USING_LIBCEC
     addChild(remotecontrol);
 
 #ifdef USING_AIRPLAY
@@ -3797,6 +3980,27 @@ MainGeneralSettings::MainGeneralSettings()
 #endif
 }
 
+#ifdef USING_LIBCEC
+void MainGeneralSettings::cecChanged(bool)
+{
+    if (m_CECPowerOnTVAllowed->boolValue())
+        m_CECPowerOnTVOnStart->setEnabled(true);
+    else
+    {
+        m_CECPowerOnTVOnStart->setEnabled(false);
+        m_CECPowerOnTVOnStart->setValue(false);
+    }
+
+    if (m_CECPowerOffTVAllowed->boolValue())
+        m_CECPowerOffTVOnExit->setEnabled(true);
+    else
+    {
+        m_CECPowerOffTVOnExit->setEnabled(false);
+        m_CECPowerOffTVOnExit->setValue(false);
+    }
+}
+#endif  // USING_LIBCEC
+
 void MainGeneralSettings::applyChange()
 {
     QStringList strlist( QString("REFRESH_BACKEND") );
@@ -3808,10 +4012,10 @@ class PlayBackScaling : public GroupSetting
 {
   public:
     PlayBackScaling();
-    virtual void updateButton(MythUIButtonListItem *item);
+    void updateButton(MythUIButtonListItem *item) override; // GroupSetting
 
   private slots:
-    virtual void childChanged(StandardSetting *);
+    void childChanged(StandardSetting *) override; // StandardSetting
 
   private:
     StandardSetting * m_VertScan;
@@ -3947,8 +4151,8 @@ void PlaybackSettingsDialog::DeleteProfileItem(void)
 }
 
 PlaybackSettings::PlaybackSettings()
-    : m_newPlaybackProfileButton(NULL),
-      m_playbackProfiles(NULL)
+    : m_newPlaybackProfileButton(nullptr),
+      m_playbackProfiles(nullptr)
 {
     setLabel(tr("Playback settings"));
 }
@@ -3957,8 +4161,6 @@ void PlaybackSettings::Load(void)
 {
     GroupSetting* general = new GroupSetting();
     general->setLabel(tr("General Playback"));
-    general->addChild(RealtimePriority());
-    general->addChild(AudioReadAhead());
     general->addChild(JumpToProgramOSD());
     general->addChild(ClearSavedPosition());
     general->addChild(UseProgStartMark());
@@ -3979,7 +4181,22 @@ void PlaybackSettings::Load(void)
     general->addChild(PIPLocationComboBox());
     general->addChild(PlaybackExitPrompt());
     general->addChild(EndOfRecordingExitPrompt());
+    general->addChild(MusicChoiceEnabled());
     addChild(general);
+
+    GroupSetting* advanced = new GroupSetting();
+    advanced->setLabel(tr("Advanced Playback Settings"));
+    advanced->addChild(RealtimePriority());
+    advanced->addChild(AudioReadAhead());
+#ifdef USING_VAAPI2
+    advanced->addChild(VAAPIDevice());
+#endif
+    HostCheckBoxSetting *avsync2 = PlaybackAVSync2();
+    advanced->addChild(avsync2);
+    avsync2->addTargetedChild("1",AVSync2AdjustMS());
+    advanced->addChild(OpenGLYV12());
+    advanced->addChild(OpenGLUYVY());
+    addChild(advanced);
 
     m_playbackProfiles = CurrentPlaybackProfile();
     addChild(m_playbackProfiles);
@@ -4186,11 +4403,11 @@ class GuiDimension : public GroupSetting
 {
     public:
         GuiDimension();
-        //virtual QString getValue();
-        virtual void updateButton(MythUIButtonListItem *item);
+        //QString getValue() override; // StandardSetting
+        void updateButton(MythUIButtonListItem *item) override; // GroupSetting
 
     private slots:
-        virtual void childChanged(StandardSetting *);
+        void childChanged(StandardSetting *) override; // StandardSetting
     private:
         StandardSetting *m_width;
         StandardSetting *m_height;
@@ -4324,7 +4541,7 @@ ChannelGroupSetting::ChannelGroupSetting(const QString &groupName,
                                          int groupId = -1)
     :GroupSetting(),
     m_groupId(groupId),
-    m_groupName(NULL)
+    m_groupName(nullptr)
 {
     setLabel(groupName);//TODO this should be the translated name if Favorite
     setValue(groupName);
@@ -4332,7 +4549,7 @@ ChannelGroupSetting::ChannelGroupSetting(const QString &groupName,
     m_groupName->setLabel(groupName);
 }
 
-void ChannelGroupSetting::Close()
+void ChannelGroupSetting::Save()
 {
     //Change the name
     if ((m_groupName && m_groupName->haveChanged())
@@ -4482,7 +4699,7 @@ void ChannelGroupSetting::deleteEntry(void)
 
 ChannelGroupsSetting::ChannelGroupsSetting()
     : GroupSetting(),
-      m_addGroupButton(NULL)
+      m_addGroupButton(nullptr)
 {
     setLabel(tr("Channel Groups"));
 }
@@ -4519,7 +4736,7 @@ void ChannelGroupsSetting::Load()
     //Load all the groups
     GroupSetting::Load();
     //TODO select the new one or the edited one
-    emit settingsChanged(NULL);
+    emit settingsChanged(nullptr);
 }
 
 

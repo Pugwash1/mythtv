@@ -21,19 +21,16 @@ using namespace std;
 
 GrabberSettings::GrabberSettings(MythScreenStack *parent, const char *name)
     : MythScreenType(parent, name),
-      m_movieGrabberButtonList(NULL),      m_tvGrabberButtonList(NULL),
-      m_gameGrabberButtonList(NULL),       m_dailyUpdatesCheck(NULL),
-      m_okButton(NULL),                    m_cancelButton(NULL)
+      m_movieGrabberButtonList(nullptr),   m_tvGrabberButtonList(nullptr),
+      m_gameGrabberButtonList(nullptr),    m_dailyUpdatesCheck(nullptr),
+      m_okButton(nullptr),                 m_cancelButton(nullptr)
 {
 }
 
 bool GrabberSettings::Create()
 {
-    bool foundtheme = false;
-
     // Load the theme for this screen
-    foundtheme = LoadWindowFromXML("config-ui.xml", "grabbersettings", this);
-
+    bool foundtheme = LoadWindowFromXML("config-ui.xml", "grabbersettings", this);
     if (!foundtheme)
         return false;
 
@@ -77,10 +74,6 @@ bool GrabberSettings::Create()
     LoadInBackground(message);
 
     return true;
-}
-
-GrabberSettings::~GrabberSettings()
-{
 }
 
 void GrabberSettings::Load(void)

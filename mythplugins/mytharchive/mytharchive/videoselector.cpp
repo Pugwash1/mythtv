@@ -1,6 +1,5 @@
 // c
 #include <cstdlib>
-#include <stdlib.h>
 #include <unistd.h>
 
 // qt
@@ -28,12 +27,12 @@ using namespace std;
 
 VideoSelector::VideoSelector(MythScreenStack *parent, QList<ArchiveItem *> *archiveList)
               :MythScreenType(parent, "VideoSelector"),
-               m_archiveList(archiveList), m_videoList(NULL),
+               m_archiveList(archiveList), m_videoList(nullptr),
                m_currentParentalLevel(ParentalLevel::plNone),
-               m_plText(NULL), m_videoButtonList(NULL), m_warningText(),
-               m_okButton(NULL), m_cancelButton(NULL), m_categorySelector(NULL),
-               m_titleText(NULL), m_filesizeText(NULL), m_plotText(NULL),
-               m_coverImage(NULL)
+               m_plText(nullptr), m_videoButtonList(nullptr), m_warningText(),
+               m_okButton(nullptr), m_cancelButton(nullptr), m_categorySelector(nullptr),
+               m_titleText(nullptr), m_filesizeText(nullptr), m_plotText(nullptr),
+               m_coverImage(nullptr)
 {
     m_parentalLevelChecker = new ParentalLevelChangeChecker();
     connect(m_parentalLevelChecker, SIGNAL(SigResultReady(bool, ParentalLevel::Level)),
@@ -54,11 +53,8 @@ VideoSelector::~VideoSelector(void)
 
 bool VideoSelector::Create(void)
 {
-    bool foundtheme = false;
-
     // Load the theme for this screen
-    foundtheme = LoadWindowFromXML("mytharchive-ui.xml", "video_selector", this);
-
+    bool foundtheme = LoadWindowFromXML("mytharchive-ui.xml", "video_selector", this);
     if (!foundtheme)
         return false;
 
@@ -109,9 +105,8 @@ bool VideoSelector::keyPressEvent(QKeyEvent *event)
     if (GetFocusWidget()->keyPressEvent(event))
         return true;
 
-    bool handled = false;
     QStringList actions;
-    handled = GetMythMainWindow()->TranslateKeyPress("Global", event, actions);
+    bool handled = GetMythMainWindow()->TranslateKeyPress("Global", event, actions);
 
     for (int i = 0; i < actions.size() && !handled; i++)
     {
@@ -169,11 +164,10 @@ void VideoSelector::selectAll()
          m_selectedList.takeFirst();
     m_selectedList.clear();
 
-    VideoInfo *v;
     vector<VideoInfo *>::iterator i = m_videoList->begin();
     for ( ; i != m_videoList->end(); ++i)
     {
-        v = *i;
+        VideoInfo *v = *i;
         m_selectedList.append(v);
     }
 
@@ -330,7 +324,7 @@ void VideoSelector::OKPressed()
         a->videoHeight = 0;
         a->fileCodec = "";
         a->videoCodec = "";
-        a->encoderProfile = NULL;
+        a->encoderProfile = nullptr;
         a->editedDetails = false;
         m_archiveList->append(a);
     }
@@ -354,11 +348,10 @@ void VideoSelector::updateVideoList(void)
 
     if (m_categorySelector)
     {
-        VideoInfo *v;
         vector<VideoInfo *>::iterator i = m_videoList->begin();
         for ( ; i != m_videoList->end(); ++i)
         {
-            v = *i;
+            VideoInfo *v = *i;
 
             if (v->category == m_categorySelector->GetValue() ||
                 m_categorySelector->GetValue() == tr("All Videos"))
@@ -500,12 +493,11 @@ vector<VideoInfo *> *VideoSelector::getVideoListFromDB(void)
 
     LOG(VB_GENERAL, LOG_ERR, "VideoSelector: Failed to get any videos");
 
-    return NULL;
+    return nullptr;
 }
 
 void VideoSelector::getVideoList(void)
 {
-    VideoInfo *v;
     m_videoList = getVideoListFromDB();
     QStringList categories;
 
@@ -514,7 +506,7 @@ void VideoSelector::getVideoList(void)
         vector<VideoInfo *>::iterator i = m_videoList->begin();
         for ( ; i != m_videoList->end(); ++i)
         {
-            v = *i;
+            VideoInfo *v = *i;
 
             if (categories.indexOf(v->category) == -1)
                 categories.append(v->category);
@@ -540,7 +532,7 @@ void VideoSelector::getVideoList(void)
         }
     }
 
-    setCategory(0);
+    setCategory(nullptr);
 }
 
 void VideoSelector::setCategory(MythUIButtonListItem *item)
@@ -556,14 +548,12 @@ void VideoSelector::updateSelectedList()
 
     m_selectedList.clear();
 
-    ArchiveItem *a;
-    VideoInfo *v;
     for (int x = 0; x < m_archiveList->size(); x++)
     {
-        a = m_archiveList->at(x);
+        ArchiveItem *a = m_archiveList->at(x);
         for (uint y = 0; y < m_videoList->size(); y++)
         {
-            v = m_videoList->at(y);
+            VideoInfo *v = m_videoList->at(y);
             if (v->filename == a->filename)
             {
                 if (m_selectedList.indexOf(v) == -1)

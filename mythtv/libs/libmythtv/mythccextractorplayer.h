@@ -3,7 +3,7 @@
 #ifndef MYTHCCEXTRACTORPLAYER_H
 #define MYTHCCEXTRACTORPLAYER_H
 
-#include <stdint.h>
+#include <cstdint>
 
 #include <QStringList>
 #include <QImage>
@@ -65,7 +65,7 @@ typedef QList<OneSubtitle> DVBStreamType;
 class SRTStuff
 {
   public:
-    SRTStuff() {}
+    SRTStuff() = default;
     virtual ~SRTStuff();
     QHash<int, SRTWriter*> srtwriters;
     QHash<int,int>         subs_num;
@@ -74,7 +74,7 @@ class SRTStuff
 class CC608Stuff : public SRTStuff
 {
   public:
-    CC608Stuff() : reader(NULL) { }
+    CC608Stuff() : reader(nullptr) { }
     ~CC608Stuff();
     CC608Reader *reader;
     CC608StreamType subs;
@@ -84,7 +84,7 @@ typedef QHash<uint, CC608Stuff> CC608Info;
 class CC708Stuff : public SRTStuff
 {
   public:
-    CC708Stuff() : reader(NULL) { }
+    CC708Stuff() : reader(nullptr) { }
     ~CC708Stuff();
     CC708Reader *reader;
     CC708StreamType subs;
@@ -95,7 +95,7 @@ class TeletextExtractorReader;
 class TeletextStuff : public SRTStuff
 {
   public:
-    TeletextStuff() : reader(NULL) { }
+    TeletextStuff() : reader(nullptr) { }
     ~TeletextStuff();
     TeletextExtractorReader *reader;
     TeletextStreamType subs;
@@ -105,7 +105,7 @@ typedef QHash<uint, TeletextStuff> TeletextInfo;
 class DVBSubStuff
 {
   public:
-    DVBSubStuff() : reader(NULL), subs_num(0) { }
+    DVBSubStuff() : reader(nullptr), subs_num(0) { }
     ~DVBSubStuff();
     SubtitleReader *reader;
     int             subs_num;
@@ -121,14 +121,14 @@ class MTV_PUBLIC MythCCExtractorPlayer : public MythPlayer
     MythCCExtractorPlayer(PlayerFlags flags, bool showProgress,
                           const QString &fileName, const QString & destdir);
     MythCCExtractorPlayer(const MythCCExtractorPlayer& rhs);
-    ~MythCCExtractorPlayer() {}
+    ~MythCCExtractorPlayer() = default;
 
     bool run(void);
 
-    virtual CC708Reader    *GetCC708Reader(uint id=0);
-    virtual CC608Reader    *GetCC608Reader(uint id=0);
-    virtual SubtitleReader *GetSubReader(uint id=0);
-    virtual TeletextReader *GetTeletextReader(uint id=0);
+    CC708Reader    *GetCC708Reader(uint id=0) override; // MythPlayer
+    CC608Reader    *GetCC608Reader(uint id=0) override; // MythPlayer
+    SubtitleReader *GetSubReader(uint id=0) override; // MythPlayer
+    TeletextReader *GetTeletextReader(uint id=0) override; // MythPlayer
 
   private:
     void IngestSubtitle(QList<OneSubtitle>&, const QStringList&);

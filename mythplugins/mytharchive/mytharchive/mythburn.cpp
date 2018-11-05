@@ -1,6 +1,6 @@
 #include <unistd.h>
 
-#include <stdlib.h>
+#include <cstdlib>
 #include <unistd.h>
 #include <iostream>
 #include <cstdlib>
@@ -56,19 +56,19 @@ MythBurn::MythBurn(MythScreenStack   *parent,
     m_saveFilename(""),
     m_theme(),
     m_moveMode(false),
-    m_nextButton(NULL),
-    m_prevButton(NULL),
-    m_cancelButton(NULL),
-    m_archiveButtonList(NULL),
-    m_nofilesText(NULL),
-    m_addrecordingButton(NULL),
-    m_addvideoButton(NULL),
-    m_addfileButton(NULL),
-    m_sizeBar(NULL),
-    m_maxsizeText(NULL),
-    m_minsizeText(NULL),
-    m_currentsizeErrorText(NULL),
-    m_currentsizeText(NULL)
+    m_nextButton(nullptr),
+    m_prevButton(nullptr),
+    m_cancelButton(nullptr),
+    m_archiveButtonList(nullptr),
+    m_nofilesText(nullptr),
+    m_addrecordingButton(nullptr),
+    m_addvideoButton(nullptr),
+    m_addfileButton(nullptr),
+    m_sizeBar(nullptr),
+    m_maxsizeText(nullptr),
+    m_minsizeText(nullptr),
+    m_currentsizeErrorText(nullptr),
+    m_currentsizeText(nullptr)
 {
     // remove any old thumb images
     QString thumbDir = getTempDirectory() + "/config/thumbs";
@@ -92,11 +92,8 @@ MythBurn::~MythBurn(void)
 
 bool MythBurn::Create(void)
 {
-    bool foundtheme = false;
-
     // Load the theme for this screen
-    foundtheme = LoadWindowFromXML("mythburn-ui.xml", "mythburn", this);
-
+    bool foundtheme = LoadWindowFromXML("mythburn-ui.xml", "mythburn", this);
     if (!foundtheme)
         return false;
 
@@ -151,9 +148,8 @@ bool MythBurn::keyPressEvent(QKeyEvent *event)
     if (!m_moveMode && GetFocusWidget()->keyPressEvent(event))
         return true;
 
-    bool handled = false;
     QStringList actions;
-    handled = GetMythMainWindow()->TranslateKeyPress("Archive", event, actions);
+    bool handled = GetMythMainWindow()->TranslateKeyPress("Archive", event, actions);
 
     for (int i = 0; i < actions.size() && !handled; i++)
     {
@@ -214,10 +210,9 @@ bool MythBurn::keyPressEvent(QKeyEvent *event)
 void MythBurn::updateSizeBar(void)
 {
     int64_t size = 0;
-    ArchiveItem *a;
     for (int x = 0; x < m_archiveList.size(); x++)
     {
-        a = m_archiveList.at(x);
+        ArchiveItem *a = m_archiveList.at(x);
         size += a->newsize;
     }
 
@@ -422,7 +417,7 @@ void MythBurn::updateArchiveList(void)
     else
     {
         delete busyPopup;
-        busyPopup = NULL;
+        busyPopup = nullptr;
     }
 
     qApp->processEvents();
@@ -435,11 +430,10 @@ void MythBurn::updateArchiveList(void)
     }
     else
     {
-        ArchiveItem *a;
         for (int x = 0; x < m_archiveList.size(); x++)
         {
             qApp->processEvents();
-            a = m_archiveList.at(x);
+            ArchiveItem *a = m_archiveList.at(x);
 
             // get duration of this file
             if (a->duration == 0)
@@ -451,7 +445,7 @@ void MythBurn::updateArchiveList(void)
 
             // get default encoding profile if needed
 
-            if (a->encoderProfile == NULL)
+            if (a->encoderProfile == nullptr)
                 a->encoderProfile = getDefaultProfile(a);
 
             recalcItemSize(a);
@@ -548,7 +542,7 @@ EncoderProfile *MythBurn::getDefaultProfile(ArchiveItem *item)
     if (!item)
         return m_profileList.at(0);
 
-    EncoderProfile *profile = NULL;
+    EncoderProfile *profile = nullptr;
 
     // is the file an mpeg2 file?
     if (item->videoCodec.toLower() == "mpeg2video (main)")
@@ -738,7 +732,7 @@ EncoderProfile *MythBurn::getProfileFromName(const QString &profileName)
         if (m_profileList.at(x)->name == profileName)
             return m_profileList.at(x);
 
-    return NULL;
+    return nullptr;
 }
 
 void MythBurn::saveConfiguration(void)
@@ -1055,13 +1049,13 @@ ProfileDialog::ProfileDialog(
     MythScreenType(parent, "functionpopup"),
     m_archiveItem(archiveItem),
     m_profileList(profileList),
-    m_captionText(NULL),
-    m_descriptionText(NULL),
-    m_oldSizeText(NULL),
-    m_newSizeText(NULL),
-    m_profile_list(NULL),
-    m_enabledCheck(NULL),
-    m_okButton(NULL)
+    m_captionText(nullptr),
+    m_descriptionText(nullptr),
+    m_oldSizeText(nullptr),
+    m_newSizeText(nullptr),
+    m_profile_list(nullptr),
+    m_enabledCheck(nullptr),
+    m_okButton(nullptr)
 {
 }
 
@@ -1139,7 +1133,7 @@ void ProfileDialog::save(void)
 ///////////////////////////////////////////////////////////////////////////////
 
 BurnMenu::BurnMenu(void)
-        :QObject(NULL)
+        :QObject(nullptr)
 {
     setObjectName("BurnMenu");
 }

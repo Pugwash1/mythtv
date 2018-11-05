@@ -29,13 +29,15 @@ typedef QMap<const DVBChannel*,bool> IsOpenMap;
 class DVBChannel : public DTVChannel
 {
   public:
-    DVBChannel(const QString &device, TVRec *parent = NULL);
+    DVBChannel(const QString &device, TVRec *parent = nullptr);
     ~DVBChannel();
 
-    bool Open(void) { return Open(this); }
-    void Close(void) { Close(this); }
+    bool Open(void) override // ChannelBase
+        { return Open(this); }
+    void Close(void) override // ChannelBase
+        { Close(this); }
 
-    bool Init(QString &startchannel, bool setchan);
+    bool Init(QString &startchannel, bool setchan) override; // ChannelBase
 
     // Sets
     void SetPMT(const ProgramMapTable*);
@@ -44,26 +46,28 @@ class DVBChannel : public DTVChannel
         { tuning_delay = how_slow_in_ms; }
 
     // Gets
-    bool IsOpen(void) const;
-    int  GetFd(void)                    const { return fd_frontend; }
+    bool IsOpen(void) const override; // ChannelBase
+    int  GetFd(void) const  override // ChannelBase
+        { return fd_frontend; }
     bool IsTuningParamsProbeSupported(void) const;
 
-    QString GetDevice(void)             const { return device; }
+    QString GetDevice(void) const override // ChannelBase
+        { return device; }
     /// Returns DVB device number, used to construct filenames for DVB devices
     QString GetCardNum(void)            const { return device; };
     /// Returns frontend name as reported by driver
     QString GetFrontendName(void)       const;
-    bool IsMaster(void)                 const;
+    bool IsMaster(void)                 const override; // DTVChannel
     /// Returns true iff we have a faulty DVB driver that munges PMT
     bool HasCRCBug(void)                const { return has_crc_bug; }
     uint GetMinSignalMonitorDelay(void) const { return sigmon_delay; }
-    /// Returns rotor object if it exists, NULL otherwise.
+    /// Returns rotor object if it exists, nullptr otherwise.
     const DiSEqCDevRotor *GetRotor(void) const;
 
     /// Returns true iff we have a signal carrier lock.
-    bool HasLock(bool *ok = NULL) const;
+    bool HasLock(bool *ok = nullptr) const;
     /// Returns signal strength in the range [0.0..1.0] (non-calibrated).
-    double GetSignalStrength(bool *ok = NULL) const;
+    double GetSignalStrength(bool *ok = nullptr) const;
     /// \brief Returns signal/noise in the range [0..1.0].
     /// Some drivers report the actual ratio, while others report
     /// the dB, but in this case some weak signals may report a
@@ -71,19 +75,19 @@ class DVBChannel : public DTVChannel
     /// MythTV or the 4.0 version of the DVB API due to the
     /// large number of drivers that ignored the fact that this
     /// was a signed number in the 3.0 API.
-    double GetSNR(bool *ok = NULL) const;
+    double GetSNR(bool *ok = nullptr) const;
     /// Returns # of corrected bits since last call. First call undefined.
-    double GetBitErrorRate(bool *ok = NULL) const;
+    double GetBitErrorRate(bool *ok = nullptr) const;
     /// Returns # of uncorrected blocks since last call. First call undefined.
-    double GetUncorrectedBlockCount(bool *ok = NULL) const;
+    double GetUncorrectedBlockCount(bool *ok = nullptr) const;
 
     // Commands
     bool SwitchToInput(int newcapchannel, bool setstarting);
     using DTVChannel::Tune;
-    bool Tune(const DTVMultiplex &tuning);
+    bool Tune(const DTVMultiplex &tuning) override; // DTVChannel
     bool Tune(const DTVMultiplex &tuning,
               bool force_reset = false, bool same_input = false);
-    bool Retune(void);
+    bool Retune(void) override; // ChannelBase
 
     bool ProbeTuningParams(DTVMultiplex &tuning) const;
 
@@ -91,9 +95,9 @@ class DVBChannel : public DTVChannel
     bool Open(DVBChannel*);
     void Close(DVBChannel*);
 
-    int  GetChanID(void) const;
+    int  GetChanID(void) const override; // ChannelBase
 
-    void CheckOptions(DTVMultiplex &t) const;
+    void CheckOptions(DTVMultiplex &t) const override; // DTVChannel
     void CheckFrequency(uint64_t frequency) const;
     bool CheckModulation(DTVModulation modulation) const;
     bool CheckCodeRate(DTVCodeRate rate) const;

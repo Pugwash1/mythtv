@@ -13,8 +13,8 @@ class AirPlayPictureScreen : public MythScreenType
 
    // These two methods are declared by MythScreenType and their signatures
    // should not be changed
-    virtual bool Create(void);
-    virtual void Init(void);
+    bool Create(void) override; // MythScreenType
+    void Init(void) override; // MythScreenType
 
     void UpdatePicture(const QString &imageFilename,
                        const QString &imageDescription);
@@ -32,19 +32,17 @@ class AirPlayPictureScreen : public MythScreenType
 AirPlayPictureScreen::AirPlayPictureScreen(MythScreenStack *parent)
               :MythScreenType(parent, "airplaypicture"),
               m_imageFilename(""), m_imageDescription(""),
-              m_airplayImage(NULL), m_airplayText(NULL)
+              m_airplayImage(nullptr), m_airplayText(nullptr)
 {
 }
 
 bool AirPlayPictureScreen::Create(void)
 {
-    bool foundtheme = false;
-
     // Load the theme for this screen
     // The xml file containing the screen definition is airplay-ui.xml in this
     // example, the name of the screen in the xml is airplaypicture. This
     // should make sense when you look at the xml below
-    foundtheme = LoadWindowFromXML("airplay-ui.xml", "airplaypicture", this);
+    bool foundtheme = LoadWindowFromXML("airplay-ui.xml", "airplaypicture", this);
 
     if (!foundtheme) // If we cannot load the theme for any reason ...
         return false;

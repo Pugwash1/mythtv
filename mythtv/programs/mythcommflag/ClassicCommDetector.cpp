@@ -146,11 +146,11 @@ ClassicCommDetector::ClassicCommDetector(SkipType commDetectMethod_in,
     blankFrameCount(0),                        currentAspect(0),
     totalMinBrightness(0),                     detectBlankFrames(false),
     detectSceneChanges(false),                 detectStationLogo(false),
-    logoInfoAvailable(false),                  logoDetector(0),
+    logoInfoAvailable(false),                  logoDetector(nullptr),
     frameIsBlank(false),
     sceneHasChanged(false),                    stationLogoPresent(false),
     lastFrameWasBlank(false),                  lastFrameWasSceneChange(false),
-    decoderFoundAspectChanges(false),          sceneChangeDetector(0),
+    decoderFoundAspectChanges(false),          sceneChangeDetector(nullptr),
     player(player_in),
     startedAt(startedAt_in),                   stopsAt(stopsAt_in),
     recordingStartedAt(recordingStartedAt_in),
@@ -440,7 +440,7 @@ bool ClassicCommDetector::go()
     {
         struct timeval startTime;
         if (stillRecording)
-            gettimeofday(&startTime, NULL);
+            gettimeofday(&startTime, nullptr);
 
         VideoFrame* currentFrame = player->GetRawVideoFrame();
         currentFrameNumber = currentFrame->frameNumber;
@@ -582,7 +582,7 @@ bool ClassicCommDetector::go()
             long usecPerFrame = (long)(1.0 / player->GetFrameRate() * 1000000);
 
             struct timeval endTime;
-            gettimeofday(&endTime, NULL);
+            gettimeofday(&endTime, nullptr);
 
             long long usecSleep =
                       usecPerFrame -
@@ -771,7 +771,6 @@ void ClassicCommDetector::ProcessFrame(VideoFrame *frame,
 {
     int max = 0;
     int min = 255;
-    int avg = 0;
     unsigned char pixel;
     int blankPixelsChecked = 0;
     long long totBrightness = 0;
@@ -905,7 +904,7 @@ void ClassicCommDetector::ProcessFrame(VideoFrame *frame,
                 bottomDarkRow = y;
 
         delete[] rowMax;
-        rowMax = 0;
+        rowMax = nullptr;
 
         for(int x = commDetectBorder; x < (width - commDetectBorder);
                 x += horizSpacing)
@@ -922,7 +921,7 @@ void ClassicCommDetector::ProcessFrame(VideoFrame *frame,
                 rightDarkCol = x;
 
         delete[] colMax;
-        colMax = 0;
+        colMax = nullptr;
 
         frameInfo[curFrameNumber].format = COMM_FORMAT_NORMAL;
         if ((topDarkRow > commDetectBorder) &&
@@ -940,7 +939,7 @@ void ClassicCommDetector::ProcessFrame(VideoFrame *frame,
             frameInfo[curFrameNumber].format |= COMM_FORMAT_PILLARBOX;
         }
 
-        avg = totBrightness / blankPixelsChecked;
+        int avg = totBrightness / blankPixelsChecked;
 
         frameInfo[curFrameNumber].minBrightness = min;
         frameInfo[curFrameNumber].maxBrightness = max;
@@ -1273,6 +1272,7 @@ void ClassicCommDetector::BuildAllMethodsCommList(void)
             if (formatCounts[i] > formatFrames)
             {
                 format = i;
+                // cppcheck-suppress unreadVariable
                 formatFrames = formatCounts[i];
             }
         }
@@ -1321,6 +1321,7 @@ void ClassicCommDetector::BuildAllMethodsCommList(void)
         }
         else
         {
+            // cppcheck-suppress unreadVariable
             lastFrameWasBlank = false;
         }
 
@@ -1822,6 +1823,7 @@ void ClassicCommDetector::BuildAllMethodsCommList(void)
                     fbp->aspectMatch, thisScore);
         LOG(VB_COMMFLAG, LOG_DEBUG, msg);
 
+        // cppcheck-suppress unreadVariable
         lastScore = thisScore;
         curBlock++;
     }

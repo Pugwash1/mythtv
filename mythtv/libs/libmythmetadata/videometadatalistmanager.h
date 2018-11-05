@@ -40,7 +40,7 @@ class META_PUBLIC meta_node
   public:
     meta_node(meta_node *parent, bool is_path_root = false) :
             m_parent(parent), m_path_root(is_path_root) {}
-    virtual ~meta_node() {}
+    virtual ~meta_node() = default;
 
     virtual const QString &getName() const = 0;
     virtual const QString &getPath() const;
@@ -60,9 +60,9 @@ class META_PUBLIC meta_node
 class META_PUBLIC meta_data_node : public meta_node
 {
   public:
-    meta_data_node(VideoMetadata *data, meta_node *parent = NULL) :
+    meta_data_node(VideoMetadata *data, meta_node *parent = nullptr) :
                    meta_node(parent), m_data(data) {}
-    const QString &getName() const;
+    const QString &getName() const override; // meta_node
     const VideoMetadata *getData() const;
     VideoMetadata *getData();
 
@@ -90,18 +90,18 @@ class META_PUBLIC meta_dir_node : public meta_node
 
   public:
     meta_dir_node(const QString &path, const QString &name = "",
-                  meta_dir_node *parent = NULL, bool is_path_root = false,
+                  meta_dir_node *parent = nullptr, bool is_path_root = false,
                   const QString &host = "", const QString &prefix = "",
                   const QVariant &data = QVariant());
-    meta_dir_node() : meta_node(NULL) { }
+    meta_dir_node() : meta_node(nullptr) { }
 
     void setName(const QString &name);
-    const QString &getName() const;
+    const QString &getName() const override; // meta_node
     void SetHost(const QString &host);
     const QString &GetHost() const;
     void SetPrefix(const QString &prefix);
     const QString &GetPrefix() const;
-    const QString &getPath() const;
+    const QString &getPath() const override; // meta_node
     void setPath(const QString &path);
     void SetData(const QVariant &data);
     const QVariant &GetData() const;

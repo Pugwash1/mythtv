@@ -29,7 +29,7 @@ class AudioOutput;
 class DecoderEvent : public MythEvent
 {
   public:
-    explicit DecoderEvent(Type t) : MythEvent(t), error_msg(NULL) { ; }
+    explicit DecoderEvent(Type t) : MythEvent(t), error_msg(nullptr) { ; }
 
     explicit DecoderEvent(QString *e) : MythEvent(Error), error_msg(e) { ; }
 
@@ -41,7 +41,8 @@ class DecoderEvent : public MythEvent
 
     const QString *errorMessage() const { return error_msg; }
 
-    virtual MythEvent *clone(void) const { return new DecoderEvent(*this); }
+    MythEvent *clone(void) const override // MythEvent
+        { return new DecoderEvent(*this); }
 
     static Type Decoding;
     static Type Stopped;
@@ -49,7 +50,7 @@ class DecoderEvent : public MythEvent
     static Type Error;
 
   private:
-    DecoderEvent(const DecoderEvent &o) : MythEvent(o), error_msg(NULL)
+    DecoderEvent(const DecoderEvent &o) : MythEvent(o), error_msg(nullptr)
     {
         if (o.error_msg)
         {
@@ -116,7 +117,7 @@ public:
     virtual const QString &extension() const = 0; // file extension, ie. ".mp3" or ".ogg"
     virtual const QString &description() const = 0; // file type, ie. "MPEG Audio Files"
     virtual Decoder *create(const QString &, AudioOutput *, bool) = 0;
-    virtual ~DecoderFactory() {}
+    virtual ~DecoderFactory() = default;
 };
 
 class CdDecoderFactory : public DecoderFactory
@@ -124,10 +125,10 @@ class CdDecoderFactory : public DecoderFactory
     Q_DECLARE_TR_FUNCTIONS(CdDecoderFactory);
 
 public:
-    bool supports(const QString &) const;
-    const QString &extension() const;
-    const QString &description() const;
-    Decoder *create(const QString &, AudioOutput *, bool);
+    bool supports(const QString &) const override; // DecoderFactory
+    const QString &extension() const override; // DecoderFactory
+    const QString &description() const override; // DecoderFactory
+    Decoder *create(const QString &, AudioOutput *, bool) override; // DecoderFactory
 };
 
 class avfDecoderFactory : public DecoderFactory
@@ -135,10 +136,10 @@ class avfDecoderFactory : public DecoderFactory
     Q_DECLARE_TR_FUNCTIONS(avfDecoderFactory);
 
 public:
-    bool supports(const QString &) const;
-    const QString &extension() const;
-    const QString &description() const;
-    Decoder *create(const QString &, AudioOutput *, bool);
+    bool supports(const QString &) const override; // DecoderFactory
+    const QString &extension() const override; // DecoderFactory
+    const QString &description() const override; // DecoderFactory
+    Decoder *create(const QString &, AudioOutput *, bool) override; // DecoderFactory
 };
 
 #endif

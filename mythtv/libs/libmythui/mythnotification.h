@@ -31,7 +31,7 @@ class MUI_PUBLIC MythNotification : public MythEvent
     static Type Check;
     static Type Busy;
 
-    MythNotification(Type t, void *parent = NULL)
+    MythNotification(Type t, void *parent = nullptr)
         : MythEvent(t, "NOTIFICATION"), m_id(-1),
         m_parent(parent), m_fullScreen(false),
         m_duration(0), m_visibility(kAll), m_priority(kDefault)
@@ -48,7 +48,7 @@ class MUI_PUBLIC MythNotification : public MythEvent
     MythNotification(const QString &title, const QString &author,
                      const QString &details = QString())
         : MythEvent(New, "NOTIFICATION"), m_id(-1),
-        m_parent(NULL), m_fullScreen(false),
+        m_parent(nullptr), m_fullScreen(false),
         m_description(title), m_duration(0), m_visibility(kAll),
         m_priority(kDefault)
     {
@@ -63,7 +63,7 @@ class MUI_PUBLIC MythNotification : public MythEvent
     MythNotification(Type t, const QString &title, const QString &author,
                      const QString &details = QString(),
                      const QString &extra   = QString())
-        : MythEvent(t, "NOTIFICATION"), m_id(-1), m_parent(NULL),
+        : MythEvent(t, "NOTIFICATION"), m_id(-1), m_parent(nullptr),
         m_fullScreen(false), m_description(title), m_duration(0),
         m_visibility(kAll), m_priority(kDefault)
     {
@@ -77,7 +77,7 @@ class MUI_PUBLIC MythNotification : public MythEvent
     }
 
     MythNotification(Type t, const DMAP &metadata)
-        : MythEvent(t, "NOTIFICATION"), m_id(-1), m_parent(NULL),
+        : MythEvent(t, "NOTIFICATION"), m_id(-1), m_parent(nullptr),
         m_fullScreen(false), m_duration(0), m_metadata(metadata),
         m_visibility(kAll), m_priority(kDefault)
     {
@@ -85,7 +85,7 @@ class MUI_PUBLIC MythNotification : public MythEvent
     }
 
     explicit MythNotification(const MythEvent &me)
-        : MythEvent(me), m_id(-1), m_parent(NULL)
+        : MythEvent(me), m_id(-1), m_parent(nullptr)
     {
         FromStringList();
     }
@@ -94,7 +94,8 @@ class MUI_PUBLIC MythNotification : public MythEvent
     {
     }
 
-    virtual MythEvent *clone(void) const  { return new MythNotification(*this); }
+    MythEvent *clone(void) const override // MythEvent
+        { return new MythNotification(*this); }
 
     /** Priority enum
      * A notification can be given a priority. Display order of notification
@@ -251,7 +252,8 @@ class MUI_PUBLIC MythImageNotification : public virtual MythNotification
     {
     }
 
-    virtual MythEvent *clone(void) const    { return new MythImageNotification(*this); }
+    MythEvent *clone(void) const override // MythNotification
+        { return new MythImageNotification(*this); }
 
     // Setter
     /**
@@ -300,7 +302,8 @@ class MUI_PUBLIC MythPlaybackNotification : public virtual MythNotification
         m_progressText  = stringFromSeconds(duration);
     }
 
-    virtual MythEvent *clone(void) const    { return new MythPlaybackNotification(*this); }
+    MythEvent *clone(void) const override // MythNotification
+        { return new MythPlaybackNotification(*this); }
 
     // Setter
     /**
@@ -365,7 +368,8 @@ class MUI_PUBLIC MythMediaNotification : public MythImageNotification,
     {
     }
 
-    virtual MythEvent *clone(void) const { return new MythMediaNotification(*this); }
+    MythEvent *clone(void) const override // MythImageNotification
+        { return new MythMediaNotification(*this); }
 
   protected:
     MythMediaNotification(const MythMediaNotification &o)

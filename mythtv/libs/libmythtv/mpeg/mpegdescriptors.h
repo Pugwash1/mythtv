@@ -223,27 +223,27 @@ class MTV_PUBLIC MPEGDescriptor
     MPEGDescriptor(const unsigned char *data, int len = 300) : _data(data)
     {
         if ((len < 2) || (int(DescriptorLength()) + 2) > len)
-            _data = NULL;
+            _data = nullptr;
     }
     MPEGDescriptor(const unsigned char *data,
                    int len, uint tag) : _data(data)
     {
         if ((len < 2) || (int(DescriptorLength()) + 2) > len)
-            _data = NULL;
+            _data = nullptr;
         else if (DescriptorTag() != tag)
-            _data = NULL;
+            _data = nullptr;
     }
     MPEGDescriptor(const unsigned char *data,
                    int len, uint tag, uint req_desc_len) : _data(data)
     {
         if ((len < 2) || (int(DescriptorLength()) + 2) > len)
-            _data = NULL;
+            _data = nullptr;
         else if (DescriptorTag() != tag)
-            _data = NULL;
+            _data = nullptr;
         else if (DescriptorLength() != req_desc_len)
-            _data = NULL;
+            _data = nullptr;
     }
-    virtual ~MPEGDescriptor() {}
+    virtual ~MPEGDescriptor() = default;
 
     bool IsValid(void) const { return _data; }
     uint size(void) const { return DescriptorLength() + 2; }
@@ -284,7 +284,7 @@ class RegistrationDescriptor : public MPEGDescriptor
         // The HD-PVR outputs a registration descriptor with a length
         // of 8 rather than 4, so we accept any length >= 4, not just 4.
         if (DescriptorLength() < 4)
-            _data = NULL;
+            _data = nullptr;
     }
 
     uint FormatIdentifier(void) const
@@ -294,7 +294,7 @@ class RegistrationDescriptor : public MPEGDescriptor
         return QString("") + QChar(_data[2]) + QChar(_data[3]) +
             QChar(_data[4]) + QChar(_data[5]);
     }
-    QString toString() const;
+    QString toString() const override; // MPEGDescriptor
 
   private:
     static void InitializeDescriptionMap(void);
@@ -316,7 +316,7 @@ class ConditionalAccessDescriptor : public MPEGDescriptor
     uint PID(void) const      { return (_data[4] & 0x1F) << 8 | _data[5]; }
     uint DataSize(void) const { return DescriptorLength() - 4; }
     const unsigned char *Data(void) const { return &_data[6]; }
-    QString toString() const;
+    QString toString() const override; // MPEGDescriptor
 };
 
 class ISO639LanguageDescriptor : public MPEGDescriptor
@@ -337,7 +337,7 @@ class ISO639LanguageDescriptor : public MPEGDescriptor
     QString CanonicalLanguageString(void) const
         { return iso639_key_to_str3(CanonicalLanguageKey()); }
     
-    QString toString() const;
+    QString toString() const override; // MPEGDescriptor
 };
 
 /// ISO 13818-1:2000/Amd.3:2004 page 11
@@ -368,7 +368,7 @@ class AVCVideoDescriptor : public MPEGDescriptor
     bool FramePackingSEINotPresentFlag(void)
                                   const { return _data[5]&0x20; }
     // reserved 6 bslbf
-    QString toString() const;
+    QString toString() const override; // MPEGDescriptor
 };
 
 /// ISO 13818-1:2000/Amd.3:2004 page 12
@@ -437,7 +437,7 @@ class HEVCVideoDescriptor : public MPEGDescriptor
     // reserved                          5  16.0
     // temporal_id_max                   3  16.5
 
-    QString toString() const;
+    QString toString() const override; // MPEGDescriptor
 };
 
 #endif // _MPEG_DESCRIPTORS_H_

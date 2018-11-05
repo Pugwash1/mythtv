@@ -44,32 +44,31 @@ typedef enum ASIRXMode
 class ASIStreamHandler : public StreamHandler
 {
   public:
-    static ASIStreamHandler *Get(const QString &devicename,
-                                 int recorder_id = -1);
-    static void Return(ASIStreamHandler * & ref, int recorder_id = -1);
+    static ASIStreamHandler *Get(const QString &devicename, int inputid);
+    static void Return(ASIStreamHandler * & ref, int inputid);
 
-    virtual void AddListener(MPEGStreamData *data,
-                             bool /*allow_section_reader*/ = false,
-                             bool /*needs_drb*/            = false,
-                             QString output_file       = QString())
+    void AddListener(MPEGStreamData *data,
+                     bool /*allow_section_reader*/ = false,
+                     bool /*needs_drb*/            = false,
+                     QString output_file       = QString()) override // StreamHandler
     {
         StreamHandler::AddListener(data, false, true, output_file);
-    } // StreamHandler
+    }
 
     void SetClockSource(ASIClockSource cs);
     void SetRXMode(ASIRXMode m);
 
   private:
-    explicit ASIStreamHandler(const QString &);
+    explicit ASIStreamHandler(const QString &, int inputid);
 
     bool Open(void);
     void Close(void);
 
-    virtual void run(void); // MThread
+    void run(void) override; // MThread
 
-    virtual void PriorityEvent(int fd); // DeviceReaderCB
+    void PriorityEvent(int fd) override; // DeviceReaderCB
 
-    virtual void SetRunningDesired(bool desired); // StreamHandler
+    void SetRunningDesired(bool desired) override; // StreamHandler
 
   private:
     int                                     _device_num;

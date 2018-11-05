@@ -47,12 +47,21 @@ using namespace std;
 
 #define LOC QString("ChScan: ")
 
-ChannelScanner::ChannelScanner() :
-    scanMonitor(NULL), channel(NULL), sigmonScanner(NULL), iptvScanner(NULL),
+ChannelScanner::ChannelScanner()
+    : scanMonitor(nullptr)
+    , channel(nullptr)
+    , sigmonScanner(nullptr)
+    , iptvScanner(nullptr)
 #ifdef USING_VBOX
-    vboxScanner(NULL),
+    , vboxScanner(nullptr)
 #endif
-    freeToAirOnly(false), serviceRequirements(kRequireAV)
+#if !defined( USING_MINGW ) && !defined( _MSC_VER )
+    , m_ExternRecScanner(nullptr)
+#endif
+    , freeToAirOnly(false)
+    , addFullTS(false)
+    , m_sourceid(-1)
+    , serviceRequirements(kRequireAV)
 {
 }
 
@@ -63,7 +72,7 @@ ChannelScanner::~ChannelScanner()
     if (scanMonitor)
     {
         scanMonitor->deleteLater();
-        scanMonitor = NULL;
+        scanMonitor = nullptr;
     }
 }
 
@@ -72,20 +81,20 @@ void ChannelScanner::Teardown(void)
     if (sigmonScanner)
     {
         delete sigmonScanner;
-        sigmonScanner = NULL;
+        sigmonScanner = nullptr;
     }
 
     if (channel)
     {
         delete channel;
-        channel = NULL;
+        channel = nullptr;
     }
 
     if (iptvScanner)
     {
         iptvScanner->Stop();
         delete iptvScanner;
-        iptvScanner = NULL;
+        iptvScanner = nullptr;
     }
 
 #ifdef USING_VBOX
@@ -93,14 +102,23 @@ void ChannelScanner::Teardown(void)
     {
         vboxScanner->Stop();
         delete vboxScanner;
-        vboxScanner = NULL;
+        vboxScanner = nullptr;
+    }
+#endif
+
+#if !defined( USING_MINGW ) && !defined( _MSC_VER )
+    if (m_ExternRecScanner)
+    {
+        m_ExternRecScanner->Stop();
+        delete m_ExternRecScanner;
+        m_ExternRecScanner = nullptr;
     }
 #endif
 
     if (scanMonitor)
     {
         scanMonitor->deleteLater();
-        scanMonitor = NULL;
+        scanMonitor = nullptr;
     }
 }
 
@@ -129,6 +147,7 @@ void ChannelScanner::Scan(
     freeToAirOnly = do_fta_only;
     addFullTS = do_add_full_ts;
     serviceRequirements = service_requirements;
+    m_sourceid = sourceid;
 
     PreScanCommon(scantype, cardid, inputname,
                   sourceid, do_ignore_signal_timeout, do_test_decryption);
@@ -262,6 +281,12 @@ void ChannelScanner::Scan(
             "ScanCurrentTransport(" + sistandard + ")");
         ok = sigmonScanner->ScanCurrentTransport(sistandard);
     }
+    else if (ScanTypeSetting::ExternRecImport == scantype)
+    {
+        LOG(VB_CHANSCAN, LOG_INFO, LOC +
+            "Importing channels from External Recorder");
+        ok = ImportExternRecorder(cardid, inputname, sourceid);
+    }
 
     if (!ok)
     {
@@ -274,6 +299,7 @@ void ChannelScanner::Scan(
 DTVConfParser::return_t ChannelScanner::ImportDVBUtils(
     uint sourceid, int cardtype, const QString &file)
 {
+    m_sourceid = sourceid;
     channels.clear();
 
     DTVConfParser::cardtype_t type = DTVConfParser::UNKNOWN;
@@ -316,7 +342,7 @@ bool ChannelScanner::ImportM3U(uint cardid, const QString &inputname,
 {
     (void) cardid;
     (void) inputname;
-    (void) sourceid;
+    m_sourceid = sourceid;
 
     if (!scanMonitor)
         scanMonitor = new ScanMonitor(this);
@@ -338,6 +364,7 @@ bool ChannelScanner::ImportM3U(uint cardid, const QString &inputname,
 bool ChannelScanner::ImportVBox(uint cardid, const QString &inputname, uint sourceid,
                                 bool ftaOnly, ServiceRequirements serviceType)
 {
+    m_sourceid = sourceid;
 #ifdef USING_VBOX
     if (!scanMonitor)
         scanMonitor = new ScanMonitor(this);
@@ -353,7 +380,33 @@ bool ChannelScanner::ImportVBox(uint cardid, const QString &inputname, uint sour
 #else
     (void) cardid;
     (void) inputname;
-    (void) sourceid;
+    return false;
+#endif
+}
+
+bool ChannelScanner::ImportExternRecorder(uint cardid, const QString &inputname,
+                                          uint sourceid)
+{
+    m_sourceid = sourceid;
+#if !defined( USING_MINGW ) && !defined( _MSC_VER )
+    if (!scanMonitor)
+        scanMonitor = new ScanMonitor(this);
+
+    // Create a External Recorder Channel Fetcher
+    m_ExternRecScanner = new ExternRecChannelScanner(cardid,
+                                                     inputname,
+                                                     sourceid,
+                                                     scanMonitor);
+
+    MonitorProgress(false, false, false, false);
+
+    m_ExternRecScanner->Scan();
+
+    return true;
+#else
+    (void) cardid;
+    (void) inputname;
+
     return false;
 #endif
 }
@@ -414,41 +467,43 @@ void ChannelScanner::PreScanCommon(
 
 #ifdef USING_V4L2
     if (("V4L" == card_type) || ("MPEG" == card_type))
-        channel = new V4LChannel(NULL, device);
+        channel = new V4LChannel(nullptr, device);
 #endif
 
 #ifdef USING_HDHOMERUN
     if ("HDHOMERUN" == card_type)
     {
-        channel = new HDHRChannel(NULL, device);
+        channel = new HDHRChannel(nullptr, device);
     }
 #endif // USING_HDHOMERUN
 
 #ifdef USING_ASI
     if ("ASI" == card_type)
     {
-        channel = new ASIChannel(NULL, device);
+        channel = new ASIChannel(nullptr, device);
     }
 #endif // USING_ASI
 
 #ifdef USING_IPTV
     if ("FREEBOX" == card_type)
     {
-        channel = new IPTVChannel(NULL, device);
+        channel = new IPTVChannel(nullptr, device);
     }
 #endif
 
 #ifdef USING_VBOX
     if ("VBOX" == card_type)
     {
-        channel = new IPTVChannel(NULL, device);
+        channel = new IPTVChannel(nullptr, device);
     }
 #endif
 
+#if !defined( USING_MINGW ) && !defined( _MSC_VER )
     if ("EXTERNAL" == card_type)
     {
-        channel = new ExternalChannel(NULL, device);
+        channel = new ExternalChannel(nullptr, device);
     }
+#endif
 
     if (!channel)
     {
@@ -515,10 +570,11 @@ void ChannelScanner::PreScanCommon(
     if (mon)
         mon->AddListener(lis);
 
-    DVBSignalMonitor *dvbm = NULL;
+    DVBSignalMonitor *dvbm = nullptr;
     bool using_rotor = false;
 
 #ifdef USING_DVB
+    // cppcheck-suppress redundantAssignment
     dvbm = sigmonScanner->GetDVBSignalMonitor();
     if (dvbm && mon)
         using_rotor = mon->HasFlags(SignalMonitor::kDVBSigMon_WaitForPos);

@@ -73,7 +73,7 @@ class UPNP_PUBLIC SubscriberInfo
         void SetExpireTime( unsigned long nSecs )
         {
             TaskTime tt;
-            gettimeofday( (&tt), NULL );
+            gettimeofday( (&tt), nullptr );
 
             AddMicroSecToTaskTime( tt, (nSecs * 1000000) );
 
@@ -105,9 +105,9 @@ class UPNP_PUBLIC  StateVariableBase
         {
             m_bNotify = bNotify;
             m_sName   = sName;
-            gettimeofday( (&m_ttLastChanged), NULL );
+            gettimeofday( (&m_ttLastChanged), nullptr );
         }
-        virtual ~StateVariableBase() {};
+        virtual ~StateVariableBase() = default;
 
         virtual QString ToString() = 0;
 };
@@ -137,7 +137,7 @@ class UPNP_PUBLIC  StateVariable : public StateVariableBase
 
         // ------------------------------------------------------------------
 
-        virtual QString ToString()
+        QString ToString() override // StateVariableBase
         {
             return QString( "%1" ).arg( m_value );
         }
@@ -156,7 +156,7 @@ class UPNP_PUBLIC  StateVariable : public StateVariableBase
             if ( m_value != value )
             {
                 m_value = value;
-                gettimeofday( (&m_ttLastChanged), NULL );
+                gettimeofday( (&m_ttLastChanged), nullptr );
             }
         }
 };
@@ -179,7 +179,7 @@ class UPNP_PUBLIC StateVariables
 
         // ------------------------------------------------------------------
 
-        StateVariables() { }
+        StateVariables() = default;
         virtual ~StateVariables()
         {
             SVMap::iterator it = m_map.begin();
@@ -192,7 +192,7 @@ class UPNP_PUBLIC StateVariables
 
         void AddVariable( StateVariableBase *pBase )
         {
-            if (pBase != NULL)
+            if (pBase != nullptr)
                 m_map.insert(pBase->m_sName, pBase);
         }
 
@@ -207,7 +207,7 @@ class UPNP_PUBLIC StateVariables
             StateVariable< T > *pVariable =
                 dynamic_cast< StateVariable< T > *>( *it );
 
-            if (pVariable == NULL)
+            if (pVariable == nullptr)
                 return false;           // It's not the expected type.
 
             if ( pVariable->GetValue() != value)
@@ -226,7 +226,7 @@ class UPNP_PUBLIC StateVariables
         template < class T >
         T GetValue( const QString &sName )
         {
-            T *dummy = NULL;
+            T *dummy = nullptr;
             SVMap::iterator it = m_map.find(sName);
             if (it == m_map.end())
                 return state_var_init(dummy);
@@ -234,7 +234,7 @@ class UPNP_PUBLIC StateVariables
             StateVariable< T > *pVariable =
                 dynamic_cast< StateVariable< T > *>( *it );
 
-            if (pVariable != NULL)
+            if (pVariable != nullptr)
                 return pVariable->GetValue();
 
             return state_var_init(dummy);
@@ -272,14 +272,15 @@ class UPNP_PUBLIC  Eventing : public HttpServerExtension,
 
     protected:
 
-        virtual void Notify           ( );
+        void         Notify           ( ) override; // StateVariables
         void         NotifySubscriber ( SubscriberInfo *pInfo );
         void         HandleSubscribe  ( HTTPRequest *pRequest );
         void         HandleUnsubscribe( HTTPRequest *pRequest );
 
         // Implement UPnpServiceImpl methods that we can
 
-        virtual QString GetServiceEventURL  () { return m_sEventMethodName; }
+        QString GetServiceEventURL() override // UPnpServiceImpl
+            { return m_sEventMethodName; }
 
     public:
                  Eventing      ( const QString &sExtensionName,
@@ -287,14 +288,14 @@ class UPNP_PUBLIC  Eventing : public HttpServerExtension,
                                  const QString &sSharePath );
         virtual ~Eventing      ( );
 
-        virtual QStringList GetBasePaths();
+        QStringList GetBasePaths() override; // HttpServerExtension
 
-        virtual bool ProcessRequest( HTTPRequest *pRequest );
+        bool ProcessRequest( HTTPRequest *pRequest ) override; // HttpServerExtension
 
         short    HoldEvents    ( );
         short    ReleaseEvents ( );
 
-        void     ExecutePostProcess( );
+        void     ExecutePostProcess( ) override; // IPostProcess
 
 
 };

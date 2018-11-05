@@ -38,7 +38,11 @@
 #endif
 
 #ifdef USING_HDHOMERUN
-#include "hdhomerun.h"
+#ifdef HDHOMERUN_LIBPREFIX
+#include "libhdhomerun/hdhomerun.h"
+#else
+#include "hdhomerun/hdhomerun.h"
+#endif
 #endif
 
 #ifdef USING_VBOX
@@ -117,18 +121,21 @@ QString CardUtil::GetScanableInputTypes(void)
 bool CardUtil::IsCableCardPresent(uint inputid,
                                   const QString &inputType)
 {
+#if (!USING_HDHOMERUN && !USING_CETON)
+    Q_UNUSED(inputid);
+#endif
+
     if (inputType == "HDHOMERUN")
     {
 #ifdef USING_HDHOMERUN
         hdhomerun_device_t *hdhr;
         hdhomerun_tuner_status_t status;
         QString device = GetVideoDevice(inputid);
-        hdhr = hdhomerun_device_create_from_str(device.toLatin1(), NULL);
+        hdhr = hdhomerun_device_create_from_str(device.toLatin1(), nullptr);
         if (!hdhr)
             return false;
 
-        int oob = -1;
-        oob = hdhomerun_device_get_oob_status(hdhr, NULL, &status);
+        int oob = hdhomerun_device_get_oob_status(hdhr, nullptr, &status);
 
         // if no OOB tuner, oob will be < 1.  If no CC present, OOB
         // status will be "none."
@@ -504,8 +511,13 @@ QStringList CardUtil::ProbeVideoDevices(const QString &rawtype)
         const int max_count   = 50;
         hdhomerun_discover_device_t result_list[max_count];
 
+#ifdef HDHOMERUN_V2
+        int result = hdhomerun_discover_find_devices_custom_v2(
+            target_ip, device_type, device_id, result_list, max_count);
+#else
         int result = hdhomerun_discover_find_devices_custom(
             target_ip, device_type, device_id, result_list, max_count);
+#endif
 
         if (result == -1)
         {
@@ -2110,7 +2122,7 @@ bool CardUtil::DeleteInput(uint inputid)
         }
         else if (!query.next())
         {
-            tree.SetRoot(NULL);
+            tree.SetRoot(nullptr);
             tree.Store(inputid);
         }
     }
@@ -2231,7 +2243,7 @@ bool CardUtil::HDHRdoesDVB(const QString &device)
 
 #ifdef USING_HDHOMERUN
     hdhomerun_device_t  *hdhr;
-    hdhr = hdhomerun_device_create_from_str(device.toLatin1(), NULL);
+    hdhr = hdhomerun_device_create_from_str(device.toLatin1(), nullptr);
     if (!hdhr)
         return false;
 
@@ -2259,7 +2271,6 @@ QString CardUtil::GetHDHRdesc(const QString &device)
 
 #ifdef USING_HDHOMERUN
     bool      deviceIsIP = false;
-    uint32_t  dev;
 
     if (device.contains('.'))  // Simplistic check, but also allows DNS names
         deviceIsIP = true;
@@ -2267,7 +2278,7 @@ QString CardUtil::GetHDHRdesc(const QString &device)
     {
         bool validID;
 
-        dev = device.toUInt(&validID, 16);
+        uint32_t dev = device.toUInt(&validID, 16);
         if (!validID || !hdhomerun_discover_validate_device_id(dev))
             return QObject::tr("Invalid Device ID");
     }
@@ -2277,7 +2288,7 @@ QString CardUtil::GetHDHRdesc(const QString &device)
                               ") - trying to locate device");
 
     hdhomerun_device_t  *hdhr;
-    hdhr = hdhomerun_device_create_from_str(device.toLatin1(), NULL);
+    hdhr = hdhomerun_device_create_from_str(device.toLatin1(), nullptr);
     if (!hdhr)
         return QObject::tr("Invalid Device ID or address.");
 
@@ -2588,8 +2599,7 @@ bool CardUtil::IsVBoxPresent(uint inputid)
         url = query.value(0).toString();
 
     //now get just the IP address from the url
-    QString ip ="";
-    ip = url.host();
+    QString ip = url.host();
     LOG(VB_GENERAL, LOG_INFO, QString("VBOX IP found (%1) for inputid (%2)")
                 .arg(ip).arg(inputid));
 

@@ -1,10 +1,8 @@
 #ifndef _PROGRAM_INFO_UPDATER_H_
 #define _PROGRAM_INFO_UPDATER_H_
 
-// ANSI C headers
-#include <stdint.h> // for [u]int[32,64]_t
-
 // C++ headers
+#include <cstdint> // for [u]int[32,64]_t
 #include <vector>
 
 // Qt headers
@@ -54,7 +52,7 @@ class MPUBLIC ProgramInfoUpdater : public QRunnable
 
     void insert(uint     recordedid,
                 PIAction action, uint64_t         filesize = 0ULL);
-    void run(void);
+    void run(void) override; // QRunnable
 
   private:
     QMutex        lock;

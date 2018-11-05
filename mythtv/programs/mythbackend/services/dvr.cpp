@@ -408,10 +408,8 @@ bool Dvr::ReactivateRecording(int RecordedId)
 
 bool Dvr::RescheduleRecordings(void)
 {
-    QString cmd = QString("RESCHEDULE_RECORDINGS");
-    MythEvent me(cmd);
-
-    gCoreContext->dispatch(me);
+    ScheduledRecording::RescheduleMatch(0, 0, 0, QDateTime(),
+                                        "RescheduleRecordings");
     return true;
 }
 
@@ -637,7 +635,7 @@ DTC::ProgramList* Dvr::GetExpiringList( int nStartIndex,
     {
         ProgramInfo *pInfo = infoList[ n ];
 
-        if (pInfo != NULL)
+        if (pInfo != nullptr)
         {
             DTC::Program *pProgram = pPrograms->AddNewProgram();
 
@@ -675,7 +673,7 @@ DTC::EncoderList* Dvr::GetEncoderList()
     {
         EncoderLink *elink = *iter;
 
-        if (elink != NULL)
+        if (elink != nullptr)
         {
             DTC::Encoder *pEncoder = pList->AddNewEncoder();
 
@@ -948,7 +946,7 @@ DTC::ProgramList* Dvr::GetUpcomingList( int  nStartIndex,
             ((*it)->GetRecordingStatus() != nRecStatus))
         {
             delete *it;
-            *it = NULL;
+            *it = nullptr;
             continue;
         }
 
@@ -967,7 +965,7 @@ DTC::ProgramList* Dvr::GetUpcomingList( int  nStartIndex,
         }
 
         delete *it;
-        *it = NULL;
+        *it = nullptr;
     }
 
     // ----------------------------------------------------------------------
@@ -1031,7 +1029,7 @@ DTC::ProgramList* Dvr::GetConflictList( int  nStartIndex,
             recordingList.push_back(new RecordingInfo(**it));
         }
         delete *it;
-        *it = NULL;
+        *it = nullptr;
     }
 
     // ----------------------------------------------------------------------
@@ -1249,7 +1247,7 @@ bool Dvr::UpdateRecordSchedule ( uint      nRecordId,
                                  bool      bAutoUserJob4,
                                  int       nTranscoder)
 {
-    if (nRecordId <= 0 )
+    if (nRecordId == 0 )
         throw QString("Record ID is invalid.");
 
     RecordingRule pRule;
@@ -1370,7 +1368,7 @@ bool Dvr::RemoveRecordSchedule ( uint nRecordId )
 {
     bool bResult = false;
 
-    if (nRecordId <= 0 )
+    if (nRecordId == 0 )
         throw QString("Record ID does not exist.");
 
     RecordingRule pRule;
@@ -1445,7 +1443,7 @@ DTC::RecRuleList* Dvr::GetRecordScheduleList( int nStartIndex,
     {
         RecordingInfo *info = recList[n];
 
-        if (info != NULL)
+        if (info != nullptr)
         {
             DTC::RecRule *pRecRule = pRecRules->AddNewRecRule();
 
@@ -1528,7 +1526,7 @@ bool Dvr::EnableRecordSchedule ( uint nRecordId )
 {
     bool bResult = false;
 
-    if (nRecordId <= 0 )
+    if (nRecordId == 0 )
         throw QString("Record ID appears invalid.");
 
     RecordingRule pRule;
@@ -1548,7 +1546,7 @@ bool Dvr::DisableRecordSchedule( uint nRecordId )
 {
     bool bResult = false;
 
-    if (nRecordId <= 0 )
+    if (nRecordId == 0 )
         throw QString("Record ID appears invalid.");
 
     RecordingRule pRule;

@@ -64,12 +64,12 @@ class OpenGLFilter
  */
 
 OpenGLVideo::OpenGLVideo() :
-    gl_context(NULL),         video_disp_dim(0,0),
+    gl_context(nullptr),      video_disp_dim(0,0),
     video_dim(0,0),           viewportSize(0,0),
     masterViewportSize(0,0),  display_visible_rect(0,0,0,0),
     display_video_rect(0,0,0,0), video_rect(0,0,0,0),
     frameBufferRect(0,0,0,0), hardwareDeinterlacing(false),
-    colourSpace(NULL),        viewportControl(false),
+    colourSpace(nullptr),     viewportControl(false),
     inputTextureSize(0,0),    currentFrameNum(0),
     inputUpdated(false),      refsNeeded(0),
     textureRects(false),      textureType(GL_TEXTURE_2D),
@@ -163,8 +163,17 @@ bool OpenGLVideo::Init(MythRenderOpenGL *glcontext, VideoColourSpace *colourspac
     bool shaders = glsl || (gl_features & kGLExtFragProg);
     bool fbos    = gl_features & kGLExtFBufObj;
     bool pbos    = gl_features & kGLExtPBufObj;
-    static bool uyvy = !getenv("OPENGL_NOUYVY");
-    static bool yv12 = !getenv("OPENGL_NOYV12");
+
+    #ifdef ANDROID
+    #define YV12DEFAULT 0
+    #else
+    #define YV12DEFAULT 1
+    #endif
+
+    bool yv12 = gCoreContext->GetNumSetting("OpenGLYV12", YV12DEFAULT)
+        && !getenv("OPENGL_NOYV12");
+    bool uyvy = gCoreContext->GetNumSetting("OpenGLUYVY", 1)
+        && !getenv("OPENGL_NOUYVY");
     bool ycbcr   = (gl_features & kGLMesaYCbCr) || (gl_features & kGLAppleYCbCr);
 
     // warn about the lite profile when it offers no benefit
@@ -183,15 +192,8 @@ bool OpenGLVideo::Init(MythRenderOpenGL *glcontext, VideoColourSpace *colourspac
         videoTextureType = GL_YCBCR_MESA;
     else if ((!shaders || preferYCBCR) && (gl_features & kGLAppleYCbCr))
         videoTextureType = GL_YCBCR_422_APPLE;
-#ifndef ANDROID
-    // WORKAROUND - bypass this on Android
-    // because on Android using texture type MYTHTV_YV12
-    // results in a green line on bottom and left with
-    // some videos. It seems to happen on videos that are
-    // being resized (e.g. play 720p video with 1080p screen).
     else if (glsl && fbos && !(pbos && uyvy) && yv12)
         videoTextureType = MYTHTV_YV12;
-#endif
     else if (shaders && fbos && uyvy)
         videoTextureType = MYTHTV_UYVY;
 
@@ -280,6 +282,7 @@ bool OpenGLVideo::Init(MythRenderOpenGL *glcontext, VideoColourSpace *colourspac
 
     bool mmx = false;
 #ifdef MMX
+    // cppcheck-suppress redundantAssignment
     mmx = true;
 #endif
 
@@ -521,7 +524,7 @@ bool OpenGLVideo::AddFilter(OpenGLFilterType filter)
         temp->frameBuffers.clear();
         temp->frameBufferTextures.clear();
         filters[filter] = temp;
-        temp = NULL;
+        temp = nullptr;
         success &= OptimiseFilters();
     }
 
@@ -560,7 +563,7 @@ bool OpenGLVideo::RemoveFilter(OpenGLFilterType filter)
     DeleteTextures(&(filters[filter]->frameBufferTextures));
 
     delete filters[filter];
-    filters[filter] = NULL;
+    filters[filter] = nullptr;
 
     return true;
 }

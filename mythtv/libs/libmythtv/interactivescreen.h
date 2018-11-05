@@ -8,8 +8,8 @@ class InteractiveScreen : public MythScreenType
 {
   public:
     InteractiveScreen(MythPlayer *player, const QString &name);
-    virtual ~InteractiveScreen();
-    virtual bool Create(void)
+    virtual ~InteractiveScreen() = default;
+    bool Create(void) override // MythScreenType
     {
         SetArea(MythRect());
         return true;
@@ -18,7 +18,7 @@ class InteractiveScreen : public MythScreenType
     void OptimiseDisplayedArea(void);
 
   public slots:
-    virtual void Close();
+    void Close() override; // MythScreenType
 
   private:
     MythPlayer *m_player;

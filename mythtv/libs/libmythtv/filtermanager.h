@@ -5,8 +5,8 @@
 #include "mythframe.h"
 
 // C++ headers
-#include <vector>
 #include <map>
+#include <vector>
 using namespace std;
 
 // Qt headers
@@ -20,7 +20,7 @@ typedef map<QString,FilterInfo*> filter_map_t;
 class FilterChain
 {
   public:
-    FilterChain() { }
+    FilterChain() = default;
     virtual ~FilterChain();
 
     void ProcessFrame(VideoFrame *Frame, FrameScanType scan = kScan_Ignore);

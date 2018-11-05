@@ -65,19 +65,16 @@ ChannelEditor::ChannelEditor(MythScreenStack *parent)
     m_sourceFilter(FILTER_ALL),
     m_currentSortMode(QCoreApplication::translate("(Common)", "Channel Name")),
     m_currentHideMode(false),
-    m_channelList(NULL), m_sourceList(NULL), m_preview(NULL),
-    m_channame(NULL), m_channum(NULL), m_callsign(NULL),
-    m_chanid(NULL), m_sourcename(NULL), m_compoundname(NULL)
+    m_channelList(nullptr), m_sourceList(nullptr), m_preview(nullptr),
+    m_channame(nullptr), m_channum(nullptr), m_callsign(nullptr),
+    m_chanid(nullptr), m_sourcename(nullptr), m_compoundname(nullptr)
 {
 }
 
 bool ChannelEditor::Create()
 {
-    bool foundtheme = false;
-
     // Load the theme for this screen
-    foundtheme = LoadWindowFromXML("config-ui.xml", "channeloverview", this);
-
+    bool foundtheme = LoadWindowFromXML("config-ui.xml", "channeloverview", this);
     if (!foundtheme)
         return false;
 
@@ -178,9 +175,8 @@ bool ChannelEditor::keyPressEvent(QKeyEvent *event)
     if (GetFocusWidget()->keyPressEvent(event))
         return true;
 
-    bool handled = false;
     QStringList actions;
-    handled = GetMythMainWindow()->TranslateKeyPress("Global", event, actions);
+    bool handled = GetMythMainWindow()->TranslateKeyPress("Global", event, actions);
 
     for (int i = 0; i < actions.size() && !handled; i++)
     {

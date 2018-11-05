@@ -10,10 +10,10 @@ class VisualizationSettings : public MythScreenType
 {
     Q_OBJECT
 public:
-    VisualizationSettings(MythScreenStack *parent, const char *name = 0);
-    ~VisualizationSettings();
+    VisualizationSettings(MythScreenStack *parent, const char *name = nullptr);
+    ~VisualizationSettings() = default;
 
-    bool Create(void);
+    bool Create(void) override; // MythScreenType
 
 private:
     MythUICheckBox     *m_changeOnSongChange;

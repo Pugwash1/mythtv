@@ -83,14 +83,14 @@ class HttpStatus : public HttpServerExtension
     public:
                  HttpStatus( QMap<int, EncoderLink *> *tvList, Scheduler *sched,
                              AutoExpire *expirer, bool bIsMaster );
-        virtual ~HttpStatus();
+        virtual ~HttpStatus() = default;
 
         void     SetMainServer(MainServer *mainServer)
                     { m_pMainServer = mainServer; }
 
-        virtual QStringList GetBasePaths();
+        QStringList GetBasePaths() override; // HttpServerExtension
         
-        bool     ProcessRequest( HTTPRequest *pRequest );
+        bool     ProcessRequest( HTTPRequest *pRequest ) override; // HttpServerExtension
 };
 
 #endif

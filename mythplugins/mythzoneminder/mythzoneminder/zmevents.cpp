@@ -40,13 +40,13 @@ ZMEvents::ZMEvents(MythScreenStack *parent) :
     m_savedPosition(0),
     m_currentCamera(-1),
     m_currentDate(-1),
-    m_eventNoText(NULL),
-    m_eventGrid(NULL),
-    m_playButton(NULL),
-    m_deleteButton(NULL),
-    m_cameraSelector(NULL),
-    m_dateSelector(NULL),
-    m_menuPopup(NULL)
+    m_eventNoText(nullptr),
+    m_eventGrid(nullptr),
+    m_playButton(nullptr),
+    m_deleteButton(nullptr),
+    m_cameraSelector(nullptr),
+    m_dateSelector(nullptr),
+    m_menuPopup(nullptr)
 {
 }
 
@@ -63,11 +63,8 @@ ZMEvents::~ZMEvents()
 
 bool ZMEvents::Create(void)
 {
-    bool foundtheme = false;
-
     // Load the theme for this screen
-    foundtheme = LoadWindowFromXML("zoneminder-ui.xml", "zmevents", this);
-
+    bool foundtheme = LoadWindowFromXML("zoneminder-ui.xml", "zmevents", this);
     if (!foundtheme)
         return false;
 
@@ -127,9 +124,8 @@ bool ZMEvents::keyPressEvent(QKeyEvent *event)
     if (GetFocusWidget()->keyPressEvent(event))
         return true;
 
-    bool handled = false;
     QStringList actions;
-    handled = GetMythMainWindow()->TranslateKeyPress("TV Playback", event, actions);
+    bool handled = GetMythMainWindow()->TranslateKeyPress("TV Playback", event, actions);
 
     for (int i = 0; i < actions.size() && !handled; i++)
     {

@@ -32,9 +32,9 @@ class GameScannerThread : public MThread
 {
   public:
     explicit GameScannerThread(void);
-    ~GameScannerThread();
+    ~GameScannerThread() = default;
 
-    virtual void run(void); // MThread
+    void run(void) override; // MThread
 
     void SetHandlers(QList<GameHandler*> handlers) { m_handlers = handlers; };
     void SetProgressDialog(MythUIProgressDialog *dialog) { m_dialog = dialog; };

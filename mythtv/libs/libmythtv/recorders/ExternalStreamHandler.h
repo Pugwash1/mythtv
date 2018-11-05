@@ -3,6 +3,7 @@
 #ifndef _External_Streamhandler_H_
 #define _External_Streamhandler_H_
 
+#include <cstdint>
 #include <vector>
 using namespace std;
 
@@ -10,7 +11,6 @@ using namespace std;
 #include <QAtomicInt>
 #include <QMutex>
 #include <QMap>
-#include <stdint.h>
 
 #include "streamhandler.h"
 
@@ -19,7 +19,7 @@ class ExternalChannel;
 
 class ExternIO
 {
-    enum constants { kMaxErrorCnt = 5 };
+    enum constants { kMaxErrorCnt = 20 };
 
   public:
     ExternIO(const QString & app, const QStringList & args);
@@ -59,19 +59,21 @@ class ExternIO
 
 class ExternalStreamHandler : public StreamHandler
 {
-    enum constants {PACKET_SIZE = 188 * 32768, TOO_FAST_SIZE = 188 * 4196 };
+    enum constants { MAX_API_VERSION = 2,
+                     PACKET_SIZE = 188 * 32768,
+                     TOO_FAST_SIZE = 188 * 4196 };
 
   public:
     static ExternalStreamHandler *Get(const QString &devicename,
-                                      int recorder_id = -1);
-    static void Return(ExternalStreamHandler * & ref, int recorder_id = -1);
+                                      int inputid);
+    static void Return(ExternalStreamHandler * & ref, int inputid);
 
   public:
-    explicit ExternalStreamHandler(const QString & path);
+    explicit ExternalStreamHandler(const QString & path, int inputid);
     ~ExternalStreamHandler(void) { CloseApp(); }
 
-    virtual void run(void); // MThread
-    virtual void PriorityEvent(int fd); // DeviceReaderCB
+    void run(void) override; // MThread
+    void PriorityEvent(int fd) override; // DeviceReaderCB
 
     bool IsAppOpen(void);
     bool IsTSOpen(void);
@@ -91,8 +93,12 @@ class ExternalStreamHandler : public StreamHandler
 
     void PurgeBuffer(void);
 
-    bool ProcessCommand(const QString & cmd, uint timeout,
-                        QString & result);
+    bool ProcessCommand(const QString & cmd, uint timeout, QString & result,
+                        uint retry_cnt = 10, uint wait_cnt = 2);
+    bool ProcessVer1(const QString & cmd, uint timeout, QString & result,
+                     uint retry_cnt, uint wait_cnt);
+    bool ProcessVer2(const QString & cmd, uint timeout, QString & result,
+                     uint retry_cnt, uint wait_cnt);
 
   private:
     int StreamingCount(void) const;
@@ -108,6 +114,8 @@ class ExternalStreamHandler : public StreamHandler
     bool           m_poll_mode;
     bool           m_notify;
 
+    int            m_apiVersion;
+    uint           m_serialNo;
     bool           m_hasTuner;
     bool           m_hasPictureAttributes;
 
@@ -122,6 +130,7 @@ class ExternalStreamHandler : public StreamHandler
     QAtomicInt    m_streaming_cnt;
     QMutex        m_stream_lock;
     QMutex        m_replay_lock;
+    QMutex        m_process_lock;
 };
 
 #endif // _ExternalSTREAMHANDLER_H_

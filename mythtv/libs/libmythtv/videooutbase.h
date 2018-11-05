@@ -76,6 +76,8 @@ class VideoOutput
     virtual void PrepareFrame(VideoFrame *buffer, FrameScanType,
                               OSD *osd) = 0;
     virtual void Show(FrameScanType) = 0;
+    VideoDisplayProfile *GetProfile() { return db_vdisp_profile; }
+
 
     virtual void WindowResized(const QSize &) {}
 
@@ -164,7 +166,7 @@ class VideoOutput
 
     /// \brief Return true if HW Acceleration is running
     virtual bool hasHWAcceleration(void) const { return false; }
-    virtual void* GetDecoderContext(unsigned char*, uint8_t*&) { return NULL; }
+    virtual void* GetDecoderContext(unsigned char*, uint8_t*&) { return nullptr; }
 
     /// \brief Sets the number of frames played
     virtual void SetFramesPlayed(long long fp) { framesPlayed = fp; };
@@ -254,7 +256,7 @@ class VideoOutput
 
     /// \brief returns QRect of PIP based on PIPLocation
     virtual QRect GetPIPRect(PIPLocation location,
-                             MythPlayer *pipplayer = NULL,
+                             MythPlayer *pipplayer = nullptr,
                              bool do_pixel_adj = true) const;
     virtual void RemovePIP(MythPlayer *) { }
 
@@ -266,7 +268,7 @@ class VideoOutput
 
     QString GetFilters(void) const;
     /// \brief translates caption/dvd button rectangle into 'screen' space
-    QRect   GetImageRect(const QRect &rect, QRect *display = NULL);
+    QRect   GetImageRect(const QRect &rect, QRect *display = nullptr);
     QRect   GetSafeRect(void);
 
     // Visualisations

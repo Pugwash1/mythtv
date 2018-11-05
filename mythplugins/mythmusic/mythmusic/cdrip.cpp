@@ -134,7 +134,7 @@ static long int getSectorCount (QString &cddevice, int tracknum)
 {
 #ifdef HAVE_CDIO
     QByteArray devname = cddevice.toLatin1();
-    cdrom_drive *device = cdda_identify(devname.constData(), 0, NULL);
+    cdrom_drive *device = cdda_identify(devname.constData(), 0, nullptr);
 
     if (!device)
     {
@@ -276,7 +276,7 @@ void CDRipperThread::run(void)
         lcd->switchToGeneric(textItems);
     }
 
-    MusicMetadata *titleTrack = NULL;
+    MusicMetadata *titleTrack = nullptr;
     QString saveDir = GetConfDir() + "/tmp/RipTemp/";
     QString outfile;
 
@@ -415,7 +415,7 @@ int CDRipperThread::ripTrack(QString &cddevice, Encoder *encoder, int tracknum)
 {
 #ifdef HAVE_CDIO
     QByteArray devname = cddevice.toLatin1();
-    cdrom_drive *device = cdda_identify(devname.constData(), 0, NULL);
+    cdrom_drive *device = cdda_identify(devname.constData(), 0, nullptr);
 
     if (!device)
     {
@@ -451,7 +451,6 @@ int CDRipperThread::ripTrack(QString &cddevice, Encoder *encoder, int tracknum)
     paranoia_seek(paranoia, start, SEEK_SET);
 
     long int curpos = start;
-    int16_t *buffer;
 
     QApplication::postEvent(
         m_parent,
@@ -462,7 +461,7 @@ int CDRipperThread::ripTrack(QString &cddevice, Encoder *encoder, int tracknum)
     int every15 = 15;
     while (curpos < end)
     {
-        buffer = paranoia_read(paranoia, paranoia_cb);
+        int16_t *buffer = paranoia_read(paranoia, paranoia_cb);
 
         if (encoder->addSamples(buffer, CD_FRAMESIZE_RAW))
             break;
@@ -538,24 +537,24 @@ Ripper::Ripper(MythScreenStack *parent, QString device) :
     MythScreenType(parent, "ripcd"),
     m_musicStorageDir(""),
 
-    m_decoder(NULL),
+    m_decoder(nullptr),
 
-    m_artistEdit(NULL),
-    m_albumEdit(NULL),
-    m_genreEdit(NULL),
-    m_yearEdit(NULL),
+    m_artistEdit(nullptr),
+    m_albumEdit(nullptr),
+    m_genreEdit(nullptr),
+    m_yearEdit(nullptr),
 
-    m_compilationCheck(NULL),
+    m_compilationCheck(nullptr),
 
-    m_trackList(NULL),
-    m_qualityList(NULL),
+    m_trackList(nullptr),
+    m_qualityList(nullptr),
 
-    m_switchTitleArtist(NULL),
-    m_scanButton(NULL),
-    m_ripButton(NULL),
-    m_searchArtistButton(NULL),
-    m_searchAlbumButton(NULL),
-    m_searchGenreButton(NULL),
+    m_switchTitleArtist(nullptr),
+    m_scanButton(nullptr),
+    m_ripButton(nullptr),
+    m_searchArtistButton(nullptr),
+    m_searchAlbumButton(nullptr),
+    m_searchGenreButton(nullptr),
 
     m_tracks(new QVector<RipTrack*>),
 
@@ -564,7 +563,7 @@ Ripper::Ripper(MythScreenStack *parent, QString device) :
 
     m_CDdevice(device),
 
-    m_ejectThread(NULL), m_scanThread(NULL)
+    m_ejectThread(nullptr), m_scanThread(nullptr)
 {
 #ifndef _WIN32
     // if the MediaMonitor is running stop it
@@ -682,9 +681,8 @@ bool Ripper::keyPressEvent(QKeyEvent *event)
     if (GetFocusWidget() && GetFocusWidget()->keyPressEvent(event))
         return true;
 
-    bool handled = false;
     QStringList actions;
-    handled = GetMythMainWindow()->TranslateKeyPress("Global", event, actions);
+    bool handled = GetMythMainWindow()->TranslateKeyPress("Global", event, actions);
 
     for (int i = 0; i < actions.size() && !handled; i++)
     {
@@ -798,14 +796,14 @@ void Ripper::startScanCD(void)
 void Ripper::ScanFinished()
 {
     delete m_scanThread;
-    m_scanThread = NULL;
+    m_scanThread = nullptr;
 
     m_tracks->clear();
 
-    bool isCompilation = false;
     if (m_decoder)
     {
         MusicMetadata *metadata;
+        bool isCompilation = false;
 
         m_artistName.clear();
         m_albumName.clear();
@@ -877,14 +875,14 @@ void Ripper::scanCD(void)
     {
     LOG(VB_MEDIA, LOG_INFO, QString("Ripper::%1 CD='%2'").
         arg(__func__).arg(m_CDdevice));
-    (void)cdio_close_tray(m_CDdevice.toLatin1().constData(), NULL);
+    (void)cdio_close_tray(m_CDdevice.toLatin1().constData(), nullptr);
     }
 #endif // HAVE_CDIO
 
     if (m_decoder)
         delete m_decoder;
 
-    m_decoder = new CdDecoder("cda", NULL, NULL);
+    m_decoder = new CdDecoder("cda", nullptr, nullptr);
     if (m_decoder)
         m_decoder->setDevice(m_CDdevice);
 }
@@ -994,14 +992,12 @@ bool Ripper::somethingWasRipped()
 void Ripper::artistChanged()
 {
     QString newartist = m_artistEdit->GetText();
-    MusicMetadata *data;
 
     if (m_tracks->size() > 0)
     {
         for (int trackno = 0; trackno < m_tracks->size(); ++trackno)
         {
-            data = m_tracks->at(trackno)->metadata;
-
+            MusicMetadata *data = m_tracks->at(trackno)->metadata;
             if (data)
             {
                 if (m_compilationCheck->GetBooleanCheckState())
@@ -1025,14 +1021,12 @@ void Ripper::artistChanged()
 void Ripper::albumChanged()
 {
     QString newalbum = m_albumEdit->GetText();
-    MusicMetadata *data;
 
     if (m_tracks->size() > 0)
     {
         for (int trackno = 0; trackno < m_tracks->size(); ++trackno)
         {
-            data = m_tracks->at(trackno)->metadata;
-
+            MusicMetadata *data = m_tracks->at(trackno)->metadata;
             if (data)
                 data->setAlbum(newalbum);
         }
@@ -1044,14 +1038,12 @@ void Ripper::albumChanged()
 void Ripper::genreChanged()
 {
     QString newgenre = m_genreEdit->GetText();
-    MusicMetadata *data;
 
     if (m_tracks->size() > 0)
     {
         for (int trackno = 0; trackno < m_tracks->size(); ++trackno)
         {
-            data = m_tracks->at(trackno)->metadata;
-
+            MusicMetadata *data = m_tracks->at(trackno)->metadata;
             if (data)
                 data->setGenre(newgenre);
         }
@@ -1064,14 +1056,11 @@ void Ripper::yearChanged()
 {
     QString newyear = m_yearEdit->GetText();
 
-    MusicMetadata *data;
-
     if (m_tracks->size() > 0)
     {
         for (int trackno = 0; trackno < m_tracks->size(); ++trackno)
         {
-            data = m_tracks->at(trackno)->metadata;
-
+            MusicMetadata *data = m_tracks->at(trackno)->metadata;
             if (data)
                 data->setYear(newyear.toInt());
         }
@@ -1084,14 +1073,12 @@ void Ripper::compilationChanged(bool state)
 {
     if (!state)
     {
-        MusicMetadata *data;
         if (m_tracks->size() > 0)
         {
             // Update artist MetaData of each track on the ablum...
             for (int trackno = 0; trackno < m_tracks->size(); ++trackno)
             {
-                data = m_tracks->at(trackno)->metadata;
-
+                MusicMetadata *data = m_tracks->at(trackno)->metadata;
                 if (data)
                 {
                     data->setCompilationArtist("");
@@ -1215,7 +1202,7 @@ void Ripper::startEjectCD()
 void Ripper::EjectFinished()
 {
     delete m_ejectThread;
-    m_ejectThread = NULL;
+    m_ejectThread = nullptr;
 
     CloseBusyPopup();
 }
@@ -1480,12 +1467,11 @@ void Ripper::ShowConflictMenu(RipTrack* track)
 void Ripper::updateTrackLengths()
 {
     QVector<RipTrack*>::iterator it;
-    RipTrack *track;
     int length = 0;
 
     for (it = m_tracks->end() - 1; it == m_tracks->begin(); --it)
     {
-        track = *it;
+        RipTrack *track = *it;
         if (track->active)
         {
             track->length = length + track->metadata->Length();
@@ -1543,11 +1529,11 @@ RipStatus::RipStatus(MythScreenStack *parent, const QString &device,
                      QVector<RipTrack*> *tracks, int quality)
     : MythScreenType(parent, "ripstatus"),
     m_tracks(tracks),           m_quality(quality),
-    m_CDdevice(device),         m_overallText(NULL),
-    m_trackText(NULL),          m_statusText(NULL),
-    m_overallPctText(NULL),     m_trackPctText(NULL),
-    m_overallProgress(NULL),    m_trackProgress(NULL),
-    m_ripperThread(NULL)
+    m_CDdevice(device),         m_overallText(nullptr),
+    m_trackText(nullptr),       m_statusText(nullptr),
+    m_overallPctText(nullptr),  m_trackPctText(nullptr),
+    m_overallProgress(nullptr), m_trackProgress(nullptr),
+    m_ripperThread(nullptr)
 {
 }
 
@@ -1586,9 +1572,8 @@ bool RipStatus::keyPressEvent(QKeyEvent *event)
     if (GetFocusWidget() && GetFocusWidget()->keyPressEvent(event))
         return true;
 
-    bool handled = false;
     QStringList actions;
-    handled = GetMythMainWindow()->TranslateKeyPress("Global", event, actions);
+    bool handled = GetMythMainWindow()->TranslateKeyPress("Global", event, actions);
 
     for (int i = 0; i < actions.size() && !handled; i++)
     {
@@ -1601,7 +1586,7 @@ bool RipStatus::keyPressEvent(QKeyEvent *event)
         {
             MythConfirmationDialog *dialog =
                 ShowOkPopup(tr("Cancel ripping the CD?"), this,
-                            static_cast<const char*>(NULL), true);
+                            static_cast<const char*>(nullptr), true);
             if (dialog)
                 dialog->SetReturnEvent(this, "stop_ripping");
         }

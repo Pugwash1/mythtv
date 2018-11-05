@@ -1,15 +1,13 @@
-// ANSI C headers
+// C++ headers
+#include <cerrno>
+#include <csignal>
 #include <cstdio>
 #include <cstdlib>
-#include <cerrno>
-
-// Unix C headers
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <signal.h>
+#include <cstring>
 #include <fcntl.h>
-#include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 // Qt headers
 #include <QString>
@@ -69,7 +67,7 @@ ThreadedFileWriter::ThreadedFileWriter(const QString &fname,
     ignore_writes(false),                tfw_min_write_size(kMinWriteSize),
     totalBufferUse(0),
     // threads
-    writeThread(NULL),                   syncThread(NULL),
+    writeThread(nullptr),                syncThread(nullptr),
     m_warned(false),                     m_blocking(false),
     m_registered(false)
 {
@@ -171,7 +169,7 @@ ThreadedFileWriter::~ThreadedFileWriter()
     {
         writeThread->wait();
         delete writeThread;
-        writeThread = NULL;
+        writeThread = nullptr;
     }
 
     while (!writeBuffers.empty())
@@ -190,7 +188,7 @@ ThreadedFileWriter::~ThreadedFileWriter()
     {
         syncThread->wait();
         delete syncThread;
-        syncThread = NULL;
+        syncThread = nullptr;
     }
 
     if (fd >= 0)
@@ -260,7 +258,7 @@ int ThreadedFileWriter::Write(const void *data, uint count)
             continue;
         }
 
-        TFWBuffer *buf = NULL;
+        TFWBuffer *buf = nullptr;
 
         if (!writeBuffers.empty() &&
             (writeBuffers.back()->data.size() + towrite) < kMinWriteSize)

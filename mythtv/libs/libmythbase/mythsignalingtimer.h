@@ -3,7 +3,7 @@
 #ifndef _MYTH_SIGNALING_TIMER_H_
 #define _MYTH_SIGNALING_TIMER_H_
 
-#include <stdint.h>
+#include <cstdint>
 
 #include <QWaitCondition>
 #include <QMutex>
@@ -37,7 +37,7 @@ class MBASE_PUBLIC MythSignalingTimer : private QObject, private MThread
     void timeout(void);
 
   private:
-    virtual void run(void);
+    void run(void) override; // MThread
 
     QMutex            startStopLock;
     QWaitCondition    timerWait;

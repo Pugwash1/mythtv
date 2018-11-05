@@ -258,7 +258,7 @@ NetworkControl::~NetworkControl(void)
     clientLock.unlock();
 
     nrLock.lock();
-    networkControlReplies.push_back(new NetworkCommand(NULL,
+    networkControlReplies.push_back(new NetworkCommand(nullptr,
         "mythfrontend shutting down, connection closing..."));
     nrLock.unlock();
 
@@ -270,7 +270,7 @@ NetworkControl::~NetworkControl(void)
     ncLock.unlock();
     commandThread->wait();
     delete commandThread;
-    commandThread = NULL;
+    commandThread = nullptr;
 }
 
 void NetworkControl::run(void)
@@ -474,13 +474,13 @@ QString NetworkControl::processJump(NetworkCommand *nc)
 QString NetworkControl::processKey(NetworkCommand *nc)
 {
     QString result = "OK";
-    QKeyEvent *event = NULL;
+    QKeyEvent *event = nullptr;
 
     if (nc->getArgCount() < 2)
         return QString("ERROR: See 'help %1' for usage information")
                        .arg(nc->getArg(0));
 
-    QObject *keyDest = NULL;
+    QObject *keyDest = nullptr;
 
     if (GetMythMainWindow())
         keyDest = GetMythMainWindow();
@@ -491,10 +491,9 @@ QString NetworkControl::processKey(NetworkCommand *nc)
         keyDest = GetMythMainWindow()->currentWidget()->focusWidget();
 
     int curToken = 1;
-    int tokenLen = 0;
     while (curToken < nc->getArgCount())
     {
-        tokenLen = nc->getArg(curToken).length();
+        int tokenLen = nc->getArg(curToken).length();
 
         if (nc->getArg(curToken) == "sleep")
         {
@@ -1551,7 +1550,7 @@ void NetworkControl::customEvent(QEvent *e)
 {
     if ((MythEvent::Type)(e->type()) == MythEvent::MythEventMessage)
     {
-        MythEvent *me = (MythEvent *)e;
+        MythEvent *me = static_cast<MythEvent *>(e);
         QString message = me->Message();
 
         if (message.startsWith("MUSIC_CONTROL"))

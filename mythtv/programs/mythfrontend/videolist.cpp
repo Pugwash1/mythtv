@@ -38,7 +38,7 @@ class TreeNodeDataPrivate
     }
 
     TreeNodeDataPrivate(QString path, QString host, QString prefix) :
-        m_metadata(0), m_host(host), m_path(path), m_prefix(prefix)
+        m_metadata(nullptr), m_host(host), m_path(path), m_prefix(prefix)
     {
     }
 
@@ -74,7 +74,7 @@ class TreeNodeDataPrivate
     QString m_prefix;
 };
 
-TreeNodeData::TreeNodeData() : m_d(0)
+TreeNodeData::TreeNodeData() : m_d(nullptr)
 {
 }
 
@@ -88,7 +88,7 @@ TreeNodeData::TreeNodeData(QString path, QString host, QString prefix)
     m_d = new TreeNodeDataPrivate(path, host, prefix);
 }
 
-TreeNodeData::TreeNodeData(const TreeNodeData &other) : m_d(0)
+TreeNodeData::TreeNodeData(const TreeNodeData &other) : m_d(nullptr)
 {
     *this = other;
 }
@@ -114,7 +114,7 @@ VideoMetadata *TreeNodeData::GetMetadata(void)
     if (m_d)
         return m_d->GetMetadata();
 
-    return NULL;
+    return nullptr;
 }
 
 const VideoMetadata *TreeNodeData::GetMetadata(void) const
@@ -122,7 +122,7 @@ const VideoMetadata *TreeNodeData::GetMetadata(void) const
     if (m_d)
         return m_d->GetMetadata();
 
-    return NULL;
+    return nullptr;
 }
 
 QString TreeNodeData::GetPath(void) const
@@ -222,7 +222,7 @@ static QString path_to_node_name(const QString &path)
 
 static meta_dir_node *AddMetadataToDir(VideoMetadata *metadata,
                                        meta_dir_node *dir,
-                                       meta_dir_node *hint = NULL)
+                                       meta_dir_node *hint = nullptr)
 {
     meta_dir_node *start = dir;
     QString insert_chunk = metadata->GetFilename();
@@ -902,7 +902,7 @@ void VideoListImp::buildGroupList(metadata_list_type whence)
         {
             meta_dir_node *group_node = gtnm["Unknown"];
 
-            if (group_node == NULL)
+            if (group_node == nullptr)
             {
                 smart_dir_node sdn = video_root->addSubDir("Unknown");
                 group_node = sdn.get();
@@ -919,7 +919,7 @@ void VideoListImp::buildGroupList(metadata_list_type whence)
 
             meta_dir_node *group_node = gtnm[item];
 
-            if (group_node == NULL)
+            if (group_node == nullptr)
             {
                 smart_dir_node sdn = video_root->addSubDir(item);
                 group_node = sdn.get();
@@ -1206,7 +1206,7 @@ class dirhandler : public DirectoryHandler
     }
 
     DirectoryHandler *newDir(const QString &dir_name,
-                             const QString &fq_dir_name)
+                             const QString &fq_dir_name) override // DirectoryHandler
     {
         (void) fq_dir_name;
         smart_dir_node dir = m_directory->addSubDir(dir_name);
@@ -1227,7 +1227,7 @@ class dirhandler : public DirectoryHandler
     void handleFile(const QString &file_name,
                     const QString &fq_file_name,
                     const QString &extension,
-                    const QString &host)
+                    const QString &host) override // DirectoryHandler
     {
         (void) file_name;
         (void) extension;

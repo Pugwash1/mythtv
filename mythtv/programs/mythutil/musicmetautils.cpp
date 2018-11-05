@@ -235,10 +235,8 @@ static int CalcTrackLength(const MythUtilCommandLineParser &cmdline)
         return GENERIC_EXIT_NOT_OK;
     }
 
-    av_register_all();
-
-    AVFormatContext *inputFC = NULL;
-    AVInputFormat *fmt = NULL;
+    AVFormatContext *inputFC = nullptr;
+    AVInputFormat *fmt = nullptr;
 
     // Open track
     LOG(VB_GENERAL, LOG_DEBUG, QString("CalcTrackLength: Opening '%1'")
@@ -246,7 +244,7 @@ static int CalcTrackLength(const MythUtilCommandLineParser &cmdline)
 
     QByteArray inFileBA = musicFile.toLocal8Bit();
 
-    int ret = avformat_open_input(&inputFC, inFileBA.constData(), fmt, NULL);
+    int ret = avformat_open_input(&inputFC, inFileBA.constData(), fmt, nullptr);
 
     if (ret)
     {
@@ -256,14 +254,14 @@ static int CalcTrackLength(const MythUtilCommandLineParser &cmdline)
     }
 
     // Getting stream information
-    ret = avformat_find_stream_info(inputFC, NULL);
+    ret = avformat_find_stream_info(inputFC, nullptr);
 
     if (ret < 0)
     {
         LOG(VB_GENERAL, LOG_ERR,
             QString("CalcTrackLength: Couldn't get stream info, error #%1").arg(ret));
         avformat_close_input(&inputFC);
-        inputFC = NULL;
+        inputFC = nullptr;
         return GENERIC_EXIT_NOT_OK;;
     }
 
@@ -318,7 +316,7 @@ static int CalcTrackLength(const MythUtilCommandLineParser &cmdline)
 
     // Close input file
     avformat_close_input(&inputFC);
-    inputFC = NULL;
+    inputFC = nullptr;
 
     if (mdata->Length() / 1000 != duration)
     {
@@ -477,11 +475,10 @@ static int FindLyrics(const MythUtilCommandLineParser &cmdline)
 
     QStringList scripts;
     QFileInfoList::const_iterator it = list.begin();
-    const QFileInfo *fi;
 
     while (it != list.end())
     {
-        fi = &(*it);
+        const QFileInfo *fi = &(*it);
         ++it;
         LOG(VB_GENERAL, LOG_NOTICE, QString("Found lyric script at: %1").arg(fi->filePath()));
         scripts.append(fi->filePath());

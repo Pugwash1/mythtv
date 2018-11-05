@@ -82,15 +82,15 @@ LogViewer::LogViewer(MythScreenStack *parent) :
     MythScreenType(parent, "logviewer"),
     m_autoUpdate(false),
     m_updateTime(DEFAULT_UPDATE_TIME),
-    m_updateTimer(NULL),
+    m_updateTimer(nullptr),
     m_currentLog(),
     m_progressLog(),
     m_fullLog(),
-    m_logList(NULL),
-    m_logText(NULL),
-    m_exitButton(NULL),
-    m_cancelButton(NULL),
-    m_updateButton(NULL)
+    m_logList(nullptr),
+    m_logText(nullptr),
+    m_exitButton(nullptr),
+    m_cancelButton(nullptr),
+    m_updateButton(nullptr)
 {
     m_updateTime = gCoreContext->GetNumSetting(
         "LogViewerUpdateTime", DEFAULT_UPDATE_TIME);
@@ -108,11 +108,8 @@ LogViewer::~LogViewer(void)
 
 bool LogViewer::Create(void)
 {
-    bool foundtheme = false;
-
     // Load the theme for this screen
-    foundtheme = LoadWindowFromXML("mytharchive-ui.xml", "logviewer", this);
-
+    bool foundtheme = LoadWindowFromXML("mytharchive-ui.xml", "logviewer", this);
     if (!foundtheme)
         return false;
 
@@ -136,7 +133,7 @@ bool LogViewer::Create(void)
     connect(m_logList, SIGNAL(itemSelected(MythUIButtonListItem*)),
             this, SLOT(updateLogItem(MythUIButtonListItem*)));
 
-    m_updateTimer = NULL;
+    m_updateTimer = nullptr;
     m_updateTimer = new QTimer(this);
     connect(m_updateTimer, SIGNAL(timeout()), SLOT(updateTimerTimeout()) );
 
@@ -159,9 +156,8 @@ bool LogViewer::keyPressEvent(QKeyEvent *event)
     if (GetFocusWidget()->keyPressEvent(event))
          return true;
 
-    bool handled = false;
     QStringList actions;
-    handled = GetMythMainWindow()->TranslateKeyPress("Global", event, actions);
+    bool handled = GetMythMainWindow()->TranslateKeyPress("Global", event, actions);
 
     for (int i = 0; i < actions.size() && !handled; i++)
     {

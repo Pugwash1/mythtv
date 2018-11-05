@@ -1,12 +1,3 @@
-// POSIX headers
-#include <sys/time.h>     // for setpriority
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-//#include <libgen.h>
-#include <signal.h>
-
 #include "mythconfig.h"
 #if CONFIG_DARWIN
     #include <sys/aio.h>    // O_SYNC
@@ -15,9 +6,15 @@
     #include <systemd/sd-daemon.h>
 #endif
 
-// C headers
-#include <cstdlib>
+// C++ headers
 #include <cerrno>
+#include <csignal>
+#include <cstdlib>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/time.h>     // for setpriority
+#include <sys/types.h>
+#include <unistd.h>
 
 #include <QCoreApplication>
 #include <QFileInfo>
@@ -63,7 +60,7 @@
 #define LOC_WARN QString("MythBackend, Warning: ")
 #define LOC_ERR  QString("MythBackend, Error: ")
 
-static MainServer *mainServer = NULL;
+static MainServer *mainServer = nullptr;
 
 bool setupTVs(bool ismaster, bool &error)
 {
@@ -207,7 +204,7 @@ bool setupTVs(bool ismaster, bool &error)
             }
             else
             {
-                EncoderLink *enc = new EncoderLink(cardid, NULL, host);
+                EncoderLink *enc = new EncoderLink(cardid, nullptr, host);
                 tvList[cardid] = enc;
             }
         }
@@ -234,22 +231,22 @@ void cleanup(void)
         gCoreContext->SetExiting();
 
     delete housekeeping;
-    housekeeping = NULL;
+    housekeeping = nullptr;
 
     if (gCoreContext)
     {
         delete gCoreContext->GetScheduler();
-        gCoreContext->SetScheduler(NULL);
+        gCoreContext->SetScheduler(nullptr);
     }
 
     delete expirer;
-    expirer = NULL;
+    expirer = nullptr;
 
     delete jobqueue;
-    jobqueue = NULL;
+    jobqueue = nullptr;
 
     delete g_pUPnp;
-    g_pUPnp = NULL;
+    g_pUPnp = nullptr;
 
     if (SSDP::Instance())
     {
@@ -271,13 +268,13 @@ void cleanup(void)
 
 
     delete gContext;
-    gContext = NULL;
+    gContext = nullptr;
 
     delete mainServer;
-    mainServer = NULL;
+    mainServer = nullptr;
 
      delete gBackendContext;
-     gBackendContext = NULL;
+     gBackendContext = nullptr;
 
     if (pidfile.size())
     {
@@ -465,7 +462,7 @@ int connect_to_master(void)
             tempMonitorAnnounce[0] == "ERROR")
         {
             tempMonitorConnection->DecrRef();
-            tempMonitorConnection = NULL;
+            tempMonitorConnection = nullptr;
             if (tempMonitorAnnounce.empty())
             {
                 LOG(VB_GENERAL, LOG_ERR, LOC +
@@ -613,7 +610,7 @@ int run_backend(MythBackendCommandLineParser &cmdline)
         return GENERIC_EXIT_SETUP_ERROR;
     }
 
-    Scheduler *sched = NULL;
+    Scheduler *sched = nullptr;
     if (ismaster)
     {
         if (runsched)
@@ -670,7 +667,7 @@ int run_backend(MythBackendCommandLineParser &cmdline)
     //
     // ----------------------------------------------------------------------
 
-    if (g_pUPnp == NULL)
+    if (g_pUPnp == nullptr)
     {
         g_pUPnp = new MediaServer();
 
@@ -681,7 +678,7 @@ int run_backend(MythBackendCommandLineParser &cmdline)
     // Setup status server
     // ----------------------------------------------------------------------
 
-    HttpStatus *httpStatus = NULL;
+    HttpStatus *httpStatus = nullptr;
     HttpServer *pHS = g_pUPnp->GetHttpServer();
 
     if (pHS)

@@ -18,7 +18,7 @@
  *   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-#include <stdint.h>
+#include <cstdint>
 
 #include <QByteArray>
 
@@ -47,17 +47,17 @@ class SpliceDescriptor
     SpliceDescriptor(const unsigned char *data, int len) : _data(data)
     {
         if ((len < 2) || (int(DescriptorLength()) + 2) > len)
-            _data = NULL;
+            _data = nullptr;
     }
     SpliceDescriptor(const unsigned char *data,
                      int len, uint tag) : _data(data)
     {
         if ((len < 2) || (int(DescriptorLength()) + 2) > len)
-            _data = NULL;
+            _data = nullptr;
         else if (DescriptorTag() != tag)
-            _data = NULL;
+            _data = nullptr;
     }
-    virtual ~SpliceDescriptor(void) {}
+    virtual ~SpliceDescriptor(void) = default;
 
     bool IsValid(void) const { return _data; }
     uint size(void) const { return DescriptorLength() + 2; }
@@ -117,7 +117,7 @@ class AvailDescriptor : SpliceDescriptor
             QChar(_data[8]) + QChar(_data[9]);
     }
 
-    virtual QString toString(void) const
+    QString toString(void) const override // SpliceDescriptor
     {
         return QString("Splice Avail: id(%1)").arg(ProviderAvailId());
     }
@@ -149,7 +149,7 @@ class DTMFDescriptor : SpliceDescriptor
 
     static bool IsParsible(const unsigned char *data, uint safe_bytes);
 
-    virtual QString toString(void) const
+    QString toString(void) const override // SpliceDescriptor
     {
         return QString("Splice DTMF: %1").arg(DTMFString());
     }
@@ -161,9 +161,9 @@ class SegmentationDescriptor : SpliceDescriptor
     SegmentationDescriptor(const unsigned char *data, int len = 300) :
         SpliceDescriptor(data, len, SpliceDescriptorID::segmentation)
     {
-        _ptrs[2] = _ptrs[1] = _ptrs[0] = NULL;
+        _ptrs[2] = _ptrs[1] = _ptrs[0] = nullptr;
         if (_data && !Parse())
-            _data = NULL;
+            _data = nullptr;
     }
 
     //       Name             bits  loc  expected value
@@ -275,8 +275,8 @@ class SegmentationDescriptor : SpliceDescriptor
     uint SegmentsExpected(void) const { return _ptrs[2][2]; }
     // }
 
-    virtual bool Parse(void);
-    QString toString(void) const;
+    bool Parse(void) override; // SpliceDescriptor
+    QString toString(void) const override; // SpliceDescriptor
 
     // _ptrs[0] = program_segmentation_flag ? 12 : 13 + component_count * 6
     // _ptrs[1] = _ptrs[0] + HasSegmentationDuration() ? 5 : 0

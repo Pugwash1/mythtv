@@ -1,7 +1,9 @@
-#include <unistd.h>
-#include <stdlib.h>
-#include <zlib.h>
+#include <cstdlib>
 #include <fcntl.h>
+#include <unistd.h>
+#include <zlib.h>
+#undef Z_NULL
+#define Z_NULL nullptr
 
 // Qt headers
 #include <QCoreApplication>
@@ -33,8 +35,8 @@
 
 static const char *dvdnav_menu_table[] =
 {
-    NULL,
-    NULL,
+    nullptr,
+    nullptr,
     QT_TRANSLATE_NOOP("(DVD menu)", "Title Menu"),
     QT_TRANSLATE_NOOP("(DVD menu)", "Root Menu"),
     QT_TRANSLATE_NOOP("(DVD menu)", "Subpicture Menu"),
@@ -45,7 +47,7 @@ static const char *dvdnav_menu_table[] =
 };
 
 DVDInfo::DVDInfo(const QString &filename)
-  : m_nav(NULL)
+  : m_nav(nullptr)
 {
     LOG(VB_PLAYBACK, LOG_INFO, QString("DVDInfo: Trying %1").arg(filename));
     QString name = filename;
@@ -211,13 +213,13 @@ uint32_t MythDVDContext::GetLBAPrevVideoFrame() const
 
 DVDRingBuffer::DVDRingBuffer(const QString &lfilename) :
     RingBuffer(kRingBuffer_DVD),
-    m_dvdnav(NULL),     m_dvdBlockReadBuf(NULL),
+    m_dvdnav(nullptr),  m_dvdBlockReadBuf(nullptr),
     m_dvdBlockRPos(0),  m_dvdBlockWPos(0),
     m_pgLength(0),      m_pgcLength(0),
     m_cellStart(0),     m_cellChanged(false),
     m_pgcLengthChanged(false), m_pgStart(0),
     m_currentpos(0),
-    m_lastNav(NULL),    m_part(0), m_lastPart(0),
+    m_lastNav(nullptr), m_part(0), m_lastPart(0),
     m_title(0),         m_lastTitle(0),   m_playerWait(false),
     m_titleParts(0),    m_gotStop(false), m_currentAngle(0),
     m_currentTitleAngleCount(0),
@@ -240,9 +242,9 @@ DVDRingBuffer::DVDRingBuffer(const QString &lfilename) :
     m_autoselectsubtitle(true),
     m_seeking(false), m_seektime(0),
     m_currentTime(0),
-    m_parent(NULL),
+    m_parent(nullptr),
     m_forcedAspect(-1.0f),
-    m_contextLock(QMutex::Recursive), m_context(NULL),
+    m_contextLock(QMutex::Recursive), m_context(nullptr),
     m_processState(PROCESS_NORMAL),
     m_dvdStat(DVDNAV_STATUS_OK),
     m_dvdEvent(0),
@@ -250,7 +252,7 @@ DVDRingBuffer::DVDRingBuffer(const QString &lfilename) :
 
     // Menu/buttons
     m_inMenu(false), m_buttonVersion(1), m_buttonStreamID(0),
-    m_hl_button(0, 0, 0, 0), m_menuSpuPkt(0), m_menuBuflength(0)
+    m_hl_button(0, 0, 0, 0), m_menuSpuPkt(nullptr), m_menuBuflength(0)
 {
     memset(&m_dvdMenuButton, 0, sizeof(AVSubtitle));
     memset(m_dvdBlockWriteBuf, 0, sizeof(char) * DVD_BLOCK_SIZE);
@@ -285,13 +287,13 @@ void DVDRingBuffer::CloseDVD(void)
     {
         SetDVDSpeed(-1);
         dvdnav_close(m_dvdnav);
-        m_dvdnav = NULL;
+        m_dvdnav = nullptr;
     }
 
     if (m_context)
     {
         m_context->DecrRef();
-        m_context = NULL;
+        m_context = nullptr;
     }
 
     m_gotStop = false;
@@ -516,7 +518,7 @@ bool DVDRingBuffer::OpenFile(const QString &lfilename, uint /*retry_ms*/)
     if (m_context)
     {
         m_context->DecrRef();
-        m_context = NULL;
+        m_context = nullptr;
     }
 
     // Set preferred languages
@@ -598,7 +600,7 @@ bool DVDRingBuffer::StartFromBeginning(void)
     if (m_context)
     {
         m_context->DecrRef();
-        m_context = NULL;
+        m_context = nullptr;
     }
 
     return m_dvdnav;
@@ -724,7 +726,7 @@ void DVDRingBuffer::WaitForPlayer(void)
 
 int DVDRingBuffer::safe_read(void *data, uint sz)
 {
-    unsigned char  *blockBuf     = NULL;
+    unsigned char  *blockBuf     = nullptr;
     uint            tot          = 0;
     int             needed       = sz;
     char           *dest         = (char*) data;
@@ -965,7 +967,7 @@ int DVDRingBuffer::safe_read(void *data, uint sz)
                 pci_t *pci = dvdnav_get_current_nav_pci(m_dvdnav);
                 dsi_t *dsi = dvdnav_get_current_nav_dsi(m_dvdnav);
 
-                if (pci == 0 || dsi == 0)
+                if (pci == nullptr || dsi == nullptr)
                 {
                     // Something has gone horribly wrong if this happens
                     LOG(VB_GENERAL, LOG_ERR, LOC + QString("DVDNAV_NAV_PACKET - Error retrieving DVD data structures - dsi 0x%1, pci 0x%2")
@@ -1650,7 +1652,7 @@ AVSubtitle *DVDRingBuffer::GetMenuSubtitle(uint &version)
         return &(m_dvdMenuButton);
     }
 
-    return NULL;
+    return nullptr;
 }
 
 
@@ -1695,7 +1697,7 @@ bool DVDRingBuffer::DecodeSubtitles(AVSubtitle *sub, int *gotSubtitles,
         return false;
 
     bool force_subtitle_display = false;
-    sub->rects = NULL;
+    sub->rects = nullptr;
     sub->num_rects = 0;
     sub->start_display_time = startTime;
     sub->end_display_time = startTime;
@@ -1792,7 +1794,7 @@ bool DVDRingBuffer::DecodeSubtitles(AVSubtitle *sub, int *gotSubtitles,
                 h = 0;
             if (w > 0 && h > 0)
             {
-                if (sub->rects != NULL)
+                if (sub->rects != nullptr)
                 {
                     for (i = 0; i < sub->num_rects; i++)
                     {
@@ -1915,7 +1917,7 @@ void DVDRingBuffer::ClearMenuButton(void)
             av_free(rect);
         }
         av_free(m_dvdMenuButton.rects);
-        m_dvdMenuButton.rects = NULL;
+        m_dvdMenuButton.rects = nullptr;
         m_dvdMenuButton.num_rects = 0;
         m_buttonExists = false;
     }
@@ -2232,20 +2234,17 @@ uint DVDRingBuffer::TitleTimeLeft(void)
 void DVDRingBuffer::guess_palette(uint32_t *rgba_palette,uint8_t *palette,
                                         uint8_t *alpha)
 {
-    int i,r,g,b,y,cr,cb;
-    uint32_t yuv;
-
     memset(rgba_palette, 0, 16);
 
-    for (i=0 ; i < 4 ; i++)
+    for (int i=0 ; i < 4 ; i++)
     {
-        yuv = m_clut[palette[i]];
-        y = ((yuv >> 16) & 0xff);
-        cr = ((yuv >> 8) & 0xff);
-        cb = ((yuv >> 0) & 0xff);
-        r  = int(y + 1.4022 * (cr - 128));
-        b  = int(y + 1.7710 * (cb - 128));
-        g  = int(1.7047 * y - (0.1952 * b) - (0.5647 * r)) ;
+        uint32_t yuv = m_clut[palette[i]];
+        int y = ((yuv >> 16) & 0xff);
+        int cr = ((yuv >> 8) & 0xff);
+        int cb = ((yuv >> 0) & 0xff);
+        int r  = int(y + 1.4022 * (cr - 128));
+        int b  = int(y + 1.7710 * (cb - 128));
+        int g  = int(1.7047 * y - (0.1952 * b) - (0.5647 * r)) ;
         if (r < 0) r = 0;
         if (g < 0) g = 0;
         if (b < 0) b = 0;
@@ -2262,8 +2261,7 @@ void DVDRingBuffer::guess_palette(uint32_t *rgba_palette,uint8_t *palette,
 int DVDRingBuffer::decode_rle(uint8_t *bitmap, int linesize, int w, int h,
                                   const uint8_t *buf, int nibble_offset, int buf_size)
 {
-    unsigned int v;
-    int x, y, len, color, nibble_end;
+    int x, y, nibble_end;
     uint8_t *d;
 
     nibble_end = buf_size * 2;
@@ -2273,7 +2271,7 @@ int DVDRingBuffer::decode_rle(uint8_t *bitmap, int linesize, int w, int h,
     for(;;) {
         if (nibble_offset >= nibble_end)
             return -1;
-        v = get_nibble(buf, nibble_offset++);
+        uint v = get_nibble(buf, nibble_offset++);
         if (v < 0x4) {
             v = (v << 4) | get_nibble(buf, nibble_offset++);
             if (v < 0x10) {
@@ -2286,10 +2284,10 @@ int DVDRingBuffer::decode_rle(uint8_t *bitmap, int linesize, int w, int h,
                 }
             }
         }
-        len = v >> 2;
+        int len = v >> 2;
         if (len > (w - x))
             len = (w - x);
-        color = v & 0x03;
+        int color = v & 0x03;
         memset(d + x, color, len);
         x += len;
         if (x >= w) {
@@ -2339,7 +2337,7 @@ int DVDRingBuffer::find_smallest_bounding_rectangle(AVSubtitle *s)
     int y1, y2, x1, x2, y, w, h, i;
     uint8_t *bitmap;
 
-    if (s->num_rects == 0 || s->rects == NULL ||
+    if (s->num_rects == 0 || s->rects == nullptr ||
         s->rects[0]->w <= 0 || s->rects[0]->h <= 0)
     {
         return 0;

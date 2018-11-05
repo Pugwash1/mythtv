@@ -44,7 +44,7 @@
 #include "msocketdevice.h"
 
 #include "qwindowdefs.h"
-#include <string.h>
+#include <cstring>
 
 //#define MSOCKETDEVICE_DEBUG
 
@@ -227,7 +227,7 @@ MSocketDevice::~MSocketDevice()
 {
     close();
     delete d;
-    d = 0;
+    d = nullptr;
 #if defined(MSOCKETDEVICE_DEBUG)
     qDebug("MSocketDevice: Destroyed MSocketDevice %p", this);
 #endif

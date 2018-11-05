@@ -20,7 +20,8 @@
 #include "ExternalRecorder.h"
 #include "ExternalStreamHandler.h"
 
-#define LOC QString("ExternSigMon(%1): ").arg(channel->GetDevice())
+#define LOC QString("ExternSigMon[%1](%2): ") \
+    .arg(inputid).arg(channel->GetDevice())
 
 /**
  *  \brief Initializes signal lock and signal values.
@@ -41,12 +42,12 @@ ExternalSignalMonitor::ExternalSignalMonitor(int db_cardnum,
                                              bool _release_stream,
                                              uint64_t _flags)
     : DTVSignalMonitor(db_cardnum, _channel, _flags, _release_stream),
-      m_stream_handler(NULL), m_stream_handler_started(false), m_lock_timeout(0)
+      m_stream_handler(nullptr), m_stream_handler_started(false), m_lock_timeout(0)
 {
     QString result;
 
     LOG(VB_CHANNEL, LOG_INFO, LOC + "ctor");
-    m_stream_handler = ExternalStreamHandler::Get(_channel->GetDevice());
+    m_stream_handler = ExternalStreamHandler::Get(channel->GetDevice(), inputid);
     if (!m_stream_handler || m_stream_handler->HasError())
         LOG(VB_GENERAL, LOG_ERR, LOC + "Open failed");
     else
@@ -60,7 +61,7 @@ ExternalSignalMonitor::~ExternalSignalMonitor()
 {
     LOG(VB_CHANNEL, LOG_INFO, LOC + "dtor");
     Stop();
-    ExternalStreamHandler::Return(m_stream_handler);
+    ExternalStreamHandler::Return(m_stream_handler, inputid);
 }
 
 /** \fn ExternalSignalMonitor::Stop(void)
@@ -159,7 +160,7 @@ bool ExternalSignalMonitor::HasLock(void)
 {
     QString result;
 
-    m_stream_handler->ProcessCommand("HasLock?", 2500, result);
+    m_stream_handler->ProcessCommand("HasLock?", 500, result);
     if (result.startsWith("OK:"))
     {
         return result.mid(3, 3) == "Yes";
@@ -175,7 +176,7 @@ int ExternalSignalMonitor::GetSignalStrengthPercent(void)
 {
     QString result;
 
-    m_stream_handler->ProcessCommand("SignalStrengthPercent?", 2500, result);
+    m_stream_handler->ProcessCommand("SignalStrengthPercent?", 500, result);
     if (result.startsWith("OK:"))
     {
         bool ok;
@@ -201,7 +202,7 @@ int ExternalSignalMonitor::GetLockTimeout(void)
 {
     QString result;
 
-    m_stream_handler->ProcessCommand("LockTimeout?", 2500, result);
+    m_stream_handler->ProcessCommand("LockTimeout?", 500, result);
     if (result.startsWith("OK:"))
     {
         bool ok;

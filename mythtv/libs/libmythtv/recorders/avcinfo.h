@@ -1,9 +1,8 @@
 #ifndef _AVC_INFO_H_
 #define _AVC_INFO_H_
 
-#include <stdint.h>
-
 // C++ headers
+#include <cstdint>
 #include <vector>
 using namespace std;
 
@@ -19,7 +18,7 @@ class AVCInfo
     AVCInfo();
     AVCInfo(const AVCInfo &o);
     AVCInfo &operator=(const AVCInfo &o);
-    virtual ~AVCInfo() { }
+    virtual ~AVCInfo() = default;
 
     virtual bool SendAVCCommand(
         const vector<uint8_t> &/*cmd*/,

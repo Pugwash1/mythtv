@@ -32,23 +32,23 @@ class Image : public ImageServices
     Q_OBJECT
 
 public:
-    Q_INVOKABLE explicit Image( QObject */*parent*/ = 0 ) {}
+    Q_INVOKABLE explicit Image( QObject */*parent*/ = nullptr ) {}
 
 public:
     QString                     GetImageInfo                ( int   id,
-                                                              const QString &tag );
+                                                              const QString &tag ) override; // ImageServices
 
-    DTC::ImageMetadataInfoList* GetImageInfoList            ( int   id );
+    DTC::ImageMetadataInfoList* GetImageInfoList            ( int   id ) override; // ImageServices
 
-    bool                        RemoveImage        ( int   id );
+    bool                        RemoveImage        ( int   id ) override; // ImageServices
     bool                        RenameImage        ( int   id,
-                                                     const QString &newName );
+                                                     const QString &newName ) override; // ImageServices
 
-    bool                        StartSync          ( void );
-    bool                        StopSync           ( void );
-    DTC::ImageSyncInfo*         GetSyncStatus      ( void );
+    bool                        StartSync          ( void ) override; // ImageServices
+    bool                        StopSync           ( void ) override; // ImageServices
+    DTC::ImageSyncInfo*         GetSyncStatus      ( void ) override; // ImageServices
 
-    bool                        CreateThumbnail    (int   id);
+    bool                        CreateThumbnail    (int   id) override; // ImageServices
 
 };
 
@@ -78,7 +78,7 @@ class ScriptableImage : public QObject
 
     public:
 
-        Q_INVOKABLE ScriptableImage( QScriptEngine *pEngine, QObject *parent = 0 ) : QObject( parent )
+        Q_INVOKABLE ScriptableImage( QScriptEngine *pEngine, QObject *parent = nullptr ) : QObject( parent )
         {
             m_pEngine = pEngine;
         }
@@ -95,7 +95,7 @@ class ScriptableImage : public QObject
 
         QObject* GetImageInfoList( int   Id )
         {
-            SCRIPT_CATCH_EXCEPTION( NULL,
+            SCRIPT_CATCH_EXCEPTION( nullptr,
                 return m_obj.GetImageInfoList( Id );
             )
         }
@@ -131,7 +131,7 @@ class ScriptableImage : public QObject
 
         QObject* GetSyncStatus( void )
         {
-            SCRIPT_CATCH_EXCEPTION( NULL,
+            SCRIPT_CATCH_EXCEPTION( nullptr,
                 return m_obj.GetSyncStatus();
             )
         }

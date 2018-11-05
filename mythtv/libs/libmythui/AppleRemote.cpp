@@ -1,13 +1,14 @@
 
 #include "AppleRemote.h"
 
-#include <stdio.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <ctype.h>
+#include <cctype>
+#include <cstdio>
+#include <cstdlib>
 #include <sys/errno.h>
 #include <sys/sysctl.h>  // for sysctlbyname
 #include <sysexits.h>
+#include <unistd.h>
+
 #include <mach/mach.h>
 #include <mach/mach_error.h>
 #include <IOKit/IOKitLib.h>
@@ -21,7 +22,7 @@
 
 #include "mythlogging.h"
 
-AppleRemote*    AppleRemote::_instance = 0;
+AppleRemote*    AppleRemote::_instance = nullptr;
 
 
 #define REMOTE_SWITCH_COOKIE 19
@@ -43,13 +44,9 @@ typedef struct _ATV_IR_EVENT
 
 static io_object_t _findAppleRemoteDevice(const char *devName);
 
-AppleRemote::Listener::~Listener()
-{
-}
-
 AppleRemote * AppleRemote::Get()
 {
-    if (_instance == 0)
+    if (_instance == nullptr)
         _instance = new AppleRemote();
 
     return _instance;
@@ -68,13 +65,13 @@ AppleRemote::~AppleRemote()
     }
     if (this == _instance)
     {
-        _instance = 0;
+        _instance = nullptr;
     }
 }
 
 bool AppleRemote::isListeningToRemote()
 {
-    return (hidDeviceInterface != NULL && !cookies.empty() && queue != NULL);
+    return (hidDeviceInterface != nullptr && !cookies.empty() && queue != nullptr);
 }
 
 void AppleRemote::setListener(AppleRemote::Listener* listener)
@@ -84,7 +81,7 @@ void AppleRemote::setListener(AppleRemote::Listener* listener)
 
 void AppleRemote::startListening()
 {
-    if (queue != NULL)   // already listening
+    if (queue != nullptr)   // already listening
         return;
 
     io_object_t hidDevice = _findAppleRemoteDevice("AppleIRController");
@@ -106,22 +103,22 @@ void AppleRemote::startListening()
 
 void AppleRemote::stopListening()
 {
-    if (queue != NULL)
+    if (queue != nullptr)
     {
         (*queue)->stop(queue);
         (*queue)->dispose(queue);
         (*queue)->Release(queue);
-        queue = NULL;
+        queue = nullptr;
     }
 
     if (!cookies.empty())
         cookies.clear();
 
-    if (hidDeviceInterface != NULL)
+    if (hidDeviceInterface != nullptr)
     {
         (*hidDeviceInterface)->close(hidDeviceInterface);
         (*hidDeviceInterface)->Release(hidDeviceInterface);
-        hidDeviceInterface = NULL;
+        hidDeviceInterface = nullptr;
     }
 }
 
@@ -147,7 +144,7 @@ static float GetATVversion()
     if ( macVersion > 0x1040 )  // Mac OS 10.5 or greater is
         return 0.0;             // definitely not an Apple TV
 
-    sysctlbyname("hw.model", &hw_model, &len, NULL, 0);
+    sysctlbyname("hw.model", &hw_model, &len, nullptr, 0);
 
     float  version = 0.0;
     if ( strstr(hw_model,"AppleTV1,1") )
@@ -179,7 +176,7 @@ AppleRemote::AppleRemote() : MThread("AppleRemote"),
                              hidDeviceInterface(0),
                              queue(0),
                              remoteId(0),
-                             _listener(0),
+                             _listener(nullptr),
                              mUsingNewAtv(false),
                              mLastEvent(AppleRemote::Undefined),
                              mEventCount(0),
@@ -322,7 +319,7 @@ bool AppleRemote::_initCookies()
 
     handle  = (IOHIDDeviceInterface122**)hidDeviceInterface;
     success = (*handle)->copyMatchingElements(handle,
-                                              NULL,
+                                              nullptr,
                                               (CFArrayRef*)&elements);
 
     if (success == kIOReturnSuccess)
@@ -357,7 +354,7 @@ bool AppleRemote::_initCookies()
 bool AppleRemote::_createDeviceInterface(io_object_t hidDevice)
 {
     IOReturn              ioReturnValue;
-    IOCFPlugInInterface** plugInInterface = NULL;
+    IOCFPlugInInterface** plugInInterface = nullptr;
     SInt32                score = 0;
 
 
@@ -431,7 +428,7 @@ bool AppleRemote::_openDevice()
     }
 
     ioReturnValue = (*queue)->setEventCallout(queue, QueueCallbackFunction,
-                                              this, NULL);
+                                              this, nullptr);
     if (ioReturnValue != KERN_SUCCESS)
     {
         LOG(VB_GENERAL, LOG_ERR, LOC +

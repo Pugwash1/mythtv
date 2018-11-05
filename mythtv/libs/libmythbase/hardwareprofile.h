@@ -19,7 +19,7 @@ class MBASE_PUBLIC HardwareProfile : public QObject
 
   public:
     HardwareProfile();
-   ~HardwareProfile(void);
+   ~HardwareProfile(void) = default;
 
     void Enable(void);
     void Disable(void);
@@ -58,8 +58,8 @@ class MBASE_PUBLIC HardwareProfileTask : public PeriodicHouseKeeperTask
                                             1.03333f, // up to one day late
                                             86400, // retry daily on error
                                             kHKLocal, kHKRunOnStartup) {}
-    virtual bool DoCheckRun(QDateTime now);
-    virtual bool DoRun(void);
+    bool DoCheckRun(QDateTime now) override; // HouseKeeperTask
+    bool DoRun(void) override; // HouseKeeperTask
   private:
 
 };

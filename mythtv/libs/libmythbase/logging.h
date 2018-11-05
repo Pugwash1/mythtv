@@ -7,8 +7,8 @@
 #include <QTime>
 #include <QPointer>
 
-#include <stdint.h>
-#include <stdlib.h>
+#include <cstdint>
+#include <cstdlib>
 
 #include "mythconfig.h"
 #include "mythbaseexp.h"  //  MBASE_PUBLIC , etc.
@@ -186,7 +186,7 @@ class LoggerThread : public QObject, public MThread
     LoggerThread(QString filename, bool progress, bool quiet, QString table,
                  int facility, bool noserver);
     ~LoggerThread();
-    void run(void);
+    void run(void) override; // MThread
     void stop(void);
     bool flush(int timeoutMS = 200000);
     void handleItem(LoggingItem *item);

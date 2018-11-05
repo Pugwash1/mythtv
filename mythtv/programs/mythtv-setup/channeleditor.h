@@ -16,14 +16,14 @@ class ChannelEditor : public MythScreenType
   public:
     explicit ChannelEditor(MythScreenStack *parent);
 
-    bool Create(void);
-    bool keyPressEvent(QKeyEvent *);
-    void customEvent(QEvent *event);
+    bool Create(void) override; // MythScreenType
+    bool keyPressEvent(QKeyEvent *) override; // MythScreenType
+    void customEvent(QEvent *event) override; // MythUIType
 
   protected slots:
     void menu(void);
     void del(void);
-    void edit(MythUIButtonListItem *item = NULL);
+    void edit(MythUIButtonListItem *item = nullptr);
     void scan(void);
     void transportEditor(void);
     void channelIconImport(void);

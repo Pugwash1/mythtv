@@ -192,6 +192,7 @@ bool PrePostRollFlagger::go()
         LOG(VB_COMMFLAG, LOG_INFO, QString("Closest before postroll: %1")
                 .arg(closestBeforePost));
 
+        // cppcheck-suppress unreadVariable
         framesToProcess = framesProcessed;
     }
 
@@ -245,7 +246,7 @@ long long PrePostRollFlagger::findBreakInrange(long long startFrame,
     {
         struct timeval startTime;
         if (stillRecording)
-            gettimeofday(&startTime, NULL);
+            gettimeofday(&startTime, nullptr);
 
         VideoFrame* currentFrame = player->GetRawVideoFrame();
         currentFrameNumber = currentFrame->frameNumber;
@@ -364,7 +365,7 @@ long long PrePostRollFlagger::findBreakInrange(long long startFrame,
             long usecPerFrame = (long)(1.0 / player->GetFrameRate() * 1000000);
 
             struct timeval endTime;
-            gettimeofday(&endTime, NULL);
+            gettimeofday(&endTime, nullptr);
 
             long long usecSleep =
                       usecPerFrame -

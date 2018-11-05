@@ -100,7 +100,7 @@ class VisFactory
 {
   public:
     VisFactory() {m_pNextVisFactory = g_pVisFactories; g_pVisFactories = this;}
-    virtual ~VisFactory() {}
+    virtual ~VisFactory() = default;
     const VisFactory* next() const {return m_pNextVisFactory;}
     virtual const QString &name(void) const = 0;
     virtual VisualBase* create(MainVisual *parent, const QString &pluginName) const = 0;
@@ -115,12 +115,13 @@ class StereoScope : public VisualBase
 {
   public:
     StereoScope();
-    virtual ~StereoScope();
+    virtual ~StereoScope() = default;
 
-    void resize( const QSize &size );
-    bool process( VisualNode *node );
-    bool draw( QPainter *p, const QColor &back );
-    void handleKeyPress(const QString &action) {(void) action;}
+    void resize( const QSize &size ) override; // VisualBase
+    bool process( VisualNode *node ) override; // VisualBase
+    bool draw( QPainter *p, const QColor &back ) override; // VisualBase
+    void handleKeyPress(const QString &action) override // VisualBase
+        {(void) action;}
 
   protected:
     QColor startColor, targetColor;
@@ -133,11 +134,11 @@ class StereoScope : public VisualBase
 class MonoScope : public StereoScope
 {
   public:
-    MonoScope();
-    virtual ~MonoScope();
+    MonoScope() = default;
+    virtual ~MonoScope() = default;
 
-    bool process( VisualNode *node );
-    bool draw( QPainter *p, const QColor &back );
+    bool process( VisualNode *node ) override; // StereoScope
+    bool draw( QPainter *p, const QColor &back ) override; // StereoScope
 };
 
 class LogScale
@@ -170,10 +171,11 @@ class Spectrum : public VisualBase
     Spectrum();
     virtual ~Spectrum();
 
-    virtual void resize(const QSize &size);
-    bool process(VisualNode *node);
-    virtual bool draw(QPainter *p, const QColor &back = Qt::black);
-    void handleKeyPress(const QString &action) {(void) action;}
+    void resize(const QSize &size) override; // VisualBase
+    bool process(VisualNode *node) override; // VisualBase
+    bool draw(QPainter *p, const QColor &back = Qt::black) override; // VisualBase
+    void handleKeyPress(const QString &action) override // VisualBase
+        {(void) action;}
 
   protected:
     inline double clamp(double cur, double max, double min);
@@ -195,11 +197,12 @@ class Squares : public Spectrum
 {
   public:
     Squares();
-    virtual ~Squares();
+    virtual ~Squares() = default;
 
-    void resize (const QSize &newsize);
-    bool draw(QPainter *p, const QColor &back = Qt::black);
-    void handleKeyPress(const QString &action) {(void) action;}
+    void resize (const QSize &newsize) override; // Spectrum
+    bool draw(QPainter *p, const QColor &back = Qt::black) override; // Spectrum
+    void handleKeyPress(const QString &action) override // Spectrum
+        {(void) action;}
 
   private:
     void drawRect(QPainter *p, QRect *rect, int i, int c, int w, int h);
@@ -244,16 +247,17 @@ typedef struct piano_key_data {
     Piano();
     virtual ~Piano();
 
-    virtual void resize(const QSize &size);
+    void resize(const QSize &size) override; // VisualBase
 
-    bool process(VisualNode *node);
+    bool process(VisualNode *node) override; // VisualBase
 
     // These functions are new, since we need to inspect all the data
-    bool processUndisplayed(VisualNode *node);
-    unsigned long getDesiredSamples(void);
+    bool processUndisplayed(VisualNode *node) override; // VisualBase
+    unsigned long getDesiredSamples(void) override; // VisualBase
 
-    virtual bool draw(QPainter *p, const QColor &back = Qt::black);
-    void handleKeyPress(const QString &action) {(void) action;}
+    bool draw(QPainter *p, const QColor &back = Qt::black) override; // VisualBase
+    void handleKeyPress(const QString &action) override // VisualBase
+        {(void) action;}
 
   protected:
     inline double clamp(double cur, double max, double min);
@@ -279,12 +283,12 @@ class AlbumArt : public VisualBase
 
   public:
     AlbumArt(void);
-    virtual ~AlbumArt();
+    virtual ~AlbumArt() = default;
 
-    void resize(const QSize &size);
-    bool process(VisualNode *node = 0);
-    bool draw(QPainter *p, const QColor &back = Qt::black);
-    void handleKeyPress(const QString &action);
+    void resize(const QSize &size) override; // VisualBase
+    bool process(VisualNode *node = nullptr) override; // VisualBase
+    bool draw(QPainter *p, const QColor &back = Qt::black) override; // VisualBase
+    void handleKeyPress(const QString &action) override; // VisualBase
 
   private:
     bool needsUpdate(void);
@@ -304,12 +308,13 @@ class Blank : public VisualBase
     // This draws ... well ... nothing    
   public:
     Blank();
-    virtual ~Blank();
+    virtual ~Blank() = default;
 
-    void resize(const QSize &size);
-    bool process(VisualNode *node = 0);
-    bool draw(QPainter *p, const QColor &back = Qt::black);
-    void handleKeyPress(const QString &action) {(void) action;}
+    void resize(const QSize &size) override; // VisualBase
+    bool process(VisualNode *node = nullptr) override; // VisualBase
+    bool draw(QPainter *p, const QColor &back = Qt::black) override; // VisualBase
+    void handleKeyPress(const QString &action) override // VisualBase
+        {(void) action;}
 
   private:
     QSize size;

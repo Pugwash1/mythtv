@@ -50,7 +50,7 @@ class SmartPLCriteriaRow
                        const QString &_Value1, const QString &_Value2);
     SmartPLCriteriaRow(void);
 
-    ~SmartPLCriteriaRow(void);
+    ~SmartPLCriteriaRow(void) = default;
 
     QString getSQL(void);
 
@@ -75,10 +75,10 @@ class SmartPlaylistEditor : public MythScreenType
     explicit SmartPlaylistEditor(MythScreenStack *parent);
    ~SmartPlaylistEditor(void);
 
-    bool Create(void);
+    bool Create(void) override; // MythScreenType
 
-    bool keyPressEvent(QKeyEvent *event);
-    void customEvent(QEvent *event);
+    bool keyPressEvent(QKeyEvent *event) override; // MythScreenType
+    void customEvent(QEvent *event) override; // MythUIType
 
     QString getSQL(QString fields);
     QString getWhereClause(void);
@@ -152,9 +152,9 @@ class CriteriaRowEditor : public MythScreenType
   public:
 
     CriteriaRowEditor(MythScreenStack *parent, SmartPLCriteriaRow *row);
-   ~CriteriaRowEditor(void);
+   ~CriteriaRowEditor(void) = default;
 
-    bool Create(void);
+    bool Create(void) override; // MythScreenType
 
   protected slots:
     void fieldChanged(void);
@@ -212,10 +212,10 @@ class SmartPLResultViewer : public MythScreenType
   public:
 
     explicit SmartPLResultViewer(MythScreenStack *parent);
-   ~SmartPLResultViewer(void);
+   ~SmartPLResultViewer(void) = default;
 
-    bool Create(void);
-    bool keyPressEvent(QKeyEvent *event);
+    bool Create(void) override; // MythScreenType
+    bool keyPressEvent(QKeyEvent *event) override; // MythScreenType
     void setSQL(QString sql);
 
   private slots:
@@ -237,9 +237,9 @@ class SmartPLOrderByDialog: public MythScreenType
   public:
 
     explicit SmartPLOrderByDialog(MythScreenStack *parent);
-    ~SmartPLOrderByDialog();
+    ~SmartPLOrderByDialog() = default;
 
-    bool Create(void);
+    bool Create(void) override; // MythScreenType
 
     QString getFieldList(void);
     void setFieldList(const QString &fieldList);
@@ -280,9 +280,9 @@ class SmartPLDateDialog: public MythScreenType
   public:
 
     explicit SmartPLDateDialog(MythScreenStack *parent);
-    ~SmartPLDateDialog();
+    ~SmartPLDateDialog() = default;
 
-    bool Create(void);
+    bool Create(void) override; // MythScreenType
 
     QString getDate(void);
     void setDate(QString date);

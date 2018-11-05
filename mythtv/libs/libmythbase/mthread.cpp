@@ -64,7 +64,7 @@ class DBPurgeHandler : public QObject
     {
         purgeTimer = startTimer(5 * 60000);
     }
-    void timerEvent(QTimerEvent *event)
+    void timerEvent(QTimerEvent *event) override // QObject
     {
         if (event->timerId() == purgeTimer)
             GetMythDB()->GetDBManager()->PurgeIdleConnections(false);
@@ -76,7 +76,7 @@ class MThreadInternal : public QThread
 {
   public:
     explicit MThreadInternal(MThread &parent) : m_parent(parent) {}
-    virtual void run(void) { m_parent.run(); }
+    void run(void) override { m_parent.run(); } // QThread
 
     void QThreadRun(void) { QThread::run(); }
     int exec(void)
@@ -100,7 +100,7 @@ static QMutex s_all_threads_lock;
 static QSet<MThread*> s_all_threads;
 
 MThread::MThread(const QString &objectName) :
-    m_thread(new MThreadInternal(*this)), m_runnable(NULL),
+    m_thread(new MThreadInternal(*this)), m_runnable(nullptr),
     m_prolog_executed(true), m_epilog_executed(true)
 {
     m_thread->setObjectName(objectName);
@@ -140,7 +140,7 @@ MThread::~MThread()
     }
 
     delete m_thread;
-    m_thread = NULL;
+    m_thread = nullptr;
 }
 
 void MThread::Cleanup(void)

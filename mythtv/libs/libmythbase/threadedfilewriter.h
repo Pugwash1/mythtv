@@ -10,8 +10,8 @@ using namespace std;
 #include <QString>
 #include <QMutex>
 
+#include <cstdint>
 #include <fcntl.h>
-#include <stdint.h>
 
 #include "mythbaseexp.h"
 #include "mthread.h"
@@ -22,8 +22,8 @@ class TFWWriteThread : public MThread
 {
   public:
     explicit TFWWriteThread(ThreadedFileWriter *p) : MThread("TFWWrite"), m_parent(p) {}
-    virtual ~TFWWriteThread() { wait(); m_parent = NULL; }
-    virtual void run(void);
+    virtual ~TFWWriteThread() { wait(); m_parent = nullptr; }
+    void run(void) override; // MThread
   private:
     ThreadedFileWriter *m_parent;
 };
@@ -32,8 +32,8 @@ class TFWSyncThread : public MThread
 {
   public:
     explicit TFWSyncThread(ThreadedFileWriter *p) : MThread("TFWSync"), m_parent(p) {}
-    virtual ~TFWSyncThread() { wait(); m_parent = NULL; }
-    virtual void run(void);
+    virtual ~TFWSyncThread() { wait(); m_parent = nullptr; }
+    void run(void) override; // MThread
   private:
     ThreadedFileWriter *m_parent;
 };

@@ -1,15 +1,15 @@
 #ifndef MYTHMISCUTIL_H_
 #define MYTHMISCUTIL_H_
 
-#include <stdint.h>
-#include <time.h>
-
 #include <algorithm>
+#include <cstdint>
+#include <ctime>
 
 #include <QString>
 #include <QDir>
 
 #include "mythbaseexp.h"
+#include "mythsystem.h"
 
 class QStringList;
 class QFile;
@@ -33,7 +33,7 @@ MBASE_PUBLIC QString getResponse(const QString &query, const QString &def);
 MBASE_PUBLIC int     intResponse(const QString &query, int def);
 
 MBASE_PUBLIC QString getSymlinkTarget(const QString &start_file,
-                                      QStringList   *intermediaries = NULL,
+                                      QStringList   *intermediaries = nullptr,
                                       unsigned       maxLinks       = 255);
 
 MBASE_PUBLIC void wrapList(QStringList &list, int width);
@@ -66,6 +66,9 @@ MBASE_PUBLIC QString xml_indent(uint level);
 
 MBASE_PUBLIC bool IsMACAddress(QString MAC);
 MBASE_PUBLIC bool WakeOnLAN(QString MAC);
+MBASE_PUBLIC bool MythWakeup(const QString &wakeUpCommand,
+    uint flags = kMSNone, uint timeout = 0);
+
 MBASE_PUBLIC QString FileHash(QString filename);
 
 /// Is A/V Sync destruction daemon is running on this host?

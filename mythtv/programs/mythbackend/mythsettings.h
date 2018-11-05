@@ -9,8 +9,8 @@
 class MythSettingBase
 {
   public:
-    MythSettingBase() {}
-    virtual ~MythSettingBase() {}
+    MythSettingBase() = default;
+    virtual ~MythSettingBase() = default;
     virtual QString ToHTML(uint) const { return QString(); }
 };
 typedef QList<MythSettingBase*> MythSettingList;
@@ -22,7 +22,7 @@ class MythSettingGroup : public MythSettingBase
                      QString script = "") :
         human_label(hlabel), unique_label(ulabel), ecma_script(script) {}
 
-    QString ToHTML(uint) const;
+    QString ToHTML(uint) const override; // MythSettingBase
 
   public:
     QString human_label;
@@ -99,7 +99,7 @@ class MythSetting : public MythSettingBase
     {
     }
 
-    QString ToHTML(uint) const;
+    QString ToHTML(uint) const override; // MythSettingBase
 
   public:
     QString value;

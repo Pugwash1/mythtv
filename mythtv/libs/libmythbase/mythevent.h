@@ -52,7 +52,7 @@ class MBASE_PUBLIC MythEvent : public QEvent
     }
 
 
-    virtual ~MythEvent() {}
+    virtual ~MythEvent() = default;
 
     const QString& Message() const { return m_message; }
     const QString& ExtraData(int idx = 0) const { return m_extradata[idx]; }
@@ -110,7 +110,7 @@ class MBASE_PUBLIC MythInfoMapEvent : public MythEvent
                      const InfoMap &linfoMap)
       : MythEvent(lmessage), m_infoMap(linfoMap) { }
 
-    virtual MythInfoMapEvent *clone() const
+    MythInfoMapEvent *clone() const override // MythEvent
         { return new MythInfoMapEvent(Message(), m_infoMap); }
     const InfoMap* GetInfoMap(void) { return &m_infoMap; }
 

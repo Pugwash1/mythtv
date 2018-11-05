@@ -4,7 +4,9 @@
 
 #include <mythcontext.h>
 
-#include "external/unzip.h"
+#include <minizip/unzip.h>
+#undef Z_NULL
+#define Z_NULL nullptr
 
 static int calcOffset(QString GameType, uLong filesize) {
     int result;
@@ -53,7 +55,6 @@ QString crcinfo(QString romname, QString GameType, QString *key, RomDBMap *romDB
     char block[32768] = "";
     uLong crc = crc32(0, Z_NULL, 0);
     QString crcRes;
-    char filename_inzip[256];
     unz_file_info file_info;
     int offset;
     unzFile zf;
@@ -73,7 +74,8 @@ QString crcinfo(QString romname, QString GameType, QString *key, RomDBMap *romDB
         {
             if (unzOpenCurrentFile(zf) == UNZ_OK)
             {
-                unzGetCurrentFileInfo(zf,&file_info,filename_inzip,sizeof(filename_inzip),NULL,0,NULL,0);
+                char filename_inzip[256];
+                unzGetCurrentFileInfo(zf,&file_info,filename_inzip,sizeof(filename_inzip),nullptr,0,nullptr,0);
 
                 offset = calcOffset(GameType, file_info.uncompressed_size);
 

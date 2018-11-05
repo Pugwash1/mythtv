@@ -7,7 +7,7 @@ class META_PUBLIC CleanupProc
 {
   public:
     virtual void doClean() = 0;
-    virtual ~CleanupProc();
+    virtual ~CleanupProc() = default;
 };
 
 class META_PUBLIC CleanupHooks
@@ -40,7 +40,7 @@ class META_PUBLIC SimpleCleanup : public CleanupProc
         CleanupHooks::getInstance()->removeHook(this);
     }
 
-    void doClean()
+    void doClean() override // CleanupProc
     {
         m_inst->cleanup();
     }

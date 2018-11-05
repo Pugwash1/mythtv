@@ -48,7 +48,7 @@ namespace
         }
 
         DirectoryHandler *newDir(const QString &dir_name,
-                                 const QString &fq_dir_name)
+                                 const QString &fq_dir_name) override // DirectoryHandler
         {
             (void) dir_name;
             (void) fq_dir_name;
@@ -58,7 +58,7 @@ namespace
         void handleFile(const QString &file_name,
                         const QString &fq_file_name,
                         const QString &extension,
-                        const QString &host)
+                        const QString &host) override // DirectoryHandler
 
         {
 #if 0
@@ -85,7 +85,7 @@ class MythUIProgressDialog;
 
 VideoScannerThread::VideoScannerThread(QObject *parent) :
     MThread("VideoScanner"),
-    m_RemoveAll(false), m_KeepAll(false), m_dialog(NULL),
+    m_RemoveAll(false), m_KeepAll(false), m_dialog(nullptr),
     m_DBDataChanged(false)
 {
     m_parent = parent;
@@ -453,7 +453,7 @@ void VideoScanner::doScan(const QStringList &dirs)
         else
         {
             delete progressDlg;
-            progressDlg = NULL;
+            progressDlg = nullptr;
         }
         m_scanThread->SetProgressDialog(progressDlg);
     }

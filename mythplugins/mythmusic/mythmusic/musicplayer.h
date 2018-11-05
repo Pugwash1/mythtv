@@ -23,9 +23,10 @@ class MusicPlayerEvent : public MythEvent
             MythEvent(t), TrackID(id), Volume(0), IsMuted(false) {}
         MusicPlayerEvent(Type t, uint vol, bool muted) :
             MythEvent(t), TrackID(0), Volume(vol), IsMuted(muted) {}
-        ~MusicPlayerEvent() {}
+        ~MusicPlayerEvent() = default;
 
-        virtual MythEvent *clone(void) const { return new MusicPlayerEvent(*this); }
+         MythEvent *clone(void) const override //  MythEvent
+            { return new MusicPlayerEvent(*this); }
 
         // for track changed/added/deleted/metadata changed/playlist changed events
         int TrackID;
@@ -109,7 +110,7 @@ class MusicPlayer : public QObject, public MythObservable
     void canShowPlayer(bool canShow) { m_canShowPlayer = canShow; }
     bool getCanShowPlayer(void) { return m_canShowPlayer; }
 
-    Decoder        *getDecoder(void) { return m_decoderHandler ? m_decoderHandler->getDecoder() : NULL; }
+    Decoder        *getDecoder(void) { return m_decoderHandler ? m_decoderHandler->getDecoder() : nullptr; }
     DecoderHandler *getDecoderHandler(void) { return m_decoderHandler; }
     AudioOutput    *getOutput(void) { return m_output; }
 
@@ -191,7 +192,7 @@ class MusicPlayer : public QObject, public MythObservable
     void StopPlayback(void);
 
   protected:
-    void customEvent(QEvent *event);
+    void customEvent(QEvent *event) override; // QObject
 
   private:
     void loadSettings(void);

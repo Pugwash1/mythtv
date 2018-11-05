@@ -9,7 +9,7 @@
 
 /* Base class for commercial flagging video frame analyzers. */
 
-#include <limits.h>
+#include <climits>
 
 #include <QMap>
 
@@ -27,7 +27,7 @@ class MythPlayer;
 class FrameAnalyzer
 {
 public:
-    virtual ~FrameAnalyzer(void) { }
+    virtual ~FrameAnalyzer(void) = default;
 
     virtual const char *name(void) const = 0;
 

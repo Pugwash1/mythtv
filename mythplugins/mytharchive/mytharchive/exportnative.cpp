@@ -1,8 +1,7 @@
-#include <unistd.h>
-#include <stdlib.h>
-
-#include <iostream>
 #include <cstdlib>
+#include <cstdlib>
+#include <iostream>
+#include <unistd.h>
 
 // qt
 #include <QFile>
@@ -44,23 +43,23 @@ ExportNative::ExportNative(
     m_bDoBurn(false),
     m_bEraseDvdRw(false),
     m_saveFilename(),
-    m_archiveButtonList(NULL),
-    m_nextButton(NULL),
-    m_prevButton(NULL),
-    m_cancelButton(NULL),
-    m_addrecordingButton(NULL),
-    m_addvideoButton(NULL),
-    m_freespaceText(NULL),
-    m_titleText(NULL),
-    m_datetimeText(NULL),
-    m_descriptionText(NULL),
-    m_filesizeText(NULL),
-    m_nofilesText(NULL),
-    m_maxsizeText(NULL),
-    m_minsizeText(NULL),
-    m_currsizeText(NULL),
-    m_currsizeErrText(NULL),
-    m_sizeBar(NULL)
+    m_archiveButtonList(nullptr),
+    m_nextButton(nullptr),
+    m_prevButton(nullptr),
+    m_cancelButton(nullptr),
+    m_addrecordingButton(nullptr),
+    m_addvideoButton(nullptr),
+    m_freespaceText(nullptr),
+    m_titleText(nullptr),
+    m_datetimeText(nullptr),
+    m_descriptionText(nullptr),
+    m_filesizeText(nullptr),
+    m_nofilesText(nullptr),
+    m_maxsizeText(nullptr),
+    m_minsizeText(nullptr),
+    m_currsizeText(nullptr),
+    m_currsizeErrText(nullptr),
+    m_sizeBar(nullptr)
 {
 }
 
@@ -75,11 +74,8 @@ ExportNative::~ExportNative(void)
 
 bool ExportNative::Create(void)
 {
-    bool foundtheme = false;
-
     // Load the theme for this screen
-    foundtheme = LoadWindowFromXML("mythnative-ui.xml", "exportnative", this);
-
+    bool foundtheme = LoadWindowFromXML("mythnative-ui.xml", "exportnative", this);
     if (!foundtheme)
         return false;
 
@@ -135,9 +131,8 @@ bool ExportNative::keyPressEvent(QKeyEvent *event)
     if (GetFocusWidget()->keyPressEvent(event))
         return true;
 
-    bool handled = false;
     QStringList actions;
-    handled = GetMythMainWindow()->TranslateKeyPress("Archive", event, actions);
+    bool handled = GetMythMainWindow()->TranslateKeyPress("Archive", event, actions);
 
     for (int i = 0; i < actions.size() && !handled; i++)
     {
@@ -166,11 +161,10 @@ bool ExportNative::keyPressEvent(QKeyEvent *event)
 void ExportNative::updateSizeBar()
 {
     int64_t size = 0;
-    ArchiveItem *a;
 
     for (int x = 0; x < m_archiveList.size(); x++)
     {
-        a = m_archiveList.at(x);
+        ArchiveItem *a = m_archiveList.at(x);
         size += a->size;
     }
 
@@ -218,10 +212,7 @@ void ExportNative::updateSizeBar()
 
 void ExportNative::titleChanged(MythUIButtonListItem *item)
 {
-    ArchiveItem *a;
-
-    a = item->GetData().value<ArchiveItem *>();
-
+    ArchiveItem *a = item->GetData().value<ArchiveItem *>();
     if (!a)
         return;
 
@@ -274,10 +265,9 @@ void ExportNative::updateArchiveList(void)
     }
     else
     {
-        ArchiveItem *a;
         for (int x = 0;  x < m_archiveList.size(); x++)
         {
-            a = m_archiveList.at(x);
+            ArchiveItem *a = m_archiveList.at(x);
 
             MythUIButtonListItem* item = new MythUIButtonListItem(m_archiveButtonList, a->title);
             item->SetData(qVariantFromValue(a));
@@ -351,7 +341,6 @@ void ExportNative::saveConfiguration(void)
                         "deleting archiveitems", query);
 
     // save new list of archive items to DB
-    ArchiveItem *a;
     query.prepare("INSERT INTO archiveitems (type, title, subtitle, "
                     "description, startdate, starttime, size, filename, hascutlist, "
                     "duration, cutduration, videowidth, videoheight, filecodec,"
@@ -362,7 +351,7 @@ void ExportNative::saveConfiguration(void)
                     ":VIDEOCODEC, :ENCODERPROFILE);");
     for (int x = 0; x < m_archiveList.size(); x++)
     {
-        a = m_archiveList.at(x);
+        ArchiveItem *a = m_archiveList.at(x);
 
         query.bindValue(":TYPE", a->type);
         query.bindValue(":TITLE", a->title);
@@ -431,10 +420,9 @@ void ExportNative::createConfigFile(const QString &filename)
     job.appendChild(media);
 
     // now loop though selected archive items and add them to the xml file
-    ArchiveItem *a;
     for (int x = 0; x < m_archiveList.size(); x++)
     {
-        a = m_archiveList.at(x);
+        ArchiveItem *a = m_archiveList.at(x);
 
         QDomElement file = doc.createElement("file");
         file.setAttribute("type", a->type.toLower() );

@@ -23,7 +23,11 @@ class DeviceReadBuffer;
 
 // HDHomeRun headers
 #ifdef USING_HDHOMERUN
-#include "hdhomerun.h"
+#ifdef HDHOMERUN_LIBPREFIX
+#include "libhdhomerun/hdhomerun.h"
+#else
+#include "hdhomerun/hdhomerun.h"
+#endif
 #else
 struct hdhomerun_device_t { int dummy; };
 #endif
@@ -45,17 +49,16 @@ enum HDHRTuneMode {
 class HDHRStreamHandler : public StreamHandler
 {
   public:
-    static HDHRStreamHandler *Get(const QString &devicename,
-                                  int recorder_id = -1);
-    static void Return(HDHRStreamHandler * & ref, int recorder_id = -1);
+    static HDHRStreamHandler *Get(const QString &devicename, int inputid);
+    static void Return(HDHRStreamHandler * & ref, int inputid);
 
-    virtual void AddListener(MPEGStreamData *data,
-                             bool /*allow_section_reader*/ = false,
-                             bool /*needs_drb*/            = false,
-                             QString output_file       = QString())
+    void AddListener(MPEGStreamData *data,
+                     bool /*allow_section_reader*/ = false,
+                     bool /*needs_drb*/            = false,
+                     QString output_file       = QString()) override // StreamHandler
     {
         StreamHandler::AddListener(data, false, false, output_file);
-    } // StreamHandler
+    }
 
     void GetTunerStatus(struct hdhomerun_tuner_status_t *status);
     bool IsConnected(void) const;
@@ -68,7 +71,7 @@ class HDHRStreamHandler : public StreamHandler
     bool EnterPowerSavingMode(void);
 
   private:
-    explicit HDHRStreamHandler(const QString &);
+    explicit HDHRStreamHandler(const QString &, int inputid);
 
     bool Connect(void);
 
@@ -82,9 +85,9 @@ class HDHRStreamHandler : public StreamHandler
     bool Open(void);
     void Close(void);
 
-    virtual void run(void); // MThread
+    void run(void) override; // MThread
 
-    virtual bool UpdateFilters(void);
+    bool UpdateFilters(void) override; // StreamHandler
 
   private:
     hdhomerun_device_t     *_hdhomerun_device;

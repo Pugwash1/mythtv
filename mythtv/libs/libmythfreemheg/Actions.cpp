@@ -19,7 +19,7 @@
 
 */
 
-#include <stdio.h>
+#include <cstdio>
 
 #include "BaseActions.h"
 #include "Actions.h"
@@ -48,12 +48,12 @@ class MHUnimplementedAction: public MHElemAction
     {
         MHLOG(MHLogWarning, QString("WARN Unimplemented action %1").arg(m_nTag) );
     }
-    virtual void Initialise(MHParseNode *, MHEngine *) {}
-    virtual void PrintMe(FILE *fd, int /*nTabs*/) const
+    void Initialise(MHParseNode *, MHEngine *) override {} // MHElemAction
+    void PrintMe(FILE *fd, int /*nTabs*/) const override // MHElemAction
     {
         fprintf(fd, "****Missing action %d\n", m_nTag);
     }
-    virtual void Perform(MHEngine *)
+    void Perform(MHEngine *) override // MHElemAction
     {
         MHERROR(QString("Unimplemented action %1").arg(m_nTag));
     }
@@ -454,7 +454,7 @@ void MHActionSequence::Initialise(MHParseNode *p, MHEngine *engine)
                 MHLOG(MHLogWarning, QString("WARN Unknown action %1").arg(pElemAction->GetTagNo()));
                 // Future proofing: ignore any actions that we don't know about.
                 // Obviously these can only arise in the binary coding.
-                pAction = NULL;
+                pAction = nullptr;
         }
 
         if (pAction)

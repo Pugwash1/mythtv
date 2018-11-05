@@ -67,29 +67,29 @@ ImportMusicDialog::ImportMusicDialog(MythScreenStack *parent) :
     m_somethingWasImported(false),
     m_tracks(new vector<TrackInfo*>),
     m_currentTrack(0),
-    m_playingMetaData(NULL),
+    m_playingMetaData(nullptr),
     // GUI stuff
-    m_locationEdit(NULL),
-    m_locationButton(NULL),
-    m_scanButton(NULL),
-    m_coverartButton(NULL),
-    m_filenameText(NULL),
-    m_compartistText(NULL),
-    m_artistText(NULL),
-    m_albumText(NULL),
-    m_titleText(NULL),
-    m_genreText(NULL),
-    m_yearText(NULL),
-    m_trackText(NULL),
-    m_nextButton(NULL),
-    m_prevButton(NULL),
-    m_currentText(NULL),
-    m_statusText(NULL),
-    m_playButton(NULL),
-    m_addButton(NULL),
-    m_addallnewButton(NULL),
-    m_nextnewButton(NULL),
-    m_compilationCheck(NULL),
+    m_locationEdit(nullptr),
+    m_locationButton(nullptr),
+    m_scanButton(nullptr),
+    m_coverartButton(nullptr),
+    m_filenameText(nullptr),
+    m_compartistText(nullptr),
+    m_artistText(nullptr),
+    m_albumText(nullptr),
+    m_titleText(nullptr),
+    m_genreText(nullptr),
+    m_yearText(nullptr),
+    m_trackText(nullptr),
+    m_nextButton(nullptr),
+    m_prevButton(nullptr),
+    m_currentText(nullptr),
+    m_statusText(nullptr),
+    m_playButton(nullptr),
+    m_addButton(nullptr),
+    m_addallnewButton(nullptr),
+    m_nextnewButton(nullptr),
+    m_compilationCheck(nullptr),
     // default metadata values
     m_defaultCompilation(false),
     m_defaultYear(0),
@@ -173,9 +173,8 @@ bool ImportMusicDialog::keyPressEvent(QKeyEvent *event)
     if (GetFocusWidget() && GetFocusWidget()->keyPressEvent(event))
         return true;
 
-    bool handled = false;
     QStringList actions;
-    handled = GetMythMainWindow()->TranslateKeyPress("Global", event, actions);
+    bool handled = GetMythMainWindow()->TranslateKeyPress("Global", event, actions);
 
     for (int i = 0; i < actions.size() && !handled; i++)
     {
@@ -513,7 +512,7 @@ bool ImportMusicDialog::copyFile(const QString &src, const QString &dst)
     else
     {
         delete busy;
-        busy = NULL;
+        busy = nullptr;
     }
 
     FileCopyThread *copy = new FileCopyThread(src, dst);
@@ -555,7 +554,7 @@ void ImportMusicDialog::startScan()
     else
     {
         delete busy;
-        busy = NULL;
+        busy = nullptr;
     }
     FileScannerThread *scanner = new FileScannerThread(this);
     scanner->start();
@@ -957,22 +956,17 @@ ImportCoverArtDialog::ImportCoverArtDialog(MythScreenStack *parent,
     m_metadata(metadata),
     m_currentFile(0),
     //  GUI stuff
-    m_filenameText(NULL),
-    m_currentText(NULL),
-    m_statusText(NULL),
-    m_destinationText(NULL),
-    m_coverartImage(NULL),
-    m_typeList(NULL),
-    m_nextButton(NULL),
-    m_prevButton(NULL),
-    m_copyButton(NULL),
-    m_exitButton(NULL)
+    m_filenameText(nullptr),
+    m_currentText(nullptr),
+    m_statusText(nullptr),
+    m_destinationText(nullptr),
+    m_coverartImage(nullptr),
+    m_typeList(nullptr),
+    m_nextButton(nullptr),
+    m_prevButton(nullptr),
+    m_copyButton(nullptr),
+    m_exitButton(nullptr)
 {
-}
-
-ImportCoverArtDialog::~ImportCoverArtDialog()
-{
-
 }
 
 bool ImportCoverArtDialog::keyPressEvent(QKeyEvent *event)
@@ -980,9 +974,8 @@ bool ImportCoverArtDialog::keyPressEvent(QKeyEvent *event)
     if (GetFocusWidget() && GetFocusWidget()->keyPressEvent(event))
         return true;
 
-    bool handled = false;
     QStringList actions;
-    handled = GetMythMainWindow()->TranslateKeyPress("Global", event, actions);
+    bool handled = GetMythMainWindow()->TranslateKeyPress("Global", event, actions);
 
     for (int i = 0; i < actions.size() && !handled; i++)
     {

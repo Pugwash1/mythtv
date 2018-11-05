@@ -17,21 +17,14 @@ KeyGrabPopupBox::KeyGrabPopupBox(MythScreenStack *parent)
     : MythScreenType (parent, "keygrabberdialog")
 {
     m_waitingForKeyRelease = m_keyReleaseSeen = false;
-    m_okButton = m_cancelButton = NULL;
-    m_messageText = NULL;
-}
-
-KeyGrabPopupBox::~KeyGrabPopupBox()
-{
+    m_okButton = m_cancelButton = nullptr;
+    m_messageText = nullptr;
 }
 
 bool KeyGrabPopupBox::Create(void)
 {
-    bool foundtheme = false;
-
     // Load the theme for this screen
-    foundtheme = LoadWindowFromXML("controls-ui.xml", "keygrabpopup", this);
-
+    bool foundtheme = LoadWindowFromXML("controls-ui.xml", "keygrabpopup", this);
     if (!foundtheme)
         return false;
 

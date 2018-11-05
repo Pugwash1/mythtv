@@ -37,11 +37,11 @@ class InternetContent : public HttpServerExtension
 
     public:
                  explicit InternetContent( const QString &sSharePath);
-        virtual ~InternetContent();
+        virtual ~InternetContent() = default;
 
-        virtual QStringList GetBasePaths();
+        QStringList GetBasePaths() override; // HttpServerExtension
 
-        bool     ProcessRequest( HTTPRequest *pRequest );
+        bool     ProcessRequest( HTTPRequest *pRequest ) override; // HttpServerExtension
 
 };
 

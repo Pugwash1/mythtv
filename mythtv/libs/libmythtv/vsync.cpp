@@ -77,7 +77,7 @@ int VideoSync::m_forceskip = 0;
 VideoSync *VideoSync::BestMethod(VideoOutput *video_output,
                                  uint refresh_interval)
 {
-    VideoSync *trial = NULL;
+    VideoSync *trial = nullptr;
     tryingVideoSync  = true;
 
     // m_forceskip allows for skipping one sync method
@@ -105,7 +105,7 @@ VideoSync *VideoSync::BestMethod(VideoOutput *video_output,
     TESTVIDEOSYNC(BusyWaitVideoSync);
 
     tryingVideoSync=false;
-    return NULL;
+    return nullptr;
 }
 
 /** \fn VideoSync::VideoSync(VideoOutput*,int)
@@ -121,7 +121,7 @@ VideoSync::VideoSync(VideoOutput *video_output, int refreshint) :
 int64_t VideoSync::GetTime(void)
 {
     struct timeval now_tv;
-    gettimeofday(&now_tv, NULL);
+    gettimeofday(&now_tv, nullptr);
     return now_tv.tv_sec * 1000000LL + now_tv.tv_usec;
 }
 
@@ -172,26 +172,6 @@ int VideoSync::CalcDelay(int nominal_frame_interval)
     }
 
     return ret_val;
-}
-
-/** \fn VideoSync::KeepPhase()
- *  \brief Keep our nexttrigger from drifting too close to the exact retrace.
- *
- *   If delay is near zero, some frames will be delay < 0 and others
- *   delay > 0 which would cause continous rapid fire stuttering.
- *   This method is only useful for those sync methods where WaitForFrame
- *   targets hardware retrace rather than targeting nexttrigger.
- *   \deprecated deprecated in favor of handling phase issues in mythplayer's AVSync.
- */
-void VideoSync::KeepPhase()
-{
-#if 0
-    LOG(VB_GENERAL, LOG_DEBUG, QString("%1").arg(m_delay));
-#endif
-    if (m_delay < -(m_refresh_interval/2))
-        m_nexttrigger += 200;
-    else if (m_delay > -500)
-        m_nexttrigger += -2000;
 }
 
 #ifndef _WIN32
@@ -395,10 +375,6 @@ BusyWaitVideoSync::BusyWaitVideoSync(VideoOutput *vo, int ri) :
     m_fudge = 0;
 }
 
-BusyWaitVideoSync::~BusyWaitVideoSync()
-{
-}
-
 bool BusyWaitVideoSync::TryInit(void)
 {
     return true;
@@ -438,10 +414,6 @@ int BusyWaitVideoSync::WaitForFrame(int nominal_frame_interval, int extra_delay)
 
 USleepVideoSync::USleepVideoSync(VideoOutput *vo, int ri) :
     VideoSync(vo, ri)
-{
-}
-
-USleepVideoSync::~USleepVideoSync()
 {
 }
 

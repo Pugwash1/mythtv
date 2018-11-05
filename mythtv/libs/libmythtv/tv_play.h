@@ -3,10 +3,8 @@
 #ifndef TVPLAY_H
 #define TVPLAY_H
 
-// C
-#include <stdint.h>
-
 // C++
+#include <cstdint>
 #include <vector>
 using namespace std;
 
@@ -124,7 +122,7 @@ class AskProgramInfo
     AskProgramInfo() :
         has_rec(false),                has_later(false),
         is_in_same_input_group(false), is_conflicting(false),
-        info(NULL) {}
+        info(nullptr) {}
     AskProgramInfo(const QDateTime &e, bool r, bool l, ProgramInfo *i) :
         expiry(e), has_rec(r), has_later(l),
         is_in_same_input_group(false), is_conflicting(false),
@@ -228,7 +226,7 @@ public:
 class MenuBase
 {
 public:
-    MenuBase() : m_document(NULL), m_translationContext("") {}
+    MenuBase() : m_document(nullptr), m_translationContext("") {}
     ~MenuBase();
     bool        LoadFromFile(const QString &filename,
                              const QString &menuname,
@@ -238,7 +236,7 @@ public:
                                const QString &menuname,
                                const char *translationContext,
                                const QString &keyBindingContext);
-    bool        IsLoaded(void) const { return (m_document != NULL); }
+    bool        IsLoaded(void) const { return (m_document != nullptr); }
     QDomElement GetRoot(void) const;
     QString     Translate(const QString &text) const;
     bool        Show(const QDomNode &node, const QDomNode &selected,
@@ -310,8 +308,8 @@ class MTV_PUBLIC TV : public QObject, public MenuItemDisplayer
     static bool IsPaused(void);
 
     // Public event handling
-    bool event(QEvent *e);
-    bool eventFilter(QObject *o, QEvent *e);
+    bool event(QEvent *e) override; // QObject
+    bool eventFilter(QObject *o, QEvent *e) override; // QObject
 
     // Public PlaybackBox methods
     /// true iff program is the same as the one in the selected player
@@ -339,12 +337,12 @@ class MTV_PUBLIC TV : public QObject, public MenuItemDisplayer
 
   public slots:
     void HandleOSDClosed(int osdType);
-    void timerEvent(QTimerEvent*);
+    void timerEvent(QTimerEvent*) override; // QObject
     void StopPlayback(void);
 
   protected:
     // Protected event handling
-    void customEvent(QEvent *e);
+    void customEvent(QEvent *e) override; // QObject
 
     static QStringList lastProgramStringList;
     static EMBEDRETURNVOID RunPlaybackBoxPtr;
@@ -535,7 +533,7 @@ class MTV_PUBLIC TV : public QObject, public MenuItemDisplayer
 
     // get queued up input
     QString GetQueuedInput(void)   const;
-    int     GetQueuedInputAsInt(bool *ok = NULL, int base = 10) const;
+    int     GetQueuedInputAsInt(bool *ok = nullptr, int base = 10) const;
     QString GetQueuedChanNum(void) const;
     uint    GetQueuedChanID(void)  const { return queuedChanID; }
 
@@ -652,8 +650,8 @@ class MTV_PUBLIC TV : public QObject, public MenuItemDisplayer
     bool CreatePBP(PlayerContext *lctx, const ProgramInfo *info);
     bool CreatePIP(PlayerContext *lctx, const ProgramInfo *info);
     bool ResizePIPWindow(PlayerContext*);
-    bool IsPBPSupported(const PlayerContext *ctx = NULL) const;
-    bool IsPIPSupported(const PlayerContext *ctx = NULL) const;
+    bool IsPBPSupported(const PlayerContext *ctx = nullptr) const;
+    bool IsPIPSupported(const PlayerContext *ctx = nullptr) const;
     void PxPToggleView(  PlayerContext *actx, bool wantPBP);
     void PxPCreateView(  PlayerContext *actx, bool wantPBP);
     void PxPTeardownView(PlayerContext *actx);
@@ -757,7 +755,7 @@ class MTV_PUBLIC TV : public QObject, public MenuItemDisplayer
                           const QDomNode &node, const QDomNode &selected);
     void CutlistMenuShow(const MenuBase &menu,
                          const QDomNode &node, const QDomNode &selected);
-    virtual bool MenuItemDisplay(const MenuItemContext &c);
+    bool MenuItemDisplay(const MenuItemContext &c) override; // MenuItemDisplayer
     bool MenuItemDisplayPlayback(const MenuItemContext &c);
     bool MenuItemDisplayCutlist(const MenuItemContext &c);
     void PlaybackMenuInit(const MenuBase &menu);

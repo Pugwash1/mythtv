@@ -13,7 +13,7 @@
 class ProgramStruct
 {
   public:
-    ProgramStruct() : before(NULL), after(NULL) {}
+    ProgramStruct() : before(nullptr), after(nullptr) {}
     ProgramInfo *before;
     ProgramInfo *after;
 };
@@ -26,18 +26,18 @@ class ViewScheduleDiff : public MythScreenType
   public:
     ViewScheduleDiff(MythScreenStack *parent, QString altTbl,
                      int recordid = -1, QString ltitle = "");
-    ~ViewScheduleDiff();
+    ~ViewScheduleDiff() = default;
 
-    bool Create(void);
-    bool keyPressEvent(QKeyEvent *);
+    bool Create(void) override; // MythScreenType
+    bool keyPressEvent(QKeyEvent *) override; // MythScreenType
 
   private slots:
    void updateInfo(MythUIButtonListItem *item);
    void showStatus(MythUIButtonListItem *item);
 
   private:
-    virtual void Load(void);
-    virtual void Init(void);
+    void Load(void) override; // MythScreenType
+    void Init(void) override; // MythScreenType
 
     void fillList(void);
     void updateUIList();

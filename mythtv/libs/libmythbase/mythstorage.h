@@ -15,14 +15,14 @@ class StorageUser
   public:
     virtual void SetDBValue(const QString&) = 0;
     virtual QString GetDBValue(void) const = 0;
-    virtual ~StorageUser() { }
+    virtual ~StorageUser() = default;
 };
 
 class MBASE_PUBLIC Storage
 {
   public:
-    Storage() { }
-    virtual ~Storage() { }
+    Storage() = default;
+    virtual ~Storage() = default;
 
     virtual void Load(void) = 0;
     virtual void Save(void) = 0;
@@ -37,7 +37,7 @@ class MBASE_PUBLIC DBStorage : public Storage
     DBStorage(StorageUser *_user, QString _table, QString _column) :
         user(_user), tablename(_table), columnname(_column) { }
 
-    virtual ~DBStorage() { }
+    virtual ~DBStorage() = default;
 
   protected:
     QString GetColumnName(void) const { return columnname; }
@@ -54,13 +54,13 @@ class MBASE_PUBLIC SimpleDBStorage : public DBStorage
     SimpleDBStorage(StorageUser *_user,
                     QString _table, QString _column) :
         DBStorage(_user, _table, _column) { initval.clear(); }
-    virtual ~SimpleDBStorage() { }
+    virtual ~SimpleDBStorage() = default;
 
-    virtual void Load(void);
-    virtual void Save(void);
-    virtual void Save(QString destination);
-    virtual bool IsSaveRequired(void) const;
-    virtual void SetSaveRequired(void);
+    void Load(void) override; // Storage
+    void Save(void) override; // Storage
+    void Save(QString destination) override; // Storage
+    bool IsSaveRequired(void) const override; // Storage
+    void SetSaveRequired(void) override; // Storage
 
   protected:
     virtual QString GetWhereClause(MSqlBindings &bindings) const = 0;
@@ -78,14 +78,14 @@ class MBASE_PUBLIC GenericDBStorage : public SimpleDBStorage
                      QString _keycolumn, QString _keyvalue = QString()) :
         SimpleDBStorage(_user, _table, _column),
         keycolumn(_keycolumn), keyvalue(_keyvalue) {}
-    virtual ~GenericDBStorage() { }
+    virtual ~GenericDBStorage() = default;
 
     void SetKeyValue(const QString &val) { keyvalue = val; }
     void SetKeyValue(long long val) { keyvalue = QString::number(val); }
 
   protected:
-    virtual QString GetWhereClause(MSqlBindings &bindings) const;
-    virtual QString GetSetClause(MSqlBindings &bindings) const;
+    QString GetWhereClause(MSqlBindings &bindings) const override; // SimpleDBStorage
+    QString GetSetClause(MSqlBindings &bindings) const override; // SimpleDBStorage
 
   protected:
     QString keycolumn;
@@ -95,12 +95,12 @@ class MBASE_PUBLIC GenericDBStorage : public SimpleDBStorage
 class MBASE_PUBLIC TransientStorage : public Storage
 {
   public:
-    TransientStorage() { }
-    virtual ~TransientStorage() { }
+    TransientStorage() = default;
+    virtual ~TransientStorage() = default;
 
-    virtual void Load(void) { }
-    virtual void Save(void) { }
-    virtual void Save(QString /*destination*/) { }
+    void Load(void) override { } // Storage
+    void Save(void) override { } // Storage
+    void Save(QString /*destination*/) override { } // Storage
 };
 
 class MBASE_PUBLIC HostDBStorage : public SimpleDBStorage
@@ -108,11 +108,11 @@ class MBASE_PUBLIC HostDBStorage : public SimpleDBStorage
   public:
     HostDBStorage(StorageUser *_user, const QString &name);
     using SimpleDBStorage::Save; // prevent compiler warning
-    virtual void Save(void);
+    void Save(void) override; // SimpleDBStorage
 
   protected:
-    virtual QString GetWhereClause(MSqlBindings &bindings) const;
-    virtual QString GetSetClause(MSqlBindings &bindings) const;
+    QString GetWhereClause(MSqlBindings &bindings) const override; // SimpleDBStorage
+    QString GetSetClause(MSqlBindings &bindings) const override; // SimpleDBStorage
 
   protected:
     QString settingname;
@@ -123,11 +123,11 @@ class MBASE_PUBLIC GlobalDBStorage : public SimpleDBStorage
   public:
     GlobalDBStorage(StorageUser *_user, const QString &name);
     using SimpleDBStorage::Save; // prevent compiler warning
-    virtual void Save(void);
+    void Save(void) override; // SimpleDBStorage
 
   protected:
-    virtual QString GetWhereClause(MSqlBindings &bindings) const;
-    virtual QString GetSetClause(MSqlBindings &bindings) const;
+    QString GetWhereClause(MSqlBindings &bindings) const override; // SimpleDBStorage
+    QString GetSetClause(MSqlBindings &bindings) const override; // SimpleDBStorage
 
   protected:
     QString settingname;

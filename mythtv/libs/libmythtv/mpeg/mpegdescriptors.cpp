@@ -1,7 +1,7 @@
 // -*- Mode: c++ -*-
 // Copyright (c) 2005, Daniel Thor Kristjansson
 
-#include <limits.h>
+#include <climits>
 
 #include "sctedescriptors.h"
 #include "atscdescriptors.h"
@@ -84,7 +84,7 @@ const unsigned char *MPEGDescriptor::Find(const desc_list_t &parsed,
         if ((*it)[0] == desc_tag)
             return *it;
     }
-    return NULL;
+    return nullptr;
 }
 
 desc_list_t MPEGDescriptor::FindAll(const desc_list_t &parsed, uint desc_tag)
@@ -145,7 +145,7 @@ const unsigned char *MPEGDescriptor::FindBestMatch(
         return parsed[unmatched_idx];
     }
 
-    return NULL;
+    return nullptr;
 }
 
 desc_list_t MPEGDescriptor::FindBestMatches(
@@ -486,11 +486,11 @@ QString MPEGDescriptor::toStringXML(uint level) const
 // Dump the descriptor in the same format as hexdump -C
 QString MPEGDescriptor::hexdump(void) const
 {
+    uint i;
     QString str, hex, prt;
-    uint i, ch;
     for (i=0; i<DescriptorLength(); i++)
     {
-        ch = _data[i+2];
+        uint ch = _data[i+2];
         hex.append(QString(" %1").arg(ch, 2, 16, QChar('0')));
         prt.append(QString("%1").arg(isprint(ch) ? QChar(ch) : '.'));
         if (((i+1) % 8) == 0)

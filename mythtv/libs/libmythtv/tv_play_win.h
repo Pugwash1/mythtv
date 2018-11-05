@@ -15,10 +15,10 @@ class TvPlayWindow : public MythScreenType
 
   public:
     TvPlayWindow(MythScreenStack *parent, const char *name);
-   ~TvPlayWindow();
+   ~TvPlayWindow() = default;
 
-    virtual bool gestureEvent(MythGestureEvent *);
-    virtual bool Create(void);
+    bool gestureEvent(MythGestureEvent *) override; // MythUIType
+    bool Create(void) override; // MythScreenType
 
     void UpdateProgress(void);
 

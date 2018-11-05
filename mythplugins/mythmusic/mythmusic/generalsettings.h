@@ -14,10 +14,10 @@ class GeneralSettings : public MythScreenType
 {
     Q_OBJECT
   public:
-    GeneralSettings(MythScreenStack *parent, const char *name = 0);
-    ~GeneralSettings();
+    GeneralSettings(MythScreenStack *parent, const char *name = nullptr);
+    ~GeneralSettings() = default;
 
-    bool Create(void);
+    bool Create(void) override; // MythScreenType
 
   private:
     MythUITextEdit     *m_musicAudioDevice;

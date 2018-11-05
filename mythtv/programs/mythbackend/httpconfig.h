@@ -12,11 +12,11 @@ class HttpConfig : public HttpServerExtension
 {
   public:
     HttpConfig();
-    virtual ~HttpConfig();
+    virtual ~HttpConfig() = default;
 
-    virtual QStringList GetBasePaths();
+    QStringList GetBasePaths() override; // HttpServerExtension
 
-    bool ProcessRequest(HTTPRequest *pRequest);
+    bool ProcessRequest(HTTPRequest *pRequest) override; // HttpServerExtension
 
   private:
     static void PrintHeader(QBuffer&, const QString &form,

@@ -12,23 +12,20 @@ EditMetadataDialog::EditMetadataDialog(
     MythScreenStack *parent, ArchiveItem *source_metadata) :
     MythScreenType(parent, "EditMetadataDialog"),
     m_sourceMetadata(source_metadata),
-    m_titleEdit(NULL),
-    m_subtitleEdit(NULL),
-    m_descriptionEdit(NULL),
-    m_startdateEdit(NULL),
-    m_starttimeEdit(NULL),
-    m_cancelButton(NULL),
-    m_okButton(NULL)
+    m_titleEdit(nullptr),
+    m_subtitleEdit(nullptr),
+    m_descriptionEdit(nullptr),
+    m_startdateEdit(nullptr),
+    m_starttimeEdit(nullptr),
+    m_cancelButton(nullptr),
+    m_okButton(nullptr)
 {
 }
 
 bool EditMetadataDialog::Create(void)
 {
-    bool foundtheme = false;
-
     // Load the theme for this screen
-    foundtheme = LoadWindowFromXML("mythburn-ui.xml", "edit_metadata", this);
-
+    bool foundtheme = LoadWindowFromXML("mythburn-ui.xml", "edit_metadata", this);
     if (!foundtheme)
         return false;
 

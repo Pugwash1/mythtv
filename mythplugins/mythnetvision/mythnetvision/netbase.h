@@ -20,11 +20,11 @@ class NetBase : public MythScreenType
   Q_OBJECT
 
   public:
-    NetBase(MythScreenStack *parent, const char *name = 0);
+    NetBase(MythScreenStack *parent, const char *name = nullptr);
     virtual ~NetBase();
 
   protected:
-    virtual void Init();
+    void Init() override; // MythScreenType
     virtual ResultItem *GetStreamItem() = 0;
     virtual void LoadData(void) = 0;
     void InitProgressDialog();
@@ -39,7 +39,7 @@ class NetBase : public MythScreenType
     void DoPlayVideo(const QString &filename);
     void SlotDeleteVideo(void);
     void DoDeleteVideo(bool remove);
-    virtual void customEvent(QEvent *event);
+    void customEvent(QEvent *event) override; // MythUIType
 
   protected:
     MythUIImage           *m_thumbImage;

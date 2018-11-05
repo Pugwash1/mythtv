@@ -1,7 +1,7 @@
 #ifndef MYTHRENDER_OPENGL_H_
 #define MYTHRENDER_OPENGL_H_
 
-#include <stdint.h>
+#include <cstdint>
 
 #include <QtGlobal>
 // The below is commented because it causes raspberry Pi with OpenMAX
@@ -70,7 +70,7 @@ class MythGLTexture
 {
   public:
     MythGLTexture() :
-        m_type(GL_TEXTURE_2D), m_data(NULL), m_data_size(0),
+        m_type(GL_TEXTURE_2D), m_data(nullptr), m_data_size(0),
         m_data_type(GL_UNSIGNED_BYTE), m_data_fmt(GL_BGRA),
         m_internal_fmt(GL_RGBA8), m_pbo(0), m_vbo(0),
         m_filter(GL_LINEAR), m_wrap(GL_CLAMP_TO_EDGE),
@@ -124,15 +124,24 @@ class MUI_PUBLIC MythRenderOpenGL : protected MythRenderContext, public MythRend
 {
   public:
     static MythRenderOpenGL* Create(const QString &painter,
-                                    QPaintDevice* device = NULL);
+                                    QPaintDevice* device = nullptr);
 
     MythRenderOpenGL(const MythRenderFormat &format, QPaintDevice* device,
                      RenderType type = kRenderUnknown);
     MythRenderOpenGL(const MythRenderFormat &format, RenderType type = kRenderUnknown);
 
+#ifdef USE_OPENGL_QT5
+    // These functions are not virtual in the base QOpenGLContext
+    // class, so these are not overrides but new functions.
     virtual void makeCurrent();
     virtual void doneCurrent();
-    virtual void Release(void);
+#else
+    // These functions are virtual in the base QGLContext class, so
+    // these are overrides of those functions.
+    void makeCurrent() override; // MythRenderContext
+    void doneCurrent() override; // MythRenderContext
+#endif
+    void Release(void) override; // MythRender
 
     using MythRenderContext::create;
 #ifdef USE_OPENGL_QT5
@@ -203,7 +212,7 @@ class MUI_PUBLIC MythRenderOpenGL : protected MythRenderContext, public MythRend
     virtual bool RectanglesAreAccelerated(void) { return false; }
 
   protected:
-    virtual ~MythRenderOpenGL();
+    virtual ~MythRenderOpenGL() = default;
     virtual void DrawBitmapPriv(uint tex, const QRect *src, const QRect *dst,
                                 uint prog, int alpha,
                                 int red, int green, int blue) = 0;

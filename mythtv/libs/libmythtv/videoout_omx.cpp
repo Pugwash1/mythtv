@@ -60,6 +60,7 @@ using namespace omxcontext;
 
 // VideoFrame <> OMX_BUFFERHEADERTYPE
 #define FRAMESETHDR(f,h) ((f)->priv[3] = reinterpret_cast<unsigned char* >(h))
+#define FRAMESETHDRNONE(f) ((f)->priv[3] = nullptr)
 #define FRAME2HDR(f) ((OMX_BUFFERHEADERTYPE*)((f)->priv[3]))
 #define HDR2FRAME(h) ((VideoFrame*)((h)->pAppPrivate))
 
@@ -86,13 +87,14 @@ class MythRenderEGL : public MythRenderOpenGL2ES
   public:
     MythRenderEGL();
 
-    virtual void makeCurrent();
-    virtual void doneCurrent();
+    void makeCurrent() override; // MythRenderOpenGL
+    void doneCurrent() override; // MythRenderOpenGL
 #ifdef USE_OPENGL_QT5
-    virtual void swapBuffers();
+    void swapBuffers() override; // MythRenderOpenGL
 #else
-    virtual void swapBuffers() const;
-    virtual bool create(const QGLContext * = 0) { return isValid(); }
+    void swapBuffers() const override; // QGLContext
+    bool create(const QGLContext * = nullptr) override // QGLContext
+        { return isValid(); }
 #endif
 
   protected:
@@ -120,13 +122,13 @@ class GlOsdThread : public MThread
             MThread("GlOsdThread")
         {
             isRunning = true;
-            m_osdImage = 0;
-            m_EGLRender = 0;
-            m_Painter = 0;
+            m_osdImage = nullptr;
+            m_EGLRender = nullptr;
+            m_Painter = nullptr;
             rectsChanged = false;
             m_lock.lock();
         }
-        virtual void run()
+        void run() override // MThread
         {
             RunProlog();
             m_EGLRender = new MythRenderEGL();
@@ -143,8 +145,8 @@ class GlOsdThread : public MThread
             {
                 LOG(VB_GENERAL, LOG_ERR, LOC + __func__ +
                     ": failed to create MythRenderEGL for OSD");
-                m_EGLRender = 0;
-                m_Painter = 0;
+                m_EGLRender = nullptr;
+                m_Painter = nullptr;
                 isRunning = false;
             }
             m_lock.unlock();
@@ -176,11 +178,11 @@ class GlOsdThread : public MThread
                 m_lock.unlock();
             }
             if (m_osdImage)
-                m_osdImage->DecrRef(), m_osdImage = 0;
+                m_osdImage->DecrRef(), m_osdImage = nullptr;
             if (m_Painter)
-                delete m_Painter, m_Painter = 0;
+                delete m_Painter, m_Painter = nullptr;
             if (m_EGLRender)
-                m_EGLRender->DecrRef(), m_EGLRender = 0;
+                m_EGLRender->DecrRef(), m_EGLRender = nullptr;
             RunEpilog();
         }
         // All of the below methods are called from another thread
@@ -277,16 +279,16 @@ QStringList VideoOutputOMX::GetAllowedRenderers(
 VideoOutputOMX::VideoOutputOMX() :
     m_render(gCoreContext->GetSetting("OMXVideoRender", VIDEO_RENDER), *this),
     m_imagefx(gCoreContext->GetSetting("OMXVideoFilter", IMAGE_FX), *this),
-    m_backgroundscreen(0), m_videoPaused(false)
+    m_backgroundscreen(nullptr), m_videoPaused(false)
 {
 #ifdef OSD_EGL
-    m_context = 0;
-    m_osdpainter = 0;
-    m_threaded_osdpainter = 0;
-    m_glOsdThread = 0;
+    m_context = nullptr;
+    m_osdpainter = nullptr;
+    m_threaded_osdpainter = nullptr;
+    m_glOsdThread = nullptr;
     m_changed = false;
 #endif
-    init(&av_pause_frame, FMT_YV12, NULL, 0, 0, 0);
+    init(&av_pause_frame, FMT_YV12, nullptr, 0, 0, 0);
 
     if (gCoreContext->GetNumSetting("UseVideoModes", 0))
         display_res = DisplayRes::GetDisplayRes(true);
@@ -330,23 +332,23 @@ VideoOutputOMX::~VideoOutputOMX()
 
 #ifdef OSD_EGL
     if (m_osdpainter)
-        delete m_osdpainter, m_osdpainter = 0;
+        delete m_osdpainter, m_osdpainter = nullptr;
     if (m_context)
-        m_context->DecrRef(), m_context = 0;
+        m_context->DecrRef(), m_context = nullptr;
     if (m_glOsdThread)
     {
         m_glOsdThread->shutdown();
         delete m_glOsdThread;
-        m_glOsdThread = 0;
+        m_glOsdThread = nullptr;
     }
     if (m_threaded_osdpainter)
-        delete m_threaded_osdpainter, m_threaded_osdpainter = 0;
+        delete m_threaded_osdpainter, m_threaded_osdpainter = nullptr;
 #endif
 
     if (m_backgroundscreen)
     {
         m_backgroundscreen->Close();
-        m_backgroundscreen = 0;
+        m_backgroundscreen = nullptr;
         GetMythUI()->RemoveCurrentLocation();
     }
 }
@@ -444,8 +446,8 @@ bool VideoOutputOMX::Init(          // Return true if successful
             LOG(VB_GENERAL, LOG_ERR, LOC + __func__ +
                 ": failed to create MythRenderEGL");
             render->DecrRef();
-            m_context = 0;
-            m_osdpainter = 0;
+            m_context = nullptr;
+            m_osdpainter = nullptr;
         }
     }
     if (GetOSDRenderer() == "threaded")
@@ -583,8 +585,8 @@ bool VideoOutputOMX::SetupDeinterlace(bool interlaced, const QString &overridefi
     m_deinterlacing = interlaced;
 
     // Remove non-openmax filters
-    delete m_deintFiltMan, m_deintFiltMan = NULL;
-    delete m_deintFilter, m_deintFilter = NULL;
+    delete m_deintFiltMan, m_deintFiltMan = nullptr;
+    delete m_deintFilter, m_deintFilter = nullptr;
 
     LOG(VB_PLAYBACK, LOG_INFO, LOC + __func__ + " switching " +
         (interlaced ? "on" : "off") + " '" +  deintfiltername + "'");
@@ -705,7 +707,7 @@ QRect VideoOutputOMX::GetPIPRect(
 void VideoOutputOMX::CreatePauseFrame(void)
 {
     delete [] av_pause_frame.buf;
-    av_pause_frame.buf = NULL;
+    av_pause_frame.buf = nullptr;
 
     VideoFrame *scratch = vbuffers.GetScratchFrame();
 
@@ -736,7 +738,7 @@ void VideoOutputOMX::UpdatePauseFrame(int64_t &disp_timecode)
     vbuffers.begin_lock(kVideoBuffer_used);
 
     VideoFrame *used_frame = (vbuffers.Size(kVideoBuffer_used) > 0) ?
-                                vbuffers.Head(kVideoBuffer_used) : NULL;
+                                vbuffers.Head(kVideoBuffer_used) : nullptr;
     if (used_frame)
         CopyFrame(&av_pause_frame, used_frame);
 
@@ -817,7 +819,7 @@ void VideoOutputOMX::PrepareFrame(VideoFrame *buffer, FrameScanType /*scan*/, OS
 
     // PGB Set up a background window to prevent bleed through
     // of theme when playing a video smaller than the play area
-    if (m_backgroundscreen == 0)
+    if (m_backgroundscreen == nullptr)
     {
         MythMainWindow *mainWindow = GetMythMainWindow();
         MythScreenStack *mainStack = mainWindow->GetMainStack();
@@ -948,7 +950,7 @@ bool VideoOutputOMX::DisplayOSD(VideoFrame *frame, OSD *osd)
         bool redraw = false;
         if (m_visual)
         {
-            m_visual->Draw(bounds, m_osdpainter, NULL);
+            m_visual->Draw(bounds, m_osdpainter, nullptr);
             redraw = true;
         }
 
@@ -980,7 +982,7 @@ bool VideoOutputOMX::DisplayOSD(VideoFrame *frame, OSD *osd)
         {
             LOG(VB_PLAYBACK, LOG_INFO, LOC + QString("OSD size changed."));
             m_glOsdThread->m_osdImage->DecrRef();
-            m_glOsdThread->m_osdImage = 0;
+            m_glOsdThread->m_osdImage = nullptr;
         }
         if (!m_glOsdThread->m_osdImage)
         {
@@ -1002,7 +1004,7 @@ bool VideoOutputOMX::DisplayOSD(VideoFrame *frame, OSD *osd)
         if (m_visual)
         {
             LOG(VB_GENERAL, LOG_ERR, LOC + "Visualiser not supported here");
-            m_visual->Draw(QRect(), NULL, NULL);
+            m_visual->Draw(QRect(), nullptr, nullptr);
         }
 
         if (m_glOsdThread->m_lock.tryLock(0)) {
@@ -1080,8 +1082,8 @@ bool VideoOutputOMX::CreateBuffers(
     def.bBuffersContiguous = OMX_FALSE;
     def.nBufferAlignment = sizeof(int);
     def.eDomain = OMX_PortDomainVideo;
-    def.format.video.cMIMEType = NULL;
-    def.format.video.pNativeRender = NULL;
+    def.format.video.cMIMEType = nullptr;
+    def.format.video.pNativeRender = nullptr;
     def.format.video.nFrameWidth = video_dim_disp.width();
     def.format.video.nFrameHeight = video_dim_disp.height();
     def.format.video.nStride = nStride;
@@ -1091,7 +1093,7 @@ bool VideoOutputOMX::CreateBuffers(
     def.format.video.bFlagErrorConcealment = OMX_FALSE;
     def.format.video.eCompressionFormat = OMX_VIDEO_CodingUnused;
     def.format.video.eColorFormat = OMX_COLOR_FormatYUV420PackedPlanar;
-    def.format.video.pNativeWindow = NULL;
+    def.format.video.pNativeWindow = nullptr;
     OMX_ERRORTYPE e = cmpnt.SetParameter(OMX_IndexParamPortDefinition, &def);
     if (e != OMX_ErrorNone)
     {
@@ -1170,7 +1172,7 @@ bool VideoOutputOMX::CreateBuffers(
 void VideoOutputOMX::DeleteBuffers()
 {
     delete [] av_pause_frame.buf;
-    init(&av_pause_frame, FMT_YV12, NULL, 0, 0, 0);
+    init(&av_pause_frame, FMT_YV12, nullptr, 0, 0, 0);
 
     vbuffers.DeleteBuffers();
 
@@ -1414,7 +1416,7 @@ OMX_ERRORTYPE VideoOutputOMX::FreeBuffersCB()
         assert(hdr->nSize == sizeof(OMX_BUFFERHEADERTYPE));
         assert(hdr->nVersion.nVersion == OMX_VERSION);
         assert(vf == HDR2FRAME(hdr));
-        FRAMESETHDR(vf, NULL);
+        FRAMESETHDRNONE(vf);
 
         OMX_ERRORTYPE e = OMX_FreeBuffer(cmpnt.Handle(), cmpnt.Base(), hdr);
         if (e != OMX_ErrorNone)
@@ -1432,7 +1434,7 @@ MythRenderEGL::MythRenderEGL() :
     MythRenderOpenGL2ES(MythRenderFormat()),
     m_display(EGL_NO_DISPLAY),
     m_context(EGL_NO_CONTEXT),
-    m_window(0),
+    m_window(nullptr),
     m_surface(EGL_NO_SURFACE)
 {
     // Disable flush to get performance improvement
@@ -1495,7 +1497,7 @@ MythRenderEGL::MythRenderEGL() :
 
     m_window = createNativeWindow();
 
-    m_surface = eglCreateWindowSurface(m_display, config, m_window, NULL);
+    m_surface = eglCreateWindowSurface(m_display, config, m_window, nullptr);
     if (m_context == EGL_NO_SURFACE)
     {
         LOG(VB_GENERAL, LOG_ERR, "eglCreateWindowSurface failed");
@@ -1612,7 +1614,7 @@ EGLNativeWindowType MythRenderEGL::createNativeWindow()
     DISPMANX_ELEMENT_HANDLE_T dispman_element = vc_dispmanx_element_add(
         update, m_dispman_display, 3/*layer*/, &dst_rect,
         DISPMANX_RESOURCE_HANDLE_T(0) /*src*/, &src_rect,
-        DISPMANX_PROTECTION_NONE, &alpha, NULL /*clamp*/, DISPMANX_NO_ROTATE);
+        DISPMANX_PROTECTION_NONE, &alpha, nullptr /*clamp*/, DISPMANX_NO_ROTATE);
     assert(dispman_element != DISPMANX_NO_HANDLE);
 
     gNativewindow.element = dispman_element;

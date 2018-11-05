@@ -103,7 +103,7 @@ class UPNP_PUBLIC SSDP : public MThread
 
         SSDPRequestType ProcessRequestLine( const QString &sLine );
 
-        virtual void run    ();
+        void    run() override; // MThread
  
     public:
 
@@ -158,11 +158,11 @@ class SSDPExtension : public HttpServerExtension
 
     public:
                  SSDPExtension( int nServicePort, const QString &sSharePath);
-        virtual ~SSDPExtension( );
+        virtual ~SSDPExtension( ) = default;
 
-        virtual QStringList GetBasePaths();
+        QStringList GetBasePaths() override; // HttpServerExtension
         
-        bool     ProcessRequest( HTTPRequest *pRequest );
+        bool     ProcessRequest( HTTPRequest *pRequest ) override; // HttpServerExtension
 };
 
 #endif

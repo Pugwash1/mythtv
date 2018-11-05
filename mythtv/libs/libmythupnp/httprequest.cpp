@@ -25,14 +25,13 @@
 #define USE_SETSOCKOPT
 #include <sys/sendfile.h>
 #endif
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <stdlib.h>
-#include <fcntl.h>
 #include <cerrno>
+#include <cstdlib>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 // FOR DEBUGGING
 #include <iostream>
-#include <complex>
 
 #ifndef _WIN32
 #include <netinet/tcp.h>
@@ -172,7 +171,7 @@ HTTPRequest::HTTPRequest() : m_procReqLineExp ( "[ \r\n][ \r\n]*"  ),
                              m_bSOAPRequest   ( false ),
                              m_eResponseType  ( ResponseTypeUnknown),
                              m_nResponseStatus( 200 ),
-                             m_pPostProcess   ( NULL ),
+                             m_pPostProcess   ( nullptr ),
                              m_bKeepAlive     ( true ),
                              m_nKeepAliveTimeout ( 0 )
 {
@@ -1757,7 +1756,7 @@ bool HTTPRequest::ProcessSOAPPayload( const QString &sSOAPAction )
 
 Serializer *HTTPRequest::GetSerializer()
 {
-    Serializer *pSerializer = NULL;
+    Serializer *pSerializer = nullptr;
 
     if (m_bSOAPRequest)
         pSerializer = (Serializer *)new SoapSerializer(&m_response,
@@ -1778,7 +1777,7 @@ Serializer *HTTPRequest::GetSerializer()
 
     // Default to XML
 
-    if (pSerializer == NULL)
+    if (pSerializer == nullptr)
         pSerializer = (Serializer *)new XmlSerializer(&m_response, m_sMethod);
 
     return pSerializer;

@@ -36,7 +36,7 @@
 //
 /////////////////////////////////////////////////////////////////////////////
 
-MediaRenderer::MediaRenderer(): m_pUPnpCMGR(NULL)
+MediaRenderer::MediaRenderer(): m_pUPnpCMGR(nullptr)
 {
     LOG(VB_UPNP, LOG_INFO, "MediaRenderer(): Begin");
 
@@ -61,7 +61,7 @@ MediaRenderer::MediaRenderer(): m_pUPnpCMGR(NULL)
     {
         LOG(VB_GENERAL, LOG_ERR, "MediaRenderer: HttpServer Create Error");
         delete pHttpServer;
-        pHttpServer = NULL;
+        pHttpServer = nullptr;
         return;
     }
 
@@ -69,8 +69,8 @@ MediaRenderer::MediaRenderer(): m_pUPnpCMGR(NULL)
     // Register any HttpServerExtensions...
     // ------------------------------------------------------------------
 
-    HtmlServerExtension *pHtmlServer = NULL;
-    pHtmlServer= new HtmlServerExtension(pHttpServer->GetSharePath() + "html",
+    HtmlServerExtension *pHtmlServer =
+                 new HtmlServerExtension(pHttpServer->GetSharePath() + "html",
                                          "frontend_");
     pHttpServer->RegisterExtension(pHtmlServer);
     pHttpServer->RegisterExtension(new FrontendServiceHost(pHttpServer->GetSharePath()));
@@ -142,7 +142,7 @@ MediaRenderer::MediaRenderer(): m_pUPnpCMGR(NULL)
         m_pHttpServer->RegisterExtension( m_pUPnpRCTL );
 #endif
 
-        UPNPSubscription *subscription = NULL;
+        UPNPSubscription *subscription = nullptr;
         if (getenv("MYTHTV_UPNPSCANNER"))
         {
             LOG(VB_UPNP, LOG_INFO,

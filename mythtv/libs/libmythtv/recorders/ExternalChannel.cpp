@@ -11,7 +11,7 @@
 #define LOC  QString("ExternChan[%1](%2): ").arg(m_inputid).arg(GetDevice())
 
 ExternalChannel::ExternalChannel(TVRec *parent, const QString & device) :
-    DTVChannel(parent), m_device(device), m_stream_handler(0)
+    DTVChannel(parent), m_device(device), m_stream_handler(nullptr)
 {
 }
 
@@ -45,7 +45,7 @@ bool ExternalChannel::Open(void)
     if (!m_inputid)
         return false;
 
-    m_stream_handler = ExternalStreamHandler::Get(m_device);
+    m_stream_handler = ExternalStreamHandler::Get(m_device, GetInputID());
     if (!m_stream_handler || m_stream_handler->HasError())
     {
         LOG(VB_GENERAL, LOG_ERR, LOC + "Open failed");
@@ -62,8 +62,8 @@ void ExternalChannel::Close()
 
     if (IsOpen())
     {
-        ExternalStreamHandler::Return(m_stream_handler);
-        m_stream_handler = 0;
+        ExternalStreamHandler::Return(m_stream_handler, GetInputID());
+        m_stream_handler = nullptr;
     }
 }
 
@@ -84,7 +84,7 @@ bool ExternalChannel::Tune(const QString &channum)
 
     LOG(VB_CHANNEL, LOG_INFO, LOC + "Tuning to " + channum);
 
-    if (!m_stream_handler->ProcessCommand("TuneChannel:" + channum, 5000,
+    if (!m_stream_handler->ProcessCommand("TuneChannel:" + channum, 10000,
                                           result))
     {
         LOG(VB_CHANNEL, LOG_ERR, LOC + QString

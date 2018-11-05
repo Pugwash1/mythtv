@@ -37,7 +37,7 @@ class MPUBLIC StandardSetting : public QObject, public StorageUser
 
     virtual void setName(const QString &str);
     QString getName(void) const { return m_name; }
-    virtual StandardSetting * byName(const QString &name);
+    StandardSetting * byName(const QString &name);
 
     bool isVisible(void) const { return m_visible; };
     bool isEnabled() const { return m_enabled; }
@@ -51,8 +51,8 @@ class MPUBLIC StandardSetting : public QObject, public StorageUser
     virtual void updateButton(MythUIButtonListItem *item);
 
     // StorageUser
-    void SetDBValue(const QString &val) { setValue(val); }
-    QString GetDBValue(void) const { return getValue(); }
+    void SetDBValue(const QString &val) override { setValue(val); } // StorageUser
+    QString GetDBValue(void) const override { return getValue(); } // StorageUser
 
     MythUIButtonListItem *createButton(MythUIButtonList *list);
 
@@ -95,10 +95,10 @@ class MPUBLIC StandardSetting : public QObject, public StorageUser
     void valueChanged(const QString &);
     void valueChanged(StandardSetting *);
     void ShouldRedraw(StandardSetting *);
-    void settingsChanged(StandardSetting *selectedSetting = NULL);
+    void settingsChanged(StandardSetting *selectedSetting = nullptr);
 
   protected:
-    explicit StandardSetting(Storage *_storage = NULL);
+    explicit StandardSetting(Storage *_storage = nullptr);
     virtual ~StandardSetting();
     void setParent(StandardSetting *parent);
     QString m_settingValue;
@@ -121,9 +121,9 @@ class MPUBLIC AutoIncrementSetting : public StandardSetting
   public:
     AutoIncrementSetting(QString _table, QString _column);
 
-    virtual void Save(void);
-    virtual void edit(MythScreenType * /*screen*/) { }
-    virtual void resultEdit(DialogCompletionEvent * /*dce*/) { }
+    void Save(void) override; // StandardSetting
+    void edit(MythScreenType * /*screen*/) override { } // StandardSetting
+    void resultEdit(DialogCompletionEvent * /*dce*/) override { } // StandardSetting
 
   protected:
     QString m_table;
@@ -138,13 +138,13 @@ class MPUBLIC AutoIncrementSetting : public StandardSetting
 class MPUBLIC MythUITextEditSetting : public StandardSetting
 {
   public:
-    virtual void resultEdit(DialogCompletionEvent *dce);
-    virtual void edit(MythScreenType *screen);
-    virtual void updateButton(MythUIButtonListItem *item);
+    void resultEdit(DialogCompletionEvent *dce) override; // StandardSetting
+    void edit(MythScreenType *screen) override; // StandardSetting
+    void updateButton(MythUIButtonListItem *item) override; // StandardSetting
     void SetPasswordEcho(bool b);
 
   protected:
-    explicit MythUITextEditSetting(Storage *_storage = NULL);
+    explicit MythUITextEditSetting(Storage *_storage = nullptr);
     bool m_passwordEcho;
 };
 
@@ -179,9 +179,9 @@ class MPUBLIC GlobalTextEditSetting: public MythUITextEditSetting
 class MPUBLIC MythUIFileBrowserSetting : public StandardSetting
 {
   public:
-    virtual void resultEdit(DialogCompletionEvent *dce);
-    virtual void edit(MythScreenType *screen);
-    virtual void updateButton(MythUIButtonListItem *item);
+    void resultEdit(DialogCompletionEvent *dce) override; // StandardSetting
+    void edit(MythScreenType *screen) override; // StandardSetting
+    void updateButton(MythUIButtonListItem *item) override; // StandardSetting
     void SetTypeFilter(QDir::Filters filter) { m_typeFilter = filter; };
     void SetNameFilter(QStringList filter) { m_nameFilter = filter; };
 
@@ -208,23 +208,23 @@ class MPUBLIC MythUIComboBoxSetting : public StandardSetting
 {
   Q_OBJECT
   public:
-    void setValue(int value);
+    void setValue(int value) override; // StandardSetting
     int getValueIndex(const QString &value) const;
     QString getValueLabel(void) const;
-    virtual void resultEdit(DialogCompletionEvent *dce);
-    virtual void edit(MythScreenType *screen);
+    void resultEdit(DialogCompletionEvent *dce) override; // StandardSetting
+    void edit(MythScreenType *screen) override; // StandardSetting
     void addSelection(const QString &label, QString value = QString(),
                       bool select = false);
     void clearSelections();
     void fillSelectionsFromDir(const QDir &dir, bool absPath = true);
-    virtual void updateButton(MythUIButtonListItem *item);
+    void updateButton(MythUIButtonListItem *item) override; // StandardSetting
     virtual int size(void) const;
 
   public slots:
-    void setValue(const QString&);
+    void setValue(const QString&) override; // StandardSetting
 
   protected:
-    MythUIComboBoxSetting(Storage *_storage = NULL, bool rw = false);
+    MythUIComboBoxSetting(Storage *_storage = nullptr, bool rw = false);
     ~MythUIComboBoxSetting();
     QVector<QString> m_labels;
     QVector<QString> m_values;
@@ -254,7 +254,7 @@ class MPUBLIC TransMythUIComboBoxSetting: public MythUIComboBoxSetting
 {
   public:
     explicit TransMythUIComboBoxSetting(bool rw = false) :
-        MythUIComboBoxSetting(NULL, rw) { }
+        MythUIComboBoxSetting(nullptr, rw) { }
 };
 
 class MPUBLIC HostTimeBoxSetting : public HostComboBoxSetting
@@ -291,9 +291,9 @@ class MPUBLIC MythUISpinBoxSetting : public StandardSetting
   public:
     //void setValue(int value);
     int intValue();
-    virtual void resultEdit(DialogCompletionEvent *dce);
-    virtual void edit(MythScreenType *screen);
-    virtual void updateButton(MythUIButtonListItem *item);
+    void resultEdit(DialogCompletionEvent *dce) override; // StandardSetting
+    void edit(MythScreenType *screen) override; // StandardSetting
+    void updateButton(MythUIButtonListItem *item) override; // StandardSetting
 
   protected:
     // MythUISpinBoxSetting(Storage *_storage, int min, int max, int step,
@@ -317,7 +317,7 @@ class MPUBLIC TransMythUISpinBoxSetting: public MythUISpinBoxSetting
     TransMythUISpinBoxSetting(int min, int max, int step,
                               int pageMultiple = 5,
                               const QString &special_value_text = QString()) :
-        MythUISpinBoxSetting(NULL, min, max, step, pageMultiple,
+        MythUISpinBoxSetting(nullptr, min, max, step, pageMultiple,
                              special_value_text)
     { }
 };
@@ -353,10 +353,10 @@ class MPUBLIC MythUICheckBoxSetting : public StandardSetting
     Q_OBJECT
 
   public:
-    virtual void resultEdit(DialogCompletionEvent *dce);
-    virtual void edit(MythScreenType *screen);
-    virtual void updateButton(MythUIButtonListItem *item);
-    virtual void setValue(const QString&);
+    void resultEdit(DialogCompletionEvent *dce) override; // StandardSetting
+    void edit(MythScreenType *screen) override; // StandardSetting
+    void updateButton(MythUIButtonListItem *item) override; // StandardSetting
+    void setValue(const QString&) override; // StandardSetting
     virtual void setValue(bool value);
     using StandardSetting::setValue;
     bool boolValue();
@@ -365,7 +365,7 @@ class MPUBLIC MythUICheckBoxSetting : public StandardSetting
     void valueChanged(bool);
 
   protected:
-    explicit MythUICheckBoxSetting(Storage *_storage = NULL);
+    explicit MythUICheckBoxSetting(Storage *_storage = nullptr);
 
 };
 
@@ -399,13 +399,12 @@ class MPUBLIC GroupSetting : public StandardSetting
     Q_OBJECT
 
   public:
-    GroupSetting();
+    GroupSetting() = default;
 
-    virtual void edit(MythScreenType *screen);
-    virtual void resultEdit(DialogCompletionEvent *) {}
+    void edit(MythScreenType *screen) override; // StandardSetting
+    void resultEdit(DialogCompletionEvent *) override {} // StandardSetting
     virtual void applyChange() {}
-    virtual void updateButton(MythUIButtonListItem *item);
-    virtual StandardSetting* byName(const QString &name);
+    void updateButton(MythUIButtonListItem *item) override; // StandardSetting
     virtual bool canDelete(void) {return false;}
     virtual void deleteEntry(void) {}
 };
@@ -417,8 +416,8 @@ class MPUBLIC ButtonStandardSetting : public StandardSetting
   public:
     explicit ButtonStandardSetting(const QString &label);
 
-    virtual void edit(MythScreenType *screen);
-    virtual void resultEdit(DialogCompletionEvent *){};
+    void edit(MythScreenType *screen) override; // StandardSetting
+    void resultEdit(DialogCompletionEvent *) override {}; // StandardSetting
 
   signals:
     void clicked();
@@ -435,24 +434,24 @@ class MPUBLIC StandardSettingDialog : public MythScreenType
   public:
 
     StandardSettingDialog(MythScreenStack *parent, const char *name,
-                          GroupSetting *groupSettings = NULL);
+                          GroupSetting *groupSettings = nullptr);
     virtual ~StandardSettingDialog();
-    bool Create(void);
-    virtual void customEvent(QEvent *event);
-    virtual bool keyPressEvent(QKeyEvent *);
-    virtual void ShowMenu(void);
+    bool Create(void) override; // MythScreenType
+    void customEvent(QEvent *event) override; // MythUIType
+    bool keyPressEvent(QKeyEvent *) override; // MythScreenType
+    void ShowMenu(void) override; // MythScreenType
     void deleteEntry(void);
 
   public slots:
-    void Close(void);
-    void updateSettings(StandardSetting *selectedSetting = NULL);
+    void Close(void) override; // MythScreenType
+    void updateSettings(StandardSetting *selectedSetting = nullptr);
     void editEntry(void);
     void deleteSelected(void);
     void deleteEntryConfirmed(bool ok);
 
   protected:
-    virtual void Load(void);
-    virtual void Init(void);
+    void Load(void) override; // MythScreenType
+    void Init(void) override; // MythScreenType
     GroupSetting *GetGroupSettings(void) const;
     MythUIButtonList *m_buttonList;
 
@@ -464,7 +463,7 @@ class MPUBLIC StandardSettingDialog : public MythScreenType
     void LevelUp();
     void LevelDown();
     void setCurrentGroupSetting(StandardSetting *groupSettings,
-                                StandardSetting *selectedSetting = 0);
+                                StandardSetting *selectedSetting = nullptr);
     void Save();
 
     MythUIText      *m_title;

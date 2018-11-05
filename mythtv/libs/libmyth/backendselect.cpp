@@ -18,8 +18,8 @@ BackendSelection::BackendSelection(
     Configuration *conf, bool exitOnFinish) :
     MythScreenType(parent, "BackEnd Selection"),
     m_DBparams(params), m_pConfig(conf), m_exitOnFinish(exitOnFinish),
-    m_backendList(NULL), m_manualButton(NULL), m_saveButton(NULL),
-    m_cancelButton(NULL), m_backendDecision(kCancelConfigure), m_loop(NULL)
+    m_backendList(nullptr), m_manualButton(nullptr), m_saveButton(nullptr),
+    m_cancelButton(nullptr), m_backendDecision(kCancelConfigure), m_loop(nullptr)
 {
     if (exitOnFinish)
     {
@@ -308,7 +308,7 @@ void BackendSelection::customEvent(QEvent *event)
 {
     if (((MythEvent::Type)(event->type())) == MythEvent::MythEventMessage)
     {
-        MythEvent *me      = (MythEvent *)event;
+        MythEvent *me      = static_cast<MythEvent *>(event);
         QString    message = me->Message();
         QString    URI     = me->ExtraData(0);
         QString    URN     = me->ExtraData(1);

@@ -1,5 +1,7 @@
-#include <stdint.h>
 #include "screensaver-dbus.h"
+
+#include <cstdint>
+
 #include <QDBusConnection>
 #include <QDBusInterface>
 #include <QDBusReply>
@@ -119,7 +121,7 @@ class ScreenSaverDBusPrivate
 
 ScreenSaverDBus::ScreenSaverDBus() :
     m_bus(QDBusConnection::sessionBus()),
-    d(NULL),
+    d(nullptr),
     m_dbusPrivateInterfaces(QList<ScreenSaverDBusPrivate *>())
 {
     // service, path, interface, bus - note that interface = service, hence it is used twice

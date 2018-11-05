@@ -1,8 +1,8 @@
 #ifndef ENCODER_H_
 #define ENCODER_H_
 
+#include <cstdio>
 #include <sys/types.h>
-#include <stdio.h>
 
 #define EENCODEERROR -1
 #define EPARTIALSAMPLE -2
@@ -17,7 +17,7 @@ class Encoder
     virtual ~Encoder();
     virtual int addSamples(int16_t * bytes, unsigned int len) = 0;
 
-    virtual bool isValid() { return (m_out != NULL); }
+    virtual bool isValid() { return (m_out != nullptr); }
 
   protected:
     const QString m_outfile;

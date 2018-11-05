@@ -52,8 +52,7 @@ class MUI_PUBLIC MythMainWindow : public QWidget
     MythScreenStack *GetStackAt(int pos);
 
     bool TranslateKeyPress(const QString &context, QKeyEvent *e,
-                           QStringList &actions, bool allowJumps = true)
-                           MUNUSED_RESULT;
+                           QStringList &actions, bool allowJumps = true);
     bool keyLongPressFilter(QEvent **e,
         QScopedPointer<QEvent> &sNewEvent);
 
@@ -132,7 +131,7 @@ class MUI_PUBLIC MythMainWindow : public QWidget
     uint PushDrawDisabled(void);
     uint PopDrawDisabled(void);
     void SetEffectsEnabled(bool enable);
-    void draw(MythPainter *painter = 0);
+    void draw(MythPainter *painter = nullptr);
 
     void ResetIdleTimer(void);
     void PauseIdleTimer(bool pause);
@@ -140,7 +139,7 @@ class MUI_PUBLIC MythMainWindow : public QWidget
     void EnterStandby(bool manual = true);
     void ExitStandby(bool manual = true);
 
-    virtual QPaintEngine *paintEngine() const;
+    QPaintEngine *paintEngine() const override; // QWidget
 
   public slots:
     void mouseTimeout();
@@ -162,13 +161,13 @@ class MUI_PUBLIC MythMainWindow : public QWidget
 
     void InitKeys(void);
 
-    bool eventFilter(QObject *o, QEvent *e);
-    void customEvent(QEvent *ce);
-    void closeEvent(QCloseEvent *e);
+    bool eventFilter(QObject *o, QEvent *e) override; // QWidget
+    void customEvent(QEvent *ce) override; // QWidget
+    void closeEvent(QCloseEvent *e) override; // QWidget
 
     void drawScreen();
 
-    bool event(QEvent* e);
+    bool event(QEvent* e) override; // QWidget
 
     void ExitToMainMenu();
 

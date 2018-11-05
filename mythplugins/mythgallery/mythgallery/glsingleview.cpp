@@ -103,9 +103,9 @@ GLSingleView::GLSingleView(ThumbList itemList, int *pos, int slideShow,
       m_effect_cube_yrot(0.0f),
       m_effect_cube_zrot(0.0f),
       m_effect_kenBurns_image_timeout(0.0f),
-      m_effect_kenBurns_imageLoadThread(NULL),
+      m_effect_kenBurns_imageLoadThread(nullptr),
       m_effect_kenBurns_image_ready(true),
-      m_effect_kenBurns_item(NULL),
+      m_effect_kenBurns_item(nullptr),
       m_effect_kenBurns_initialized(false),
       m_effect_kenBurns_new_image_started(true)
 {
@@ -175,7 +175,7 @@ void GLSingleView::CleanUp(void)
     {
         m_slideshow_timer->stop();
         m_slideshow_timer->deleteLater();
-        m_slideshow_timer = NULL;
+        m_slideshow_timer = nullptr;
     }
 
     m_texItem[0].Deinit();
@@ -446,7 +446,7 @@ void GLSingleView::keyPressEvent(QKeyEvent *e)
             ThumbItem *item = getCurrentItem();
             if (item && GalleryUtil::Delete(item->GetPath()))
             {
-                item->SetPixmap(NULL);
+                item->SetPixmap(nullptr);
                 DisplayNext(true, true);
             }
             m_info_show = wasInfo;
@@ -570,12 +570,11 @@ void GLSingleView::DisplayNext(bool reset, bool loadImage)
 
     // Search for next item that hasn't been deleted.
     // Close viewer if none remain.
-    ThumbItem *item;
     int oldpos = m_pos;
 
     while (true)
     {
-        item = advanceItem();
+        ThumbItem *item = advanceItem();
         if (item)
         {
             if (QFile::exists(item->GetPath()))
@@ -1037,13 +1036,10 @@ void GLSingleView::EffectFlutter(void)
     // wave every two iterations
     if (m_effect_current_frame%2 == 0)
     {
-
-        float hold;
-        int x, y;
-        for (y = 0; y < 40; y++)
+        for (int y = 0; y < 40; y++)
         {
-            hold = m_effect_flutter_points[0][y][2];
-            for (x = 0; x < 39; x++)
+            float hold = m_effect_flutter_points[0][y][2];
+            for (int x = 0; x < 39; x++)
             {
                 m_effect_flutter_points[x][y][2] = m_effect_flutter_points[x + 1][y][2];
             }
@@ -1255,7 +1251,7 @@ void GLSingleView::EffectKenBurns(void)
     {
 
         m_effect_kenBurns_initialized = !m_effect_kenBurns_initialized;
-        m_effect_kenBurns_item = NULL;
+        m_effect_kenBurns_item = nullptr;
         // Need to load images in the background to keep effect smooth
         m_effect_kenBurns_imageLoadThread = new KenBurnsImageLoader(this, m_texSize, m_screenSize);
         //Since total image time is longer/different than effect time, create image timers

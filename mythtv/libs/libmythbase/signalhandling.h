@@ -7,8 +7,8 @@
 #include <QList>
 #include <QMap>
 
-#include <stdint.h>
-#include <signal.h>
+#include <cstdint>
+#include <csignal>
 #include <unistd.h>
 
 #include "mythbaseexp.h"  //  MBASE_PUBLIC , etc.
@@ -27,7 +27,7 @@ class MBASE_PUBLIC SignalHandler: public QObject
     Q_OBJECT
 
   public:
-    static void Init(QList<int> &signallist, QObject *parent = NULL);
+    static void Init(QList<int> &signallist, QObject *parent = nullptr);
     static void Done(void);
 
     static void SetHandler(int signal, SigHandlerFunc handler);

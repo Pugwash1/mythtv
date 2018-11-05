@@ -3,6 +3,7 @@
 #ifndef _V4L2encStreamhandler_H_
 #define _V4L2encStreamhandler_H_
 
+#include <cstdint>
 #include <vector>
 using namespace std;
 
@@ -10,7 +11,6 @@ using namespace std;
 #include <QAtomicInt>
 #include <QMutex>
 #include <QMap>
-#include <stdint.h>
 
 #include "streamhandler.h"
 #include "v4l2util.h"
@@ -26,16 +26,17 @@ class V4L2encStreamHandler : public StreamHandler
     enum constants {PACKET_SIZE = 188 * 32768};
 
   public:
-    static V4L2encStreamHandler *Get(const QString &devicename, int audioinput);
-    static void Return(V4L2encStreamHandler * & ref);
+    static V4L2encStreamHandler *Get(const QString &devicename, int audioinput,
+                                     int inputid);
+    static void Return(V4L2encStreamHandler * & ref, int inputid);
 
   public:
-    V4L2encStreamHandler(const QString & path, int audio_input);
+    V4L2encStreamHandler(const QString & path, int audio_input, int inputid);
     ~V4L2encStreamHandler(void);
 
-    virtual void run(void); // MThread
+    void run(void) override; // MThread
 #if 0
-    virtual void PriorityEvent(int fd); // DeviceReaderCB
+    void PriorityEvent(int fd) override; // DeviceReaderCB
 #endif
 
     bool Configure(void);

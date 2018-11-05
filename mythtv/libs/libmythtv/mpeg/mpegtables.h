@@ -397,8 +397,8 @@ class MTV_PUBLIC PSIPTable : public PESPacket
     PSIPTable(const TSPacket& tspacket, bool)
         : PESPacket()
     {
-        _pesdata = NULL;
-        _fullbuffer = NULL;
+        _pesdata = nullptr;
+        _fullbuffer = nullptr;
          _ccLast = tspacket.ContinuityCounter();
          _allocSize = 0;
         InitPESPacket(const_cast<TSPacket&>(tspacket));
@@ -544,7 +544,7 @@ class MTV_PUBLIC PSIPTable : public PESPacket
     // Only for real ATSC PSIP tables.
     void SetATSCProtocolVersion(int ver) { pesdata()[8] = ver; }
 
-    bool HasCRC(void) const;
+    bool HasCRC(void) const override; // PESPacket
     bool HasSectionNumber(void) const;
 
     bool VerifyPSIP(bool verify_crc) const;
@@ -638,8 +638,8 @@ class MTV_PUBLIC ProgramAssociationTable : public PSIPTable
         return 0;
     }
 
-    virtual QString toString(void) const;
-    virtual QString toStringXML(uint indent_level) const;
+    QString toString(void) const override; // PSIPTable
+    QString toStringXML(uint indent_level) const override; // PSIPTable
 
   private:
     static ProgramAssociationTable* CreateBlank(bool smallPacket = true);
@@ -773,11 +773,11 @@ class MTV_PUBLIC ProgramMapTable : public PSIPTable
         SetProgramInfoLength(0);
         _ptrs.clear();
     }
-    void AppendStream(uint pid, uint type, unsigned char* si = 0, uint il = 0);
+    void AppendStream(uint pid, uint type, unsigned char* si = nullptr, uint il = 0);
 
     void Parse(void) const;
-    virtual QString toString(void) const;
-    virtual QString toStringXML(uint indent_level) const;
+    QString toString(void) const override; // PSIPTable
+    QString toStringXML(uint indent_level) const override; // PSIPTable
     // unsafe sets
   private:
     void SetStreamInfoLength(uint i, uint length)
@@ -842,8 +842,8 @@ class MTV_PUBLIC ConditionalAccessTable : public PSIPTable
         { return SectionLength() - PSIP_OFFSET; }
     const unsigned char *Descriptors(void) const { return psipdata(); }
 
-    virtual QString toString(void) const;
-    virtual QString toStringXML(uint indent_level) const;
+    QString toString(void) const override; // PSIPTable
+    QString toStringXML(uint indent_level) const override; // PSIPTable
 
     // CRC_32 32 rpchof
 };
@@ -991,13 +991,13 @@ class MTV_PUBLIC SpliceInformationTable : public PSIPTable
 {
   public:
     SpliceInformationTable(const SpliceInformationTable &table) :
-        PSIPTable(table), _epilog(NULL)
+        PSIPTable(table), _epilog(nullptr)
     {
         assert(TableID::SITscte == TableID());
         Parse();
     }
     explicit SpliceInformationTable(const PSIPTable &table) :
-        PSIPTable(table), _epilog(NULL)
+        PSIPTable(table), _epilog(nullptr)
     {
         assert(TableID::SITscte == TableID());
         Parse();
@@ -1141,7 +1141,7 @@ class MTV_PUBLIC SpliceInformationTable : public PSIPTable
     //   splice_descriptor()   ??   ??.?
     const unsigned char *SpliceDescriptors(void) const
     {
-        return (_epilog) ? _epilog + 2 : NULL;
+        return (_epilog) ? _epilog + 2 : nullptr;
     }
     // for (i = 0; i < ?; i++)
     //   alignment_stuffing     8   ??.0
@@ -1152,8 +1152,9 @@ class MTV_PUBLIC SpliceInformationTable : public PSIPTable
     SpliceInformationTable *GetDecrypted(const QString &codeWord) const;
     bool Parse(void);
 
-    virtual QString toString(void) const { return toString(-1LL, -1LL); }
-    virtual QString toStringXML(uint indent_level) const
+    QString toString(void) const override // PSIPTable
+        { return toString(-1LL, -1LL); }
+    QString toStringXML(uint indent_level) const override // PSIPTable
         { return toStringXML(indent_level, -1LL, -1LL); }
 
     QString toString(int64_t first, int64_t last) const;

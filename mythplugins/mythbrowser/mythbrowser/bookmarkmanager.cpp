@@ -25,20 +25,17 @@ using namespace std;
 
 BrowserConfig::BrowserConfig(MythScreenStack *parent, const char *name) :
     MythScreenType(parent, name),
-    m_commandEdit(NULL),     m_zoomEdit(NULL),
-    m_descriptionText(NULL), m_titleText(NULL),
-    m_enablePluginsCheck(NULL),
-    m_okButton(NULL),        m_cancelButton(NULL)
+    m_commandEdit(nullptr),     m_zoomEdit(nullptr),
+    m_descriptionText(nullptr), m_titleText(nullptr),
+    m_enablePluginsCheck(nullptr),
+    m_okButton(nullptr),        m_cancelButton(nullptr)
 {
 }
 
 bool BrowserConfig::Create()
 {
-    bool foundtheme = false;
-
     // Load the theme for this screen
-    foundtheme = LoadWindowFromXML("browser-ui.xml", "browserconfig", this);
-
+    bool foundtheme = LoadWindowFromXML("browser-ui.xml", "browserconfig", this);
     if (!foundtheme)
         return false;
 
@@ -85,10 +82,6 @@ bool BrowserConfig::Create()
     SetFocusWidget(m_commandEdit);
 
     return true;
-}
-
-BrowserConfig::~BrowserConfig()
-{
 }
 
 void BrowserConfig::slotSave(void)
@@ -147,19 +140,16 @@ void BrowserConfig::slotFocusChanged(void)
 BookmarkManager::BookmarkManager(MythScreenStack *parent, const char *name)
                : MythScreenType(parent, name)
 {
-    m_bookmarkList = NULL;
-    m_groupList = NULL;
-    m_messageText = NULL;
-    m_menuPopup = NULL;
+    m_bookmarkList = nullptr;
+    m_groupList = nullptr;
+    m_messageText = nullptr;
+    m_menuPopup = nullptr;
 }
 
 bool BookmarkManager::Create(void)
 {
-    bool foundtheme = false;
-
     // Load the theme for this screen
-    foundtheme = LoadWindowFromXML("browser-ui.xml", "bookmarkmanager", this);
-
+    bool foundtheme = LoadWindowFromXML("browser-ui.xml", "bookmarkmanager", this);
     if (!foundtheme)
         return false;
 
@@ -268,9 +258,8 @@ bool BookmarkManager::keyPressEvent(QKeyEvent *event)
     if (GetFocusWidget()->keyPressEvent(event))
         return true;
 
-    bool handled = false;
     QStringList actions;
-    handled = GetMythMainWindow()->TranslateKeyPress("qt", event, actions);
+    bool handled = GetMythMainWindow()->TranslateKeyPress("qt", event, actions);
 
     for (int i = 0; i < actions.size() && !handled; i++)
     {
@@ -289,7 +278,7 @@ bool BookmarkManager::keyPressEvent(QKeyEvent *event)
             if (!m_menuPopup->Create())
             {
                 delete m_menuPopup;
-                m_menuPopup = NULL;
+                m_menuPopup = nullptr;
                 return true;
             }
 
@@ -415,7 +404,7 @@ void BookmarkManager::slotBookmarkClicked(MythUIButtonListItem *item)
 
 void BookmarkManager::ShowEditDialog(bool edit)
 {
-    Bookmark *site = NULL;
+    Bookmark *site = nullptr;
 
     if (edit)
     {

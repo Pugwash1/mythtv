@@ -16,15 +16,15 @@ class GrabberSettings : public MythScreenType
 
   public:
 
-    GrabberSettings(MythScreenStack *parent, const char *name = 0);
-    ~GrabberSettings();
+    GrabberSettings(MythScreenStack *parent, const char *name = nullptr);
+    ~GrabberSettings() = default;
 
-    bool Create(void);
-    bool keyPressEvent(QKeyEvent *);
+    bool Create(void) override; // MythScreenType
+    bool keyPressEvent(QKeyEvent *) override; // MythScreenType
 
   private:
-    virtual void Load(void);
-    virtual void Init(void);
+    void Load(void) override; // MythScreenType
+    void Init(void) override; // MythScreenType
 
     GrabberList m_movieGrabberList;
     GrabberList m_tvGrabberList;

@@ -3,8 +3,8 @@
 #ifndef CCDECODER_H_
 #define CCDECODER_H_
 
-#include <time.h>
-#include <stdint.h>
+#include <cstdint>
+#include <ctime>
 
 #include <vector>
 using namespace std;
@@ -18,7 +18,7 @@ using namespace std;
 class CC608Input
 {
   public:
-    virtual ~CC608Input() { }
+    virtual ~CC608Input() = default;
     virtual void AddTextData(unsigned char *buf, int len,
                              int64_t timecode, char type) = 0;
 };

@@ -22,8 +22,8 @@
 #define LOC QString("IPTVChan[%1]: ").arg(m_inputid)
 
 IPTVChannel::IPTVChannel(TVRec *rec, const QString &videodev) :
-    DTVChannel(rec), m_firsttune(true), m_stream_handler(NULL),
-    m_stream_data(NULL), m_videodev(videodev)
+    DTVChannel(rec), m_firsttune(true), m_stream_handler(nullptr),
+    m_stream_data(nullptr), m_videodev(videodev)
 {
     LOG(VB_CHANNEL, LOG_INFO, LOC + "ctor");
 }
@@ -100,17 +100,17 @@ void IPTVChannel::OpenStreamHandler(void)
     if (m_last_tuning.IsHLS())
     {
         LOG(VB_CHANNEL, LOG_INFO, LOC + "Creating HLSStreamHandler");
-        m_stream_handler = HLSStreamHandler::Get(m_last_tuning);
+        m_stream_handler = HLSStreamHandler::Get(m_last_tuning, GetInputID());
     }
     else if (m_last_tuning.IsHTTPTS())
     {
         LOG(VB_CHANNEL, LOG_INFO, LOC + "Creating HTTPTSStreamHandler");
-        m_stream_handler = HTTPTSStreamHandler::Get(m_last_tuning);
+        m_stream_handler = HTTPTSStreamHandler::Get(m_last_tuning, GetInputID());
     }
     else
     {
         LOG(VB_CHANNEL, LOG_INFO, LOC + "Creating IPTVStreamHandler");
-        m_stream_handler = IPTVStreamHandler::Get(m_last_tuning);
+        m_stream_handler = IPTVStreamHandler::Get(m_last_tuning, GetInputID());
     }
 }
 
@@ -125,7 +125,7 @@ void IPTVChannel::CloseStreamHandler(void)
         if (m_stream_data)
         {
             m_stream_handler->RemoveListener(m_stream_data);
-            m_stream_data = NULL; //see trac ticket #12773
+            m_stream_data = nullptr; //see trac ticket #12773
         }
 
         HLSStreamHandler* hsh = dynamic_cast<HLSStreamHandler*>(m_stream_handler);
@@ -133,17 +133,17 @@ void IPTVChannel::CloseStreamHandler(void)
 
         if (hsh)
         {
-            HLSStreamHandler::Return(hsh);
+            HLSStreamHandler::Return(hsh, GetInputID());
             m_stream_handler = hsh;
         }
         else if (httpsh)
         {
-            HTTPTSStreamHandler::Return(httpsh);
+            HTTPTSStreamHandler::Return(httpsh, GetInputID());
             m_stream_handler = httpsh;
         }
         else
         {
-            IPTVStreamHandler::Return(m_stream_handler);
+            IPTVStreamHandler::Return(m_stream_handler, GetInputID());
         }
     }
 }

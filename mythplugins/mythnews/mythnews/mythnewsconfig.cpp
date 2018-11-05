@@ -33,9 +33,9 @@ class MythNewsConfigPriv
 MythNewsConfig::MythNewsConfig(MythScreenStack *parent, const QString &name)
     : MythScreenType(parent, name),
       m_lock(QMutex::Recursive),
-      m_priv(new MythNewsConfigPriv), m_categoriesList(NULL),
-      m_siteList(NULL),               m_helpText(NULL),
-      m_contextText(NULL),
+      m_priv(new MythNewsConfigPriv), m_categoriesList(nullptr),
+      m_siteList(nullptr),            m_helpText(nullptr),
+      m_contextText(nullptr),
       m_updateFreq(gCoreContext->GetNumSetting("NewsUpdateFrequency", 30))
 {
     populateSites();
@@ -214,7 +214,7 @@ void MythNewsConfig::slotCategoryChanged(MythUIButtonListItem *item)
     for (; it != cat->siteList.end(); ++it)
     {
         MythUIButtonListItem *newitem =
-            new MythUIButtonListItem(m_siteList, (*it).name, 0, true,
+            new MythUIButtonListItem(m_siteList, (*it).name, nullptr, true,
                                      (*it).inDB ?
                                      MythUIButtonListItem::FullChecked :
                                      MythUIButtonListItem::NotChecked);
@@ -227,9 +227,8 @@ bool MythNewsConfig::keyPressEvent(QKeyEvent *event)
     if (GetFocusWidget()->keyPressEvent(event))
         return true;
 
-    bool handled = false;
     QStringList actions;
-    handled = GetMythMainWindow()->TranslateKeyPress("News", event, actions);
+    bool handled = GetMythMainWindow()->TranslateKeyPress("News", event, actions);
 
     if (!handled && MythScreenType::keyPressEvent(event))
         handled = true;

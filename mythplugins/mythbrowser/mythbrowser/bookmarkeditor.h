@@ -23,10 +23,10 @@ class BookmarkEditor : public MythScreenType
 
     BookmarkEditor(Bookmark *site, bool edit, MythScreenStack *parent,
                    const char *name);
-    ~BookmarkEditor();
+    ~BookmarkEditor() = default;
 
-    bool Create(void);
-    bool keyPressEvent(QKeyEvent *event);
+    bool Create(void) override; // MythScreenType
+    bool keyPressEvent(QKeyEvent *event) override; // MythScreenType
 
   private:
     Bookmark   *m_site;

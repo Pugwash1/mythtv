@@ -59,7 +59,7 @@ class TestMythSystemLegacy: public QObject
     // called at the beginning of these sets of tests
     void initTestCase(void)
     {
-        gCoreContext = new MythCoreContext("bin_version", NULL);
+        gCoreContext = new MythCoreContext("bin_version", nullptr);
 #ifdef NEW_LOGGING
         DebugLogHandler::AddReplacement("ConsoleLogHandler");
         myth_logging::initialize_logging(
@@ -113,9 +113,9 @@ class TestMythSystemLegacy: public QObject
     // tests kMSRunBackground      -- run child in the background
     void run_in_background_works(void)
     {
-        MythSystemLegacy cmd("sleep 1", kMSRunBackground);
+        MythSystemLegacy cmd("sleep 2", kMSRunBackground);
         Go(cmd);
-        QVERIFY(m_before.msecsTo(QDateTime::currentDateTime()) < 500);
+        QVERIFY(m_before.msecsTo(QDateTime::currentDateTime()) < 1500);
     }
 
     // TODO kMSProcessEvents      -- process events while waiting

@@ -25,7 +25,7 @@ VBoxChannelFetcher::VBoxChannelFetcher(uint cardid, const QString &inputname, ui
     _cardid(cardid),       _inputname(inputname),
     _sourceid(sourceid),   _ftaOnly(ftaOnly),
     _serviceType(serviceType),
-    _transType("UNKNOWN"), _channels(NULL),
+    _transType("UNKNOWN"), _channels(nullptr),
     _chan_cnt(1),          _thread_running(false),
     _stop_now(false),      _thread(new MThread("VBoxChannelFetcher", this)),
     _lock()
@@ -61,9 +61,9 @@ VBoxChannelFetcher::~VBoxChannelFetcher()
 {
     Stop();
     delete _thread;
-    _thread = NULL;
+    _thread = nullptr;
     delete _channels;
-    _channels = NULL;
+    _channels = nullptr;
 }
 
 /** \fn VBoxChannelFetcher::Stop(void)
@@ -190,7 +190,8 @@ void VBoxChannelFetcher::run(void)
             // ignore this encrypted channel
             if (_scan_monitor)
             {
-                _scan_monitor->ScanAppendTextToLog(tr("Ignoring Encrypted %1").arg(msg));
+                _scan_monitor->ScanAppendTextToLog(tr("Ignoring Encrypted %1")
+                                                   .arg(msg));
             }
         }
         else if (chanType == "Radio" && _serviceType != kRequireAudio)
@@ -198,7 +199,8 @@ void VBoxChannelFetcher::run(void)
             // ignore this radio channel
             if (_scan_monitor)
             {
-                _scan_monitor->ScanAppendTextToLog(tr("Ignoring Radio %1").arg(msg));
+                _scan_monitor->ScanAppendTextToLog(tr("Ignoring Radio %1")
+                                                   .arg(msg));
             }
         }
         else if (!SupportedTransmission(transType))

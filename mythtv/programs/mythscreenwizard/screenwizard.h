@@ -20,12 +20,12 @@ class ScreenWizard : public MythScreenType
   public:
 
     ScreenWizard(MythScreenStack *parent, const char *name);
-    ~ScreenWizard();
+    ~ScreenWizard() = default;
 
     void SetInitialSettings(int _x, int _y, int _w, int _h);
-    bool Create(void);
-    bool keyPressEvent(QKeyEvent *);
-    void customEvent(QEvent *event);
+    bool Create(void) override; // MythScreenType
+    bool keyPressEvent(QKeyEvent *) override; // MythScreenType
+    void customEvent(QEvent *event) override; // MythUIType
 
   protected:
     void doMenu();

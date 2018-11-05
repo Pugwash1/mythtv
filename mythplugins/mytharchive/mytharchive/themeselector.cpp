@@ -1,7 +1,6 @@
-// c
-#include <stdlib.h>
-#include <unistd.h>
+// c++
 #include <cstdlib>
+#include <unistd.h>
 
 // qt
 #include <QDir>
@@ -32,17 +31,17 @@ DVDThemeSelector::DVDThemeSelector(
     m_destinationScreen(destinationScreen),
     m_archiveDestination(archiveDestination),
     themeDir(GetShareDir() + "mytharchive/themes/"),
-    theme_selector(NULL),
-    theme_image(NULL),
+    theme_selector(nullptr),
+    theme_image(nullptr),
     theme_no(0),
-    intro_image(NULL),
-    mainmenu_image(NULL),
-    chapter_image(NULL),
-    details_image(NULL),
-    themedesc_text(NULL),
-    m_nextButton(NULL),
-    m_prevButton(NULL),
-    m_cancelButton(NULL)
+    intro_image(nullptr),
+    mainmenu_image(nullptr),
+    chapter_image(nullptr),
+    details_image(nullptr),
+    themedesc_text(nullptr),
+    m_nextButton(nullptr),
+    m_prevButton(nullptr),
+    m_cancelButton(nullptr)
 {
 }
 
@@ -53,11 +52,8 @@ DVDThemeSelector::~DVDThemeSelector(void)
 
 bool DVDThemeSelector::Create(void)
 {
-    bool foundtheme = false;
-
     // Load the theme for this screen
-    foundtheme = LoadWindowFromXML("mythburn-ui.xml", "themeselector", this);
-
+    bool foundtheme = LoadWindowFromXML("mythburn-ui.xml", "themeselector", this);
     if (!foundtheme)
         return false;
 

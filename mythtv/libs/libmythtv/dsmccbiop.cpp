@@ -2,9 +2,8 @@
  *  Copyright (C) David C.J. Matthews 2005, 2006
  *     Derived from libdsmcc by Richard Palmer
  */
-//#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdlib>
+#include <cstring>
 
 #include "dsmccbiop.h"
 #include "dsmccreceiver.h"
@@ -43,7 +42,7 @@ int BiopNameComp::Process(const unsigned char *data)
 BiopName::BiopName()
 {
     m_comp_count = 0;
-    m_comps = NULL;
+    m_comps = nullptr;
 }
 
 BiopName::~BiopName()
@@ -100,7 +99,7 @@ int BiopBinding::Process(const unsigned char *data)
         memcpy(m_objinfo, data + off, m_objinfo_len);
     }
     else
-        m_objinfo = NULL;
+        m_objinfo = nullptr;
 
     off += m_objinfo_len;
 
@@ -369,7 +368,7 @@ void ModuleDescriptorData::Process(const unsigned char *data, int length)
 
 int BiopModuleInfo::Process(const unsigned char *data)
 {
-    int off, ret;
+    int off;
     mod_timeout   = COMBINE32(data, 0);
     block_timeout = COMBINE32(data, 4);
     min_blocktime = COMBINE32(data, 8);
@@ -385,7 +384,7 @@ int BiopModuleInfo::Process(const unsigned char *data)
     if (taps_count > 0)
     {
         /* only 1 allowed TODO - may not be first though ? */
-        ret = tap.Process(data + off);
+        int ret = tap.Process(data + off);
         if (ret <= 0)
             return ret;
         off += ret;
@@ -437,7 +436,7 @@ int BiopTap::Process(const unsigned char *data)
 
 int BiopConnbinder::Process(const unsigned char *data)
 {
-    int off = 0, ret;
+    int off = 0;
 
     component_tag = COMBINE32(data, 0);
     if (0x49534F40 != component_tag)
@@ -451,7 +450,7 @@ int BiopConnbinder::Process(const unsigned char *data)
     if (taps_count > 0)
     {
         /* UKProfile - only first tap read */
-        ret = tap.Process(data + off);
+        int ret = tap.Process(data + off);
 #if 0
         LOG(VB_GENERAL, LOG_DEBUG, QString("Binder - assoc_tag %1")
                                        .arg(tap.assoc_tag));
@@ -595,7 +594,7 @@ int BiopIor::Process(const unsigned char *data)
 void BiopIor::AddTap(Dsmcc *pStatus)
 {
     DSMCCCacheReference *ref = m_profile_body->GetReference();
-    if (ref != NULL)
+    if (ref != nullptr)
         pStatus->AddTap(ref->m_nStreamTag, ref->m_nCarouselId);
 }
 

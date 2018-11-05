@@ -1,9 +1,7 @@
-// Std C headers
-#include <cmath>
-#include <limits>
-
 // C++ headers
 #include <algorithm>
+#include <cmath>
+#include <limits>
 
 using namespace std;
 
@@ -81,12 +79,12 @@ AudioOutputBase::AudioOutputBase(const AudioSettings &settings) :
     source_samplerate(0),
 
     // private
-    output_settingsraw(NULL),   output_settings(NULL),
-    output_settingsdigitalraw(NULL),   output_settingsdigital(NULL),
-    need_resampler(false),      src_ctx(NULL),
+    output_settingsraw(nullptr),output_settings(nullptr),
+    output_settingsdigitalraw(nullptr), output_settingsdigital(nullptr),
+    need_resampler(false),      src_ctx(nullptr),
 
-    pSoundStretch(NULL),
-    encoder(NULL),              upmixer(NULL),
+    pSoundStretch(nullptr),
+    encoder(nullptr),           upmixer(nullptr),
     source_channels(-1),
     source_bytes_per_frame(0),  upmix_default(false),
     needs_upmix(false),         needs_downmix(false),
@@ -108,11 +106,11 @@ AudioOutputBase::AudioOutputBase(const AudioSettings &settings) :
 
     memory_corruption_test0(0xdeadbeef),
     memory_corruption_test1(0xdeadbeef),
-    src_out(NULL),              kAudioSRCOutputSize(0),
+    src_out(nullptr),           kAudioSRCOutputSize(0),
     memory_corruption_test2(0xdeadbeef),
     memory_corruption_test3(0xdeadbeef),
     m_configure_succeeded(false),m_length_last_data(0),
-    m_spdifenc(NULL),           m_forcedprocessing(false),
+    m_spdifenc(nullptr),        m_forcedprocessing(false),
     m_previousbpf(0)
 {
     src_in = (float *)AOALIGN(src_in_buf);
@@ -351,7 +349,7 @@ void AudioOutputBase::SetStretchFactorLocked(float lstretchfactor)
             m_forcedprocessing = false;
             processing = false;
             delete pSoundStretch;
-            pSoundStretch = NULL;
+            pSoundStretch = nullptr;
             VBGENERAL(QString("Cancelling time stretch"));
             bytes_per_frame = m_previousbpf;
             waud = raud = 0;
@@ -478,7 +476,7 @@ bool AudioOutputBase::SetupPassthrough(int codec, int codec_profile,
 
     // No spdif encoder if using openmax audio
     if (main_device.startsWith("OpenMAX:"))
-        m_spdifenc = 0;
+        m_spdifenc = nullptr;
     else
         m_spdifenc = new SPDIFEncoder("spdif", codec);
     if (m_spdifenc && m_spdifenc->Succeeded() && codec == AV_CODEC_ID_DTS)
@@ -500,7 +498,7 @@ bool AudioOutputBase::SetupPassthrough(int codec, int codec_profile,
     if (m_spdifenc && !m_spdifenc->Succeeded())
     {
         delete m_spdifenc;
-        m_spdifenc = NULL;
+        m_spdifenc = nullptr;
         return false;
     }
     return true;
@@ -742,7 +740,7 @@ void AudioOutputBase::Reconfigure(const AudioSettings &orig_settings)
         {
             Error(QObject::tr("Error creating resampler: %1")
                   .arg(src_strerror(error)));
-            src_ctx = NULL;
+            src_ctx = nullptr;
             return;
         }
 
@@ -778,7 +776,7 @@ void AudioOutputBase::Reconfigure(const AudioSettings &orig_settings)
         {
             Error(QObject::tr("AC-3 encoder initialization failed"));
             delete encoder;
-            encoder = NULL;
+            encoder = nullptr;
             enc = false;
             // upmixing will fail if we needed the encoder
             needs_upmix = false;
@@ -920,7 +918,7 @@ void AudioOutputBase::KillAudio()
     if (pSoundStretch)
     {
         delete pSoundStretch;
-        pSoundStretch = NULL;
+        pSoundStretch = nullptr;
         old_stretchfactor = stretchfactor;
         stretchfactor = 1.0f;
     }
@@ -928,19 +926,19 @@ void AudioOutputBase::KillAudio()
     if (encoder)
     {
         delete encoder;
-        encoder = NULL;
+        encoder = nullptr;
     }
 
     if (upmixer)
     {
         delete upmixer;
-        upmixer = NULL;
+        upmixer = nullptr;
     }
 
     if (src_ctx)
     {
         src_delete(src_ctx);
-        src_ctx = NULL;
+        src_ctx = nullptr;
     }
 
     needs_upmix = need_resampler = enc = false;
@@ -1199,7 +1197,7 @@ int64_t AudioOutputBase::GetAudioBufferedTime(void)
 void AudioOutputBase::SetSWVolume(int new_volume, bool save)
 {
     volume = new_volume;
-    if (save && volumeControl != NULL)
+    if (save && volumeControl != nullptr)
         gCoreContext->SaveSetting(volumeControl, volume);
 }
 
@@ -1242,7 +1240,7 @@ int AudioOutputBase::CheckFreeSpace(int &frames)
     {
         VBERROR(QString("Error occurred while resetting resampler: %1")
                 .arg(src_strerror(error)));
-        src_ctx = NULL;
+        src_ctx = nullptr;
     }
 
     return len;
@@ -1305,17 +1303,16 @@ int AudioOutputBase::CopyWithUpmix(char *buffer, int frames, uint &org_waud)
 
     int i = 0;
     len = 0;
-    int nFrames, bdFrames;
     while (i < frames)
     {
         i += upmixer->putFrames(buffer + i * off, frames - i, source_channels);
-        nFrames = upmixer->numFrames();
+        int nFrames = upmixer->numFrames();
         if (!nFrames)
             continue;
 
         len += CheckFreeSpace(nFrames);
 
-        bdFrames = (kAudioRingBufferSize - org_waud) / bpf;
+        int bdFrames = (kAudioRingBufferSize - org_waud) / bpf;
         if (bdFrames < nFrames)
         {
             if ((org_waud % bpf) != 0)
@@ -1782,7 +1779,7 @@ int AudioOutputBase::GetAudioData(uchar *buffer, int size, bool full_buffer,
     int frag_size    = size;
     int written_size = size;
 
-    if (local_raud == NULL)
+    if (local_raud == nullptr)
         local_raud = &raud;
 
     if (!full_buffer && (size > avail_size))

@@ -8,7 +8,9 @@
 #include "mythdb.h"
 #include "mythdisplay.h"
 #include "mythxdisplay.h"
+#ifdef CONFIG_XNVCTRL
 #include "util-nvctrl.h"
+#endif
 
 #include <X11/extensions/Xrandr.h> // this has to be after util-x11.h (Qt bug)
 
@@ -17,10 +19,6 @@ static XRRScreenConfiguration *GetScreenConfig(MythXDisplay*& display);
 DisplayResX::DisplayResX(void)
 {
     Initialize();
-}
-
-DisplayResX::~DisplayResX(void)
-{
 }
 
 bool DisplayResX::GetDisplayInfo(int &w_pix, int &h_pix, int &w_mm,
@@ -50,7 +48,7 @@ bool DisplayResX::SwitchToVideoMode(int width, int height, double desired_rate)
     if (idx >= 0)
     {
         short finalrate;
-        MythXDisplay *display = NULL;
+        MythXDisplay *display = nullptr;
         XRRScreenConfiguration *cfg = GetScreenConfig(display);
 
         if (!cfg)
@@ -114,7 +112,7 @@ const DisplayResVector& DisplayResX::GetVideoModes(void) const
     if (!m_videoModes.empty())
         return m_videoModes;
 
-    MythXDisplay *display = NULL;
+    MythXDisplay *display = nullptr;
 
     XRRScreenConfiguration *cfg = GetScreenConfig(display);
 
@@ -123,13 +121,13 @@ const DisplayResVector& DisplayResX::GetVideoModes(void) const
 
     int num_sizes, num_rates;
 
-    XRRScreenSize *sizes = NULL;
+    XRRScreenSize *sizes = nullptr;
 
     sizes = XRRConfigSizes(cfg, &num_sizes);
 
     for (int i = 0; i < num_sizes; ++i)
     {
-        short *rates = NULL;
+        short *rates = nullptr;
         rates = XRRRates(display->GetDisplay(), display->GetScreen(),
                          i, &num_rates);
         DisplayResScreen scr(sizes[i].width, sizes[i].height,
@@ -138,6 +136,7 @@ const DisplayResVector& DisplayResX::GetVideoModes(void) const
         m_videoModes.push_back(scr);
     }
 
+#if CONFIG_XNVCTRL
     t_screenrate screenmap;
 
     int nvidiarate = GetNvidiaRates(screenmap);
@@ -187,6 +186,7 @@ const DisplayResVector& DisplayResX::GetVideoModes(void) const
             }
         }
     }
+#endif
 
     m_videoModesUnsorted = m_videoModes;
 
@@ -204,12 +204,12 @@ static XRRScreenConfiguration *GetScreenConfig(MythXDisplay*& display)
     if (!display)
     {
         LOG(VB_GENERAL, LOG_ERR, "DisplaResX: MythXOpenDisplay call failed");
-        return NULL;
+        return nullptr;
     }
 
     Window root = RootWindow(display->GetDisplay(), display->GetScreen());
 
-    XRRScreenConfiguration *cfg = NULL;
+    XRRScreenConfiguration *cfg = nullptr;
     int event_basep = 0, error_basep = 0;
 
     if (XRRQueryExtension(display->GetDisplay(), &event_basep, &error_basep))
@@ -218,7 +218,7 @@ static XRRScreenConfiguration *GetScreenConfig(MythXDisplay*& display)
     if (!cfg)
     {
         delete display;
-        display = NULL;
+        display = nullptr;
         LOG(VB_GENERAL, LOG_ERR, "DisplaResX: Unable to XRRgetScreenInfo");
     }
 

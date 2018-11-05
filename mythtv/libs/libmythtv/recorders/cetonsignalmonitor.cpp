@@ -14,7 +14,7 @@
 #include "cetonchannel.h"
 
 #define LOC QString("CetonSigMon[%1](%2): ") \
-            .arg(capturecardnum).arg(channel->GetDevice())
+            .arg(inputid).arg(channel->GetDevice())
 
 /**
  *  \brief Initializes signal lock and signal values.
@@ -35,7 +35,7 @@ CetonSignalMonitor::CetonSignalMonitor(int db_cardnum,
                                        bool _release_stream,
                                        uint64_t _flags)
     : DTVSignalMonitor(db_cardnum, _channel, _release_stream, _flags),
-      streamHandlerStarted(false), streamHandler(NULL)
+      streamHandlerStarted(false), streamHandler(nullptr)
 {
     LOG(VB_CHANNEL, LOG_INFO, LOC + "ctor");
 
@@ -43,7 +43,7 @@ CetonSignalMonitor::CetonSignalMonitor(int db_cardnum,
 
     AddFlags(kSigMon_WaitForSig);
 
-    streamHandler = CetonStreamHandler::Get(_channel->GetDevice());
+    streamHandler = CetonStreamHandler::Get(channel->GetDevice(), inputid);
 }
 
 /** \fn CetonSignalMonitor::~CetonSignalMonitor()
@@ -53,7 +53,7 @@ CetonSignalMonitor::~CetonSignalMonitor()
 {
     LOG(VB_CHANNEL, LOG_INFO, LOC + "dtor");
     Stop();
-    CetonStreamHandler::Return(streamHandler);
+    CetonStreamHandler::Return(streamHandler, inputid);
 }
 
 /** \fn CetonSignalMonitor::Stop(void)
@@ -98,6 +98,7 @@ void CetonSignalMonitor::UpdateValues(void)
         return;
     }
 
+    // cppcheck-suppress variableScope
     uint sig = 100;  // TODO find some way to actually monitor signal level
 
     // Set SignalMonitorValues from info from card.

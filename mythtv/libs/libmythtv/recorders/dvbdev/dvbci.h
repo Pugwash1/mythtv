@@ -28,10 +28,10 @@
 #define __CI_H
 
 #if HAVE_STDINT_H
-#include <stdint.h>
+#include <cstdint>
 #endif 
 
-#include <stdio.h>
+#include <cstdio>
 
 #include <pthread.h>
 #include <sys/types.h>
@@ -61,7 +61,7 @@ private:
   cMutex *mutex;
   bool locked;
 public:
-  explicit cMutexLock(cMutex *Mutex = NULL);
+  explicit cMutexLock(cMutex *Mutex = nullptr);
   ~cMutexLock();
   bool Lock(cMutex *Mutex);
   };
@@ -87,7 +87,7 @@ public:
   const char *TitleText(void) { return titleText; }
   const char *SubTitleText(void) { return subTitleText; }
   const char *BottomText(void) { return bottomText; }
-  const char *Entry(int n) { return n < numEntries ? entries[n] : NULL; }
+  const char *Entry(int n) { return n < numEntries ? entries[n] : nullptr; }
   int NumEntries(void) { return numEntries; }
   bool Selectable(void) { return selectable; }
   bool Select(int Index);
@@ -142,7 +142,7 @@ class cCiTransportConnection;
 
 class cCiHandler {
 public:
-  virtual ~cCiHandler() {};
+  virtual ~cCiHandler() = default;
   static cCiHandler *CreateCiHandler(const char *FileName);
   virtual int NumSlots(void) = 0;
   virtual bool Process(void) = 0;
@@ -179,17 +179,20 @@ private:
   cLlCiHandler(int Fd, int NumSlots);
 public:
   virtual ~cLlCiHandler();
-  int NumSlots(void) { return numSlots; }
-  bool Process(void);
-  bool HasUserIO(void) { return hasUserIO; }
-  bool NeedCaPmt(void) { return needCaPmt; }
-  bool EnterMenu(int Slot);
-  cCiMenu *GetMenu(void);
-  cCiEnquiry *GetEnquiry(void);
+  int NumSlots(void) override // cCiHandler
+      { return numSlots; }
+  bool Process(void) override; // cCiHandler
+  bool HasUserIO(void) override // cCiHandler
+      { return hasUserIO; }
+  bool NeedCaPmt(void) override // cCiHandler
+      { return needCaPmt; }
+  bool EnterMenu(int Slot) override; // cCiHandler
+  cCiMenu *GetMenu(void) override; // cCiHandler
+  cCiEnquiry *GetEnquiry(void) override; // cCiHandler
   bool SetCaPmt(cCiCaPmt &CaPmt);
-  const unsigned short *GetCaSystemIds(int Slot);
-  bool SetCaPmt(cCiCaPmt &CaPmt, int Slot);
-  void SetTimeOffset(double offset_in_seconds);
+  const unsigned short *GetCaSystemIds(int Slot) override; // cCiHandler
+  bool SetCaPmt(cCiCaPmt &CaPmt, int Slot) override; // cCiHandler
+  void SetTimeOffset(double offset_in_seconds) override; // cCiHandler
   bool Reset(int Slot);
   bool connected() const;
   };
@@ -209,16 +212,17 @@ class cHlCiHandler : public cCiHandler {
     int SendData(unsigned tag, struct ca_msg *msg);
   public:
     virtual ~cHlCiHandler();
-    int NumSlots(void) { return numSlots; }
-    bool Process(void);
-    bool HasUserIO(void) { return false; }//hasUserIO; }
-    bool NeedCaPmt(void);
-    bool EnterMenu(int Slot);
-    cCiMenu *GetMenu(void);
-    cCiEnquiry *GetEnquiry(void);
+    int NumSlots(void) override // cCiHandler
+        { return numSlots; }
+    bool Process(void) override; // cCiHandler
+    bool HasUserIO(void) override { return false; } // cCiHandler
+    bool NeedCaPmt(void) override; // cCiHandler
+    bool EnterMenu(int Slot) override; // cCiHandler
+    cCiMenu *GetMenu(void) override; // cCiHandler
+    cCiEnquiry *GetEnquiry(void) override; // cCiHandler
     bool SetCaPmt(cCiCaPmt &CaPmt);
-    const unsigned short *GetCaSystemIds(int Slot);
-    bool SetCaPmt(cCiCaPmt &CaPmt, int Slot);
+    const unsigned short *GetCaSystemIds(int Slot) override; // cCiHandler
+    bool SetCaPmt(cCiCaPmt &CaPmt, int Slot) override; // cCiHandler
     bool Reset(int Slot);
     bool connected() const;
 };

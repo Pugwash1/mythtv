@@ -41,7 +41,7 @@ class MPUBLIC GrabberScript : public QObject, public MThread
     const QString& GetCommandline() const { return m_commandline; }
     const double& GetVersion() const { return m_version; }
 
-    virtual void run(void);
+    void run(void) override; // MThread
 
     typedef QList<GrabberScript *> scriptList;
 
@@ -103,7 +103,7 @@ class MPUBLIC GrabberUpdateEvent : public QEvent
   public:
     GrabberUpdateEvent(void)
          : QEvent((QEvent::Type)kGrabberUpdateEventType) {}
-    ~GrabberUpdateEvent() {}
+    ~GrabberUpdateEvent() = default;
 };
 
 class MPUBLIC GrabberDownloadThread : public QObject, public MThread
@@ -123,7 +123,7 @@ class MPUBLIC GrabberDownloadThread : public QObject, public MThread
 
   protected:
 
-    void run();
+    void run() override; // MThread
 
   private:
 

@@ -32,8 +32,8 @@ public:
     FormattedTextChunk(const QString &t,
                        const CC708CharacterAttribute &formatting,
                        SubtitleScreen *p)
-        : text(t), m_format(formatting), parent(p), textFont(NULL) {}
-    FormattedTextChunk(void) : parent(NULL), textFont(NULL) {}
+        : text(t), m_format(formatting), parent(p), textFont(nullptr) {}
+    FormattedTextChunk(void) : parent(nullptr), textFont(nullptr) {}
 
     QSize CalcSize(float layoutSpacing = 0.0f) const;
     void CalcPadding(bool isFirst, bool isLast, int &left, int &right) const;
@@ -75,7 +75,7 @@ protected:
                           SubtitleScreen *p);
     FormattedTextSubtitle(void);
 public:
-    virtual ~FormattedTextSubtitle() {}
+    virtual ~FormattedTextSubtitle() = default;
     // These are the steps that can be done outside of the UI thread
     // and the decoder thread.
     virtual void WrapLongLines(void) {}
@@ -113,7 +113,7 @@ public:
     {
         Init(subs);
     }
-    virtual void WrapLongLines(void);
+    void WrapLongLines(void) override; // FormattedTextSubtitle
 private:
     void Init(const QStringList &subs);
 };
@@ -124,12 +124,12 @@ public:
     FormattedTextSubtitle608(const vector<CC608Text*> &buffers,
                              const QString &base = "",
                              const QRect &safearea = QRect(),
-                             SubtitleScreen *p = NULL) :
+                             SubtitleScreen *p = nullptr) :
         FormattedTextSubtitle(base, safearea, 0, 0, p)
     {
         Init(buffers);
     }
-    virtual void Layout(void);
+    void Layout(void) override; // FormattedTextSubtitle
 private:
     void Init(const vector<CC608Text*> &buffers);
 };
@@ -142,7 +142,7 @@ public:
                              const vector<CC708String*> &list,
                              const QString &base = "",
                              const QRect &safearea = QRect(),
-                             SubtitleScreen *p = NULL,
+                             SubtitleScreen *p = nullptr,
                              float aspect = 1.77777f) :
         FormattedTextSubtitle(base, safearea, 0, 0, p),
         m_num(num),
@@ -151,8 +151,9 @@ public:
     {
         Init(win, list, aspect);
     }
-    virtual void Draw(void);
-    virtual int CacheNum(void) const { return m_num; }
+    void Draw(void) override; // FormattedTextSubtitle
+    int CacheNum(void) const override // FormattedTextSubtitle
+        { return m_num; }
 private:
     void Init(const CC708Window &win,
               const vector<CC708String*> &list,
@@ -203,8 +204,8 @@ public:
     static int GetTeletextBackgroundAlpha(void);
 
     // MythScreenType methods
-    virtual bool Create(void);
-    virtual void Pulse(void);
+    bool Create(void) override; // MythScreenType
+    void Pulse(void) override; // MythUIType
 
 private:
     void ResetElementState(void);

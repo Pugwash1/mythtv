@@ -50,7 +50,7 @@ using namespace std;
 #define LOC QString("ChScanGUI: ")
 
 ChannelScannerGUI::ChannelScannerGUI(void)
-    : m_scanStage(NULL)
+    : m_scanStage(nullptr)
 {
 }
 
@@ -87,10 +87,12 @@ void ChannelScannerGUI::HandleEvent(const ScannerEvent *scanEvent)
             transports = sigmonScanner->GetChannelList(addFullTS);
         }
 
+        bool success = (iptvScanner != nullptr);
 #ifdef USING_VBOX
-        bool success = (iptvScanner != NULL || vboxScanner != NULL);
-#else
-        bool success = iptvScanner != NULL;
+        success |= (vboxScanner != nullptr);
+#endif
+#if !defined( USING_MINGW ) && !defined( _MSC_VER )
+        success |= (m_ExternRecScanner != nullptr);
 #endif
 
         Teardown();
@@ -136,11 +138,12 @@ void ChannelScannerGUI::HandleEvent(const ScannerEvent *scanEvent)
         m_scanStage->SetStatusSignalStrength(scanEvent->intValue());
 }
 
-void ChannelScannerGUI::Process(const ScanDTVTransportList &_transports, bool success)
+void ChannelScannerGUI::Process(const ScanDTVTransportList &_transports,
+                                bool success)
 {
     ChannelImporter ci(true, true, true, true, true,
                        freeToAirOnly, serviceRequirements, success);
-    ci.Process(_transports);
+    ci.Process(_transports, m_sourceid);
 }
 
 void ChannelScannerGUI::InformUser(const QString &error)
@@ -150,7 +153,7 @@ void ChannelScannerGUI::InformUser(const QString &error)
 
 void ChannelScannerGUI::quitScanning(void)
 {
-    m_scanStage = NULL;
+    m_scanStage = nullptr;
 
     if (scanMonitor)
     {
@@ -170,13 +173,13 @@ void ChannelScannerGUI::MonitorProgress(bool lock, bool strength,
     {
         connect(m_scanStage, SIGNAL(Exiting()), SLOT(quitScanning()));
 
-        for (uint i = 0; i < (uint) m_messageList.size(); i++)
+        for (uint i = 0; i < (uint) m_messageList.size(); ++i)
             m_scanStage->AppendLine(m_messageList[i]);
         mainStack->AddScreen(m_scanStage);
     }
     else
     {
         delete m_scanStage;
-        m_scanStage = NULL;
+        m_scanStage = nullptr;
     }
 }

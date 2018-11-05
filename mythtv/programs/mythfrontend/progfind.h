@@ -18,18 +18,18 @@ class TV;
 class MythUIText;
 class MythUIButtonList;
 
-void RunProgramFinder(TV *player = NULL, bool embedVideo = false, bool allowEPG = true);
+void RunProgramFinder(TV *player = nullptr, bool embedVideo = false, bool allowEPG = true);
 
 class ProgFinder : public ScheduleCommon
 {
     Q_OBJECT
   public:
     explicit ProgFinder(MythScreenStack *parentStack, bool allowEPG = true,
-               TV *player = NULL, bool embedVideo = false);
+               TV *player = nullptr, bool embedVideo = false);
     virtual ~ProgFinder();
 
-    bool Create(void);
-    bool keyPressEvent(QKeyEvent *event);
+    bool Create(void) override; // MythScreenType
+    bool keyPressEvent(QKeyEvent *event) override; // MythScreenType
 
   private slots:
     void alphabetListItemSelected(MythUIButtonListItem *item);
@@ -37,25 +37,25 @@ class ProgFinder : public ScheduleCommon
     void timesListTakeFocus(void);
     void timesListLosingFocus(void);
 
-    virtual void ShowGuide() const;
+    void ShowGuide() const override; // ScheduleCommon
     void select();
 
-    void customEvent(QEvent *e);
+    void customEvent(QEvent *e) override; // ScheduleCommon
     void updateInfo(void);
 
   protected:
     typedef QMap<QString,QString> ShowName;
 
-    virtual void Init(void);
+    void Init(void) override; // MythScreenType
 
     virtual void initAlphabetList(void);
     virtual bool formatSelectedData(QString &data);
     virtual bool formatSelectedData(QString &data, int charNum);
     virtual void restoreSelectedData(QString &data);
     virtual void whereClauseGetSearchData(QString &where, MSqlBindings &bindings);
-    virtual ProgramInfo *GetCurrentProgram(void) const;
+    ProgramInfo *GetCurrentProgram(void) const override; // ScheduleCommon
 
-    void ShowMenu(void);
+    void ShowMenu(void) override; // MythScreenType
     void getShowNames(void);
     void updateShowList();
     void updateTimesList();
@@ -89,14 +89,14 @@ class JaProgFinder : public ProgFinder
 {
   public:
     explicit JaProgFinder(MythScreenStack *parentStack, bool gg = false,
-                 TV *player = NULL, bool embedVideo = false);
+                 TV *player = nullptr, bool embedVideo = false);
 
   protected:
-    virtual void initAlphabetList();
-    virtual bool formatSelectedData(QString &data);
-    virtual bool formatSelectedData(QString &data, int charNum);
-    virtual void restoreSelectedData(QString &data);
-    virtual void whereClauseGetSearchData(QString &where, MSqlBindings &bindings);
+    void initAlphabetList() override; // ProgFinder
+    bool formatSelectedData(QString &data) override; // ProgFinder
+    bool formatSelectedData(QString &data, int charNum) override; // ProgFinder
+    void restoreSelectedData(QString &data) override; // ProgFinder
+    void whereClauseGetSearchData(QString &where, MSqlBindings &bindings) override; // ProgFinder
 
   private:
     static const QChar searchChars[];
@@ -107,14 +107,14 @@ class HeProgFinder : public ProgFinder
 {
   public:
     explicit HeProgFinder(MythScreenStack *parentStack, bool gg = false,
-                 TV *player = NULL, bool embedVideo = false);
+                 TV *player = nullptr, bool embedVideo = false);
 
   protected:
-    virtual void initAlphabetList();
-    virtual bool formatSelectedData(QString &data);
-    virtual bool formatSelectedData(QString &data, int charNum);
-    virtual void restoreSelectedData(QString &data);
-    virtual void whereClauseGetSearchData(QString &where, MSqlBindings &bindings);
+    void initAlphabetList() override; // ProgFinder
+    bool formatSelectedData(QString &data) override; // ProgFinder
+    bool formatSelectedData(QString &data, int charNum) override; // ProgFinder
+    void restoreSelectedData(QString &data) override; // ProgFinder
+    void whereClauseGetSearchData(QString &where, MSqlBindings &bindings) override; // ProgFinder
 
   private:
     static const QChar searchChars[];
@@ -125,14 +125,14 @@ class RuProgFinder : public ProgFinder
 {
   public:
     explicit RuProgFinder(MythScreenStack *parentStack, bool gg = false, 
-                       TV *player = NULL, bool embedVideo = false);
+                       TV *player = nullptr, bool embedVideo = false);
                        
   protected:
-    virtual void initAlphabetList();
-    virtual bool formatSelectedData(QString &data);
-    virtual bool formatSelectedData(QString &data, int charNum);
-    virtual void restoreSelectedData(QString &data);
-    virtual void whereClauseGetSearchData(QString &where, MSqlBindings &bindings);
+    void initAlphabetList() override; // ProgFinder
+    bool formatSelectedData(QString &data) override; // ProgFinder
+    bool formatSelectedData(QString &data, int charNum) override; // ProgFinder
+    void restoreSelectedData(QString &data) override; // ProgFinder
+    void whereClauseGetSearchData(QString &where, MSqlBindings &bindings) override; // ProgFinder
                                              
   private:
     static const QChar searchChars[];
@@ -147,7 +147,7 @@ class SearchInputDialog : public MythTextInputDialog
   public:
     SearchInputDialog(MythScreenStack *parent, const QString &defaultValue);
 
-    bool Create(void);
+    bool Create(void) override; // MythTextInputDialog
 
   signals:
     void valueChanged(QString);

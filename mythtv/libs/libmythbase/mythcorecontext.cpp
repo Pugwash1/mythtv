@@ -17,19 +17,17 @@
 #include <QDateTime>
 #include <QRunnable>
 
+#include <algorithm>
 #include <cmath>
 #include <cstdarg>
-
-#include <unistd.h>       // for usleep()
-
 #include <queue>
-#include <algorithm>
+#include <unistd.h>       // for usleep()
 using namespace std;
 
 #ifdef _WIN32
 #include <winsock2.h>
 #else
-#include <locale.h>
+#include <clocale>
 #endif
 
 #include "compat.h"
@@ -47,10 +45,11 @@ using namespace std;
 #include "serverpool.h"
 #include "mythdate.h"
 #include "mythplugin.h"
+#include "mythmiscutil.h"
 
 #define LOC      QString("MythCoreContext::%1(): ").arg(__func__)
 
-MythCoreContext *gCoreContext = NULL;
+MythCoreContext *gCoreContext = nullptr;
 QMutex *avcodeclock = new QMutex(QMutex::Recursive);
 
 class MythCoreContextPrivate : public QObject
@@ -122,25 +121,25 @@ MythCoreContextPrivate::MythCoreContextPrivate(MythCoreContext *lparent,
                                                QString binversion,
                                                QObject *guicontext)
     : m_parent(lparent),
-      m_GUIcontext(guicontext), m_GUIobject(NULL),
+      m_GUIcontext(guicontext), m_GUIobject(nullptr),
       m_appBinaryVersion(binversion),
       m_sockLock(QMutex::NonRecursive),
-      m_serverSock(NULL), m_eventSock(NULL),
+      m_serverSock(nullptr), m_eventSock(nullptr),
       m_WOLInProgress(false),
       m_IsWOLAllowed(true),
       m_backend(false),
       m_frontend(false),
       m_database(GetMythDB()),
       m_UIThread(QThread::currentThread()),
-      m_locale(NULL),
-      m_scheduler(NULL),
+      m_locale(nullptr),
+      m_scheduler(nullptr),
       m_blockingClient(true),
       m_inwanting(false),
       m_intvwanting(false),
       m_announcedProtocol(false),
-      m_pluginmanager(NULL),
+      m_pluginmanager(nullptr),
       m_isexiting(false),
-      m_sessionManager(NULL)
+      m_sessionManager(nullptr)
 {
     MThread::ThreadSetup("CoreContext");
 #if QT_VERSION < QT_VERSION_CHECK(5,8,0)
@@ -155,7 +154,7 @@ static void delete_sock(QMutexLocker &locker, MythSocket **s)
     if (*s)
     {
         MythSocket *tmp = *s;
-        *s = NULL;
+        *s = nullptr;
         locker.unlock();
         tmp->DecrRef();
         locker.relock();
@@ -194,7 +193,7 @@ MythCoreContextPrivate::~MythCoreContextPrivate()
 
     if (m_database) {
         DestroyMythDB();
-        m_database = NULL;
+        m_database = nullptr;
     }
 
     loggingDeregisterThread();
@@ -221,7 +220,7 @@ bool MythCoreContextPrivate::WaitForWOL(int timeout_in_ms)
 
 MythCoreContext::MythCoreContext(const QString &binversion,
                                  QObject *guiContext)
-    : d(NULL)
+    : d(nullptr)
 {
     d = new MythCoreContextPrivate(this, binversion, guiContext);
 }
@@ -251,7 +250,7 @@ bool MythCoreContext::Init(void)
 
 #ifndef _WIN32
     QString lang_variables("");
-    QString lc_value = setlocale(LC_CTYPE, NULL);
+    QString lc_value = setlocale(LC_CTYPE, nullptr);
     if (lc_value.isEmpty())
     {
         // try fallback to environment variables for non-glibc systems
@@ -286,7 +285,7 @@ bool MythCoreContext::Init(void)
 MythCoreContext::~MythCoreContext()
 {
     delete d;
-    d = NULL;
+    d = nullptr;
 }
 
 bool MythCoreContext::SetupCommandSocket(MythSocket *serverSock,
@@ -302,6 +301,8 @@ bool MythCoreContext::SetupCommandSocket(MythSocket *serverSock,
         proto_mismatch = true;
         return false;
     }
+#else
+    Q_UNUSED(timeout_in_ms);
 #endif
 
     QStringList strlist(announcement);
@@ -364,7 +365,7 @@ bool MythCoreContext::ConnectToMasterServer(bool blockingClient,
     if (d->m_serverSock && !d->m_serverSock->IsConnected())
     {
         d->m_serverSock->DecrRef();
-        d->m_serverSock = NULL;
+        d->m_serverSock = nullptr;
     }
 
     if (!d->m_serverSock)
@@ -391,7 +392,7 @@ bool MythCoreContext::ConnectToMasterServer(bool blockingClient,
         if (d->m_eventSock && !d->m_eventSock->IsConnected())
         {
             d->m_eventSock->DecrRef();
-            d->m_eventSock = NULL;
+            d->m_eventSock = nullptr;
         }
         if (!d->m_eventSock)
             d->m_eventSock = ConnectEventSocket(server, port);
@@ -399,7 +400,7 @@ bool MythCoreContext::ConnectToMasterServer(bool blockingClient,
         if (!d->m_eventSock)
         {
             d->m_serverSock->DecrRef();
-            d->m_serverSock = NULL;
+            d->m_serverSock = nullptr;
 
             QCoreApplication::postEvent(
                 d->m_GUIcontext, new MythEvent("CONNECTION_FAILURE"));
@@ -415,7 +416,7 @@ MythSocket *MythCoreContext::ConnectCommandSocket(
     const QString &hostname, int port, const QString &announce,
     bool *p_proto_mismatch, int maxConnTry, int setup_timeout)
 {
-    MythSocket *serverSock = NULL;
+    MythSocket *serverSock = nullptr;
 
     {
         QMutexLocker locker(&d->m_WOLInProgressLock);
@@ -466,7 +467,7 @@ MythSocket *MythCoreContext::ConnectCommandSocket(
                     *p_proto_mismatch = true;
 
                 serverSock->DecrRef();
-                serverSock = NULL;
+                serverSock = nullptr;
                 break;
             }
 
@@ -486,15 +487,15 @@ MythSocket *MythCoreContext::ConnectCommandSocket(
                 d->m_WOLInProgress = we_attempted_wol = true;
             }
 
-            myth_system(WOLcmd, kMSDontDisableDrawing | kMSDontBlockInputDevs |
+            MythWakeup(WOLcmd, kMSDontDisableDrawing | kMSDontBlockInputDevs |
                                 kMSProcessEvents);
             sleepms = WOLsleepTime * 1000;
         }
 
         serverSock->DecrRef();
-        serverSock = NULL;
+        serverSock = nullptr;
 
-        if (!serverSock && (cnt == 1))
+        if (cnt == 1)
         {
             QCoreApplication::postEvent(
                 d->m_GUIcontext, new MythEvent("CONNECTION_FAILURE"));
@@ -540,7 +541,7 @@ MythSocket *MythCoreContext::ConnectEventSocket(const QString &hostname,
         LOG(VB_GENERAL, LOG_ERR, LOC + "Failed to connect event "
                                        "socket to master backend");
         eventSock->DecrRef();
-        return NULL;
+        return nullptr;
     }
 
     QString str = QString("ANN Monitor %1 %2")
@@ -567,7 +568,7 @@ MythSocket *MythCoreContext::ConnectEventSocket(const QString &hostname,
     if (!ok)
     {
         eventSock->DecrRef();
-        eventSock = NULL;
+        eventSock = nullptr;
     }
 
     return eventSock;
@@ -584,7 +585,7 @@ void MythCoreContext::BlockShutdown(void)
     QStringList strlist;
 
     QMutexLocker locker(&d->m_sockLock);
-    if (d->m_serverSock == NULL)
+    if (d->m_serverSock == nullptr)
         return;
 
     strlist << "BLOCK_SHUTDOWN";
@@ -598,7 +599,7 @@ void MythCoreContext::AllowShutdown(void)
     QStringList strlist;
 
     QMutexLocker locker(&d->m_sockLock);
-    if (d->m_serverSock == NULL)
+    if (d->m_serverSock == nullptr)
         return;
 
     strlist << "ALLOW_SHUTDOWN";
@@ -970,7 +971,7 @@ int MythCoreContext::GetMasterServerPort(void)
 /**
  * Returns the Master Backend status port
  * If no master server status port has been defined in the database,
- * return the default 65434
+ * return the default 6544
  */
 int MythCoreContext::GetMasterServerStatusPort(void)
 {
@@ -1379,12 +1380,12 @@ bool MythCoreContext::SendReceiveStringList(
             LOG(VB_GENERAL, LOG_NOTICE, LOC +
                 QString("Connection to backend server lost"));
             d->m_serverSock->DecrRef();
-            d->m_serverSock = NULL;
+            d->m_serverSock = nullptr;
 
             if (d->m_eventSock)
             {
                 d->m_eventSock->DecrRef();
-                d->m_eventSock = NULL;
+                d->m_eventSock = nullptr;
             }
 
             if (block)
@@ -1418,7 +1419,7 @@ bool MythCoreContext::SendReceiveStringList(
             if (d->m_serverSock)
             {
                 d->m_serverSock->DecrRef();
-                d->m_serverSock = NULL;
+                d->m_serverSock = nullptr;
             }
 
             LOG(VB_GENERAL, LOG_CRIT, LOC +
@@ -1469,7 +1470,7 @@ class SendAsyncMessage : public QRunnable
 
     explicit SendAsyncMessage(const QString &msg) : m_message(msg) { }
 
-    void run(void)
+    void run(void) override // QRunnable
     {
         QStringList strlist("MESSAGE");
         strlist << m_message;
@@ -1914,7 +1915,7 @@ void MythCoreContext::WantingPlayback(QObject *sender)
 {
     QMutexLocker lock(&d->m_playbackLock);
     QByteArray ba;
-    const char *method = NULL;
+    const char *method = nullptr;
     d->m_inwanting = true;
 
     // If any registered client are in the same thread, they will deadlock, so rebuild
@@ -2035,7 +2036,7 @@ void MythCoreContext::SetPluginManager(MythPluginManager *pmanager)
     if (d->m_pluginmanager)
     {
         delete d->m_pluginmanager;
-        d->m_pluginmanager = NULL;
+        d->m_pluginmanager = nullptr;
     }
 
     d->m_pluginmanager = pmanager;

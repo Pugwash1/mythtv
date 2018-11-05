@@ -19,15 +19,14 @@
 #include "cardutil.h"
 #include "mythlogging.h"
 
-#define LOC      QString("HDHRSH%1(%2): ").arg(_recorder_ids_string) \
-                                          .arg(_device)
+#define LOC      QString("HDHRSH[%1](%2): ").arg(_inputid).arg(_device)
 
 QMap<QString,HDHRStreamHandler*> HDHRStreamHandler::_handlers;
 QMap<QString,uint>               HDHRStreamHandler::_handlers_refcnt;
 QMutex                           HDHRStreamHandler::_handlers_lock;
 
 HDHRStreamHandler *HDHRStreamHandler::Get(const QString &devname,
-                                          int recorder_id)
+                                          int inputid)
 {
     QMutexLocker locker(&_handlers_lock);
 
@@ -37,30 +36,29 @@ HDHRStreamHandler *HDHRStreamHandler::Get(const QString &devname,
 
     if (it == _handlers.end())
     {
-        HDHRStreamHandler *newhandler = new HDHRStreamHandler(devkey);
+        HDHRStreamHandler *newhandler = new HDHRStreamHandler(devkey, inputid);
         newhandler->Open();
         _handlers[devkey] = newhandler;
         _handlers_refcnt[devkey] = 1;
 
         LOG(VB_RECORD, LOG_INFO,
-            QString("HDHRSH: Creating new stream handler %1 for %2")
-                .arg(devkey).arg(devname));
+            QString("HDHRSH[%1]: Creating new stream handler %2 for %3")
+            .arg(inputid).arg(devkey).arg(devname));
     }
     else
     {
         _handlers_refcnt[devkey]++;
         uint rcount = _handlers_refcnt[devkey];
         LOG(VB_RECORD, LOG_INFO,
-            QString("HDHRSH: Using existing stream handler %1 for %2")
-                .arg(devkey)
-                .arg(devname) + QString(" (%1 in use)").arg(rcount));
+            QString("HDHRSH[%1]: Using existing stream handler %2 for %3")
+            .arg(inputid).arg(devkey)
+            .arg(devname) + QString(" (%1 in use)").arg(rcount));
     }
 
-    _handlers[devkey]->AddRecorderId(recorder_id);
     return _handlers[devkey];
 }
 
-void HDHRStreamHandler::Return(HDHRStreamHandler * & ref, int recorder_id)
+void HDHRStreamHandler::Return(HDHRStreamHandler * & ref, int inputid)
 {
     QMutexLocker locker(&_handlers_lock);
 
@@ -71,20 +69,17 @@ void HDHRStreamHandler::Return(HDHRStreamHandler * & ref, int recorder_id)
         return;
 
     QMap<QString,HDHRStreamHandler*>::iterator it = _handlers.find(devname);
-    if (it != _handlers.end())
-        (*it)->DelRecorderId(recorder_id);
-
     if (*rit > 1)
     {
-        ref = NULL;
+        ref = nullptr;
         (*rit)--;
         return;
     }
 
     if ((it != _handlers.end()) && (*it == ref))
     {
-        LOG(VB_RECORD, LOG_INFO, QString("HDHRSH: Closing handler for %1")
-                           .arg(devname));
+        LOG(VB_RECORD, LOG_INFO, QString("HDHRSH[%1]: Closing handler for %2")
+            .arg(inputid).arg(devname));
         ref->Close();
         delete *it;
         _handlers.erase(it);
@@ -92,20 +87,20 @@ void HDHRStreamHandler::Return(HDHRStreamHandler * & ref, int recorder_id)
     else
     {
         LOG(VB_GENERAL, LOG_ERR,
-            QString("HDHRSH Error: Couldn't find handler for %1")
-                .arg(devname));
+            QString("HDHRSH[%1] Error: Couldn't find handler for %2")
+            .arg(inputid).arg(devname));
     }
 
     _handlers_refcnt.erase(rit);
-    ref = NULL;
+    ref = nullptr;
 }
 
-HDHRStreamHandler::HDHRStreamHandler(const QString &device) :
-    StreamHandler(device),
-    _hdhomerun_device(NULL),
-    _tuner(-1),
-    _tune_mode(hdhrTuneModeNone),
-    _hdhr_lock(QMutex::Recursive)
+HDHRStreamHandler::HDHRStreamHandler(const QString &device, int inputid)
+    : StreamHandler(device, inputid)
+    , _hdhomerun_device(nullptr)
+    , _tuner(-1)
+    , _tune_mode(hdhrTuneModeNone)
+    , _hdhr_lock(QMutex::Recursive)
 {
     setObjectName("HDHRStreamHandler");
 }
@@ -116,7 +111,7 @@ HDHRStreamHandler::HDHRStreamHandler(const QString &device) :
 void HDHRStreamHandler::run(void)
 {
     int tunerLock = 0;
-    char *error = NULL;
+    char *error = nullptr;
 
     RunProlog();
     /* Get a tuner lock */
@@ -322,7 +317,7 @@ bool HDHRStreamHandler::Open(void)
             hdhomerun_tuner_status_t t_status;
 
             if (hdhomerun_device_get_oob_status(
-                    _hdhomerun_device, NULL, &t_status) < 0)
+                    _hdhomerun_device, nullptr, &t_status) < 0)
             {
                 LOG(VB_GENERAL, LOG_ERR, LOC +
                     "Failed to query Cable card OOB channel");
@@ -367,14 +362,14 @@ void HDHRStreamHandler::Close(void)
     {
         TuneChannel("none");
         hdhomerun_device_destroy(_hdhomerun_device);
-        _hdhomerun_device = NULL;
+        _hdhomerun_device = nullptr;
     }
 }
 
 bool HDHRStreamHandler::Connect(void)
 {
     _hdhomerun_device = hdhomerun_device_create_from_str(
-        _device.toLocal8Bit().constData(), NULL);
+        _device.toLocal8Bit().constData(), nullptr);
 
     if (!_hdhomerun_device)
     {
@@ -423,8 +418,8 @@ QString HDHRStreamHandler::TunerGet(
     }
 
     QString valname = QString("/tuner%1/%2").arg(_tuner).arg(name);
-    char *value = NULL;
-    char *error = NULL;
+    char *value = nullptr;
+    char *error = nullptr;
     if (hdhomerun_device_get_var(
             _hdhomerun_device, valname.toLocal8Bit().constData(),
             &value, &error) < 0)
@@ -461,8 +456,8 @@ QString HDHRStreamHandler::TunerSet(
 
 
     QString valname = QString("/tuner%1/%2").arg(_tuner).arg(name);
-    char *value = NULL;
-    char *error = NULL;
+    char *value = nullptr;
+    char *error = nullptr;
 
     if (hdhomerun_device_set_var(
             _hdhomerun_device, valname.toLocal8Bit().constData(),
@@ -489,12 +484,12 @@ QString HDHRStreamHandler::TunerSet(
 
 void HDHRStreamHandler::GetTunerStatus(struct hdhomerun_tuner_status_t *status)
 {
-    hdhomerun_device_get_tuner_status(_hdhomerun_device, NULL, status);
+    hdhomerun_device_get_tuner_status(_hdhomerun_device, nullptr, status);
 }
 
 bool HDHRStreamHandler::IsConnected(void) const
 {
-    return (_hdhomerun_device != NULL);
+    return (_hdhomerun_device != nullptr);
 }
 
 bool HDHRStreamHandler::TuneChannel(const QString &chn)

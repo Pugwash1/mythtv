@@ -87,8 +87,8 @@ QString SourceUtil::GetChannelSeparator(uint sourceid)
         }
         QString sep = "_";
         uint max = counts["_"];
-        static const char *spacers[6] = { "", "-", "#", ".", "0", NULL };
-        for (uint i=0; (spacers[i] != NULL); ++i)
+        static const char *spacers[6] = { "", "-", "#", ".", "0", nullptr };
+        for (uint i=0; (spacers[i] != nullptr); ++i)
         {
             if (counts[spacers[i]] > max)
             {
@@ -332,7 +332,8 @@ bool SourceUtil::IsCableCardPresent(uint sourceid)
     vector<uint>::iterator it = inputs.begin();
     for (; it != inputs.end(); ++it)
     {
-        if (CardUtil::IsCableCardPresent(*it, CardUtil::GetRawInputType(*it)))
+        if (CardUtil::IsCableCardPresent(*it, CardUtil::GetRawInputType(*it))
+            || CardUtil::GetRawInputType(*it) == "HDHOMERUN")
             ccpresent = true;
     }
 

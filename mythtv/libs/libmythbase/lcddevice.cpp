@@ -7,12 +7,11 @@
     (c) 2002, 2003 Thor Sigvaldason, Dan Morphis and Isaac Richards
 */
 
-// ANSI C headers
-#include <cstdlib>
+// C++ headers
+#include <cerrno>
 #include <cmath>
+#include <cstdlib>
 #include <fcntl.h>
-#include <errno.h>
-
 #include <unistd.h> // for usleep()
 
 // Qt headers
@@ -40,7 +39,7 @@
 
 LCD::LCD()
     : QObject(),
-      m_socket(NULL),                 m_socketLock(QMutex::Recursive),
+      m_socket(nullptr),              m_socketLock(QMutex::Recursive),
       m_hostname("localhost"),        m_port(6545),
       m_connected(false),
 
@@ -60,7 +59,7 @@ LCD::LCD()
       m_lcdKeyString(),
 
       m_lcdLedMask(0),
-      GetLEDMask(NULL)
+      GetLEDMask(nullptr)
 {
     m_sendBuffer.clear(); m_lastCommand.clear();
     m_lcdShowMusicItems.clear(); m_lcdKeyString.clear();
@@ -82,11 +81,11 @@ LCD::LCD()
 
 bool LCD::m_enabled = false;
 bool LCD::m_serverUnavailable = false;
-LCD *LCD::m_lcd = NULL;
+LCD *LCD::m_lcd = nullptr;
 
 LCD *LCD::Get(void)
 {
-    if (m_enabled && m_lcd == NULL && m_serverUnavailable == false)
+    if (m_enabled && m_lcd == nullptr && m_serverUnavailable == false)
         m_lcd = new LCD;
     return m_lcd;
 }
@@ -99,7 +98,7 @@ void LCD::SetupLCD (void)
     if (m_lcd)
     {
         delete m_lcd;
-        m_lcd = NULL;
+        m_lcd = nullptr;
         m_serverUnavailable = false;
     }
 
@@ -117,7 +116,7 @@ void LCD::SetupLCD (void)
         if (lcd->connectToHost(lcd_host, lcd_port) == false)
         {
             delete m_lcd;
-            m_lcd = NULL;
+            m_lcd = nullptr;
             m_serverUnavailable = false;
         }
     }
@@ -629,11 +628,10 @@ void LCD::switchToMenu(QList<LCDMenuItem> &menuItems, const QString &app_name,
 
 
     QListIterator<LCDMenuItem> it(menuItems);
-    const LCDMenuItem *curItem;
 
     while (it.hasNext())
     {
-        curItem = &(it.next());
+        const LCDMenuItem *curItem = &(it.next());
         s += ' ' + quotedString(curItem->ItemName());
 
         if (curItem->isChecked() == CHECKED)
@@ -666,11 +664,10 @@ void LCD::switchToGeneric(QList<LCDTextItem> &textItems)
     QString s = "SWITCH_TO_GENERIC";
 
     QListIterator<LCDTextItem> it(textItems);
-    const LCDTextItem *curItem;
 
     while (it.hasNext())
     {
-        curItem = &(it.next());
+        const LCDTextItem *curItem = &(it.next());
 
         QString sRow;
         sRow.setNum(curItem->getRow());
@@ -738,7 +735,7 @@ void LCD::resetServer()
 
 LCD::~LCD()
 {
-    m_lcd = NULL;
+    m_lcd = nullptr;
 
     LOG(VB_GENERAL, LOG_DEBUG, LOC + "An LCD device is being snuffed out of "
                                      "existence (~LCD() was called)");
@@ -746,7 +743,7 @@ LCD::~LCD()
     if (m_socket)
     {
         delete m_socket;
-        m_socket = NULL;
+        m_socket = nullptr;
         m_lcdReady = false;
     }
 }

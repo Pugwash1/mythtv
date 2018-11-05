@@ -45,7 +45,7 @@ class META_PUBLIC VideoScanChanges : public QEvent
                      QList<int>dels) : QEvent(kEventType),
                      additions(adds), moved(movs),
                      deleted(dels) {}
-    ~VideoScanChanges() {}
+    ~VideoScanChanges() = default;
 
     QList<int> additions; // newly added intids
     QList<int> moved; // intids moved to new filename
@@ -62,7 +62,7 @@ class META_PUBLIC VideoScannerThread : public MThread
     explicit VideoScannerThread(QObject *parent);
     ~VideoScannerThread();
 
-    void run();
+    void run() override; // MThread
     void SetDirs(QStringList dirs);
     void SetHosts(const QStringList &hosts);
     void SetProgressDialog(MythUIProgressDialog *dialog) { m_dialog = dialog; };

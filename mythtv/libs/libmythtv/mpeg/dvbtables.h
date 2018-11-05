@@ -4,7 +4,7 @@
 #define _DVB_TABLES_H_
 
 #include <QString>
-#include <stdint.h>  // uint32_t
+#include <cstdint>  // uint32_t
 
 #include "dvbdescriptors.h"
 #include "mpegtables.h"
@@ -85,7 +85,7 @@ class MTV_PUBLIC NetworkInformationTable : public PSIPTable
     bool Mutate(void);
 
     void Parse(void) const;
-    QString toString(void) const;
+    QString toString(void) const override; // PSIPTable
     QString NetworkName(void) const;
 
   private:
@@ -163,7 +163,7 @@ class MTV_PUBLIC ServiceDescriptionTable : public PSIPTable
     bool Mutate(void);
 
     void Parse(void) const;
-    QString toString(void) const;
+    QString toString(void) const override; // PSIPTable
 
   private:
     mutable vector<const unsigned char*> _ptrs; // used to parse
@@ -233,7 +233,7 @@ class MTV_PUBLIC BouquetAssociationTable : public PSIPTable
     // }
 
     void Parse(void) const;
-    QString toString(void) const;
+    QString toString(void) const override; // PSIPTable
 
   private:
     mutable const unsigned char* _tsc_ptr;

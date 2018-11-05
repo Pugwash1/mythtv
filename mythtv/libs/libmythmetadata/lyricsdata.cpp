@@ -17,7 +17,7 @@
 //LyricsData
 
 //LyricsData::LyricsData():
-//    m_parent(NULL), m_status(STATUS_NOTLOADED), m_syncronized(false), m_changed(false) { }
+//    m_parent(nullptr), m_status(STATUS_NOTLOADED), m_syncronized(false), m_changed(false) { }
 
 LyricsData::LyricsData(MusicMetadata *parent) :
     m_parent(parent), m_status(STATUS_NOTLOADED), m_syncronized(false), m_changed(false) { }
@@ -191,7 +191,7 @@ void LyricsData::customEvent(QEvent *event)
 {
     if (event->type() == MythEvent::MythEventMessage)
     {
-        MythEvent *me = dynamic_cast<MythEvent*>(event);
+        MythEvent *me = static_cast<MythEvent*>(event);
 
         if (!me)
             return;

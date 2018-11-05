@@ -7,7 +7,7 @@
 #ifndef CETONRTSP_H
 #define CETONRTSP_H
 
-#include <stdint.h>
+#include <cstdint>
 
 #include <QObject>
 #include <QMap>
@@ -42,7 +42,7 @@ class CetonRTSP : QObject
 
 protected:
     bool ProcessRequest(
-        const QString &method, const QStringList *headers = NULL,
+        const QString &method, const QStringList *headers = nullptr,
                         bool use_control = false, bool waitforanswer = true,
                         const QString &alternative = QString());
 
@@ -50,7 +50,7 @@ protected:
     QStringList splitLines(const QByteArray &lines);
     QString readParameters(const QString &key, Params &parameters);
     QUrl GetBaseUrl(void);
-    void timerEvent(QTimerEvent*);
+    void timerEvent(QTimerEvent*) override; // QObject
 
     QTcpSocket *_socket;
     uint        _sequenceNumber;

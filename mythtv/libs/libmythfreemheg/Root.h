@@ -88,7 +88,7 @@ class MHRoot
     virtual void Preload(MHEngine *) { InvalidAction("Preload"); }
     virtual void Unload(MHEngine *) { InvalidAction("Unload"); }
     // The UK MHEG profile only requires cloning for Text, Bitmap and Rectangle.
-    virtual MHIngredient *Clone(MHEngine *) { InvalidAction("Clone"); return NULL; }
+    virtual MHIngredient *Clone(MHEngine *) { InvalidAction("Clone"); return nullptr; }
 
     // Actions on Presentables.  The Run/Stop actions on presentables and the Activate/Deactivate actions
     // on Links have identical effects.  They could be merged.
@@ -215,10 +215,11 @@ class MHGetAvailabilityStatus: public MHElemAction
 {
   public:
     MHGetAvailabilityStatus(): MHElemAction(":GetAvailabilityStatus")  {}
-    virtual void Initialise(MHParseNode *p, MHEngine *engine);
-    virtual void Perform(MHEngine *engine);
+    void Initialise(MHParseNode *p, MHEngine *engine) override; // MHElemAction
+    void Perform(MHEngine *engine) override; // MHElemAction
   protected:
-    virtual void PrintArgs(FILE *fd, int /*nTabs*/) const { m_ResultVar.PrintMe(fd, 0); }
+    void PrintArgs(FILE *fd, int /*nTabs*/) const override // MHElemAction
+        { m_ResultVar.PrintMe(fd, 0); }
     MHObjectRef m_ResultVar;
 };
 
@@ -227,7 +228,8 @@ class MHGetRunningStatus: public MHActionObjectRef
 {
   public:
     MHGetRunningStatus(): MHActionObjectRef(":GetRunningStatus")  {}
-    virtual void CallAction(MHEngine *, MHRoot *pTarget, MHRoot *pResult) { pResult->SetVariableValue(pTarget->GetRunningStatus());}
+    void CallAction(MHEngine *, MHRoot *pTarget, MHRoot *pResult) override // MHActionObjectRef
+        { pResult->SetVariableValue(pTarget->GetRunningStatus());}
 };
 
 #endif

@@ -12,7 +12,7 @@
 #include <QTimer>
 
 MiniPlayer::MiniPlayer(MythScreenStack *parent)
-          : MusicCommon(parent, NULL, "music_miniplayer")
+          : MusicCommon(parent, nullptr, "music_miniplayer")
 {
     m_currentView = MV_MINIPLAYER;
     m_displayTimer = new QTimer(this);
@@ -26,7 +26,7 @@ MiniPlayer::~MiniPlayer(void)
 
     // Timers are deleted by Qt
     m_displayTimer->disconnect();
-    m_displayTimer = NULL;
+    m_displayTimer = nullptr;
 
     if (LCD *lcd = LCD::Get())
         lcd->switchToTime ();
@@ -39,10 +39,8 @@ void MiniPlayer::timerTimeout(void)
 
 bool MiniPlayer::Create(void)
 {
-    bool err = false;
-
     // Load the theme for this screen
-    err = LoadWindowFromXML("music-ui.xml", "miniplayer", this);
+    bool err = LoadWindowFromXML("music-ui.xml", "miniplayer", this);
 
     if (!err)
         return false;
@@ -72,9 +70,8 @@ bool MiniPlayer::keyPressEvent(QKeyEvent *event)
     if (GetFocusWidget() && GetFocusWidget()->keyPressEvent(event))
         return true;
 
-    bool handled = false;
     QStringList actions;
-    handled = GetMythMainWindow()->TranslateKeyPress("Music", event, actions);
+    bool handled = GetMythMainWindow()->TranslateKeyPress("Music", event, actions);
 
     for (int i = 0; i < actions.size() && !handled; i++)
     {
@@ -100,9 +97,6 @@ bool MiniPlayer::keyPressEvent(QKeyEvent *event)
     }
 
     if (!handled && MusicCommon::keyPressEvent(event))
-        handled = true;
-
-    if (!handled && MythScreenType::keyPressEvent(event))
         handled = true;
 
     return handled;

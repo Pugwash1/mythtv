@@ -20,7 +20,7 @@ class META_PUBLIC MetadataFactoryMultiResult : public QEvent
   public:
     explicit MetadataFactoryMultiResult(MetadataLookupList res)
         : QEvent(kEventType), results(res) {}
-    ~MetadataFactoryMultiResult() {}
+    ~MetadataFactoryMultiResult() = default;
 
     MetadataLookupList results;
 
@@ -43,7 +43,7 @@ class META_PUBLIC MetadataFactorySingleResult : public QEvent
         if (result)
         {
             result->DecrRef();
-            result = NULL;
+            result = nullptr;
         }
     }
 
@@ -68,7 +68,7 @@ class META_PUBLIC MetadataFactoryNoResult : public QEvent
         if (result)
         {
             result->DecrRef();
-            result = NULL;
+            result = nullptr;
         }
     }
 
@@ -84,7 +84,7 @@ class META_PUBLIC MetadataFactoryVideoChanges : public QEvent
                                 QList<int>dels) : QEvent(kEventType),
                                 additions(adds), moved(movs),
                                 deleted(dels) {}
-    ~MetadataFactoryVideoChanges() {}
+    ~MetadataFactoryVideoChanges() = default;
 
     QList<int> additions; // newly added intids
     QList<int> moved; // intids moved to new filename
@@ -129,7 +129,7 @@ class META_PUBLIC MetadataFactory : public QObject
 
   private:
 
-    void customEvent(QEvent *levent);
+    void customEvent(QEvent *levent) override; // QObject
 
     void OnMultiResult(MetadataLookupList list);
     void OnSingleResult(MetadataLookup *lookup);

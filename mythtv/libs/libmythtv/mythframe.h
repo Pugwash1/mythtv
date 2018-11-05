@@ -1,9 +1,14 @@
 #ifndef _FRAME_H
 #define _FRAME_H
 
-#include <string.h>
+#ifdef __cplusplus
+#include <cstdint>
+#include <cstring>
+#else
 #include <stdint.h>
-#include "mythtvexp.h" // for MUNUSED
+#include <string.h>
+#endif
+#include "mythtvexp.h" // for MTV_PUBLIC
 
 #ifdef __cplusplus
 extern "C" {
@@ -92,13 +97,13 @@ void MTV_PUBLIC framecopy(VideoFrame *dst, const VideoFrame *src,
 
 static inline void init(VideoFrame *vf, VideoFrameType _codec,
                         unsigned char *_buf, int _width, int _height, int _size,
-                        const int *p = 0,
-                        const int *o = 0,
+                        const int *p = nullptr,
+                        const int *o = nullptr,
                         float _aspect = -1.0f, double _rate = -1.0f,
-                        int _aligned = 64) MUNUSED;
+                        int _aligned = 64);
 static inline void clear(VideoFrame *vf);
 static inline bool compatible(const VideoFrame *a,
-                              const VideoFrame *b) MUNUSED;
+                              const VideoFrame *b);
 static inline int  bitsperpixel(VideoFrameType type);
 
 static inline void init(VideoFrame *vf, VideoFrameType _codec,
@@ -118,7 +123,7 @@ static inline void init(VideoFrame *vf, VideoFrameType _codec,
     vf->frameNumber  = 0;
     vf->timecode     = 0;
 
-    vf->qscale_table = 0;
+    vf->qscale_table = nullptr;
     vf->qstride      = 0;
 
     vf->interlaced_frame = 1;

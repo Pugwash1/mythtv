@@ -69,11 +69,8 @@ class StreamHandler : protected MThread, public DeviceReaderCB
     virtual void RemoveNamedOutputFile(const QString &filename);
 
   protected:
-    explicit StreamHandler(const QString &device);
+    explicit StreamHandler(const QString &device, int inputid);
     ~StreamHandler();
-
-    void AddRecorderId(int id);
-    void DelRecorderId(int id);
 
     void Start(void);
     void Stop(void);
@@ -94,8 +91,8 @@ class StreamHandler : protected MThread, public DeviceReaderCB
     PIDPriority GetPIDPriority(uint pid) const;
 
     // DeviceReaderCB
-    virtual void ReaderPaused(int fd) { (void) fd; }
-    virtual void PriorityEvent(int fd) { (void) fd; }
+    void ReaderPaused(int fd) override { (void) fd; } // DeviceReaderCB
+    void PriorityEvent(int fd) override { (void) fd; } // DeviceReaderCB
 
     virtual PIDInfo *CreatePIDInfo(uint pid, uint stream_type, int pes_type)
         { return new PIDInfo(pid, stream_type, pes_type); }
@@ -106,12 +103,11 @@ class StreamHandler : protected MThread, public DeviceReaderCB
     /// At minimum this sets _running_desired, this may also send
     /// signals to anything that might be blocking the run() loop.
     /// \note: The _start_stop_lock must be held when this is called.
-    void SetRunningDesired(bool desired);
+    virtual void SetRunningDesired(bool desired);
 
   protected:
     QString           _device;
-    QSet<int>         _recorder_ids;
-    QString           _recorder_ids_string;
+    int               _inputid;
     bool              _needs_buffering;
     bool              _allow_section_reader;
 

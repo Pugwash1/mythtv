@@ -22,7 +22,7 @@ StandardSetting::StandardSetting(Storage *_storage) :
     m_enabled(true), m_label(""), m_helptext(""), m_visible(true),
     m_haveChanged(false),
     m_storage(_storage),
-    m_parent(NULL)
+    m_parent(nullptr)
 {
 }
 
@@ -259,7 +259,16 @@ void StandardSetting::setName(const QString &name)
 
 StandardSetting* StandardSetting::byName(const QString &name)
 {
-    return (name == m_name) ? this : NULL;
+    if (name == m_name)
+        return this;
+
+    foreach (StandardSetting *setting, *getSubSettings())
+    {
+        StandardSetting *s = setting->byName(name);
+        if (s)
+            return s;
+    }
+    return nullptr;
 }
 
 void StandardSetting::MoveToThread(QThread *thread)
@@ -281,10 +290,6 @@ void StandardSetting::MoveToThread(QThread *thread)
 /******************************************************************************
                             Group Setting
 *******************************************************************************/
-GroupSetting::GroupSetting()
-{
-}
-
 void GroupSetting::edit(MythScreenType *screen)
 {
     if (!isEnabled())
@@ -303,17 +308,6 @@ void GroupSetting::updateButton(MythUIButtonListItem *item)
     item->SetText(m_settingValue, "value");
     item->SetText(getHelpText(), "description");
     item->setDrawArrow(haveSubSettings());
-}
-
-StandardSetting* GroupSetting::byName(const QString &name)
-{
-    foreach (StandardSetting *setting, *getSubSettings())
-    {
-        StandardSetting *s = setting->byName(name);
-        if (s)
-            return s;
-    }
-    return NULL;
 }
 
 ButtonStandardSetting::ButtonStandardSetting(const QString &label)
@@ -792,13 +786,13 @@ StandardSettingDialog::StandardSettingDialog(MythScreenStack *parent,
                                              const char *name,
                                              GroupSetting *groupSettings) :
     MythScreenType(parent, name),
-    m_buttonList(0),
-    m_title(0),
-    m_groupHelp(0),
-    m_selectedSettingHelp(0),
-    m_menuPopup(0),
+    m_buttonList(nullptr),
+    m_title(nullptr),
+    m_groupHelp(nullptr),
+    m_selectedSettingHelp(nullptr),
+    m_menuPopup(nullptr),
     m_settingsTree(groupSettings),
-    m_currentGroupSetting(0),
+    m_currentGroupSetting(nullptr),
     m_loaded(false)
 {
 }
@@ -924,7 +918,7 @@ void StandardSettingDialog::setCurrentGroupSetting(
     if (m_currentGroupSetting)
     {
         disconnect(m_currentGroupSetting,
-                   SIGNAL(settingsChanged(StandardSetting *)), 0, 0);
+                   SIGNAL(settingsChanged(StandardSetting *)), nullptr, nullptr);
         m_currentGroupSetting->Close();
     }
 
@@ -954,7 +948,7 @@ void StandardSettingDialog::updateSettings(StandardSetting * selectedSetting)
         return;
 
     QList<StandardSetting *>::const_iterator i;
-    MythUIButtonListItem *selectedItem = NULL;
+    MythUIButtonListItem *selectedItem = nullptr;
     for (i = settings->constBegin(); i != settings->constEnd(); ++i)
     {
         if ((*i)->isVisible())

@@ -18,7 +18,7 @@ class PlayGroupDBStorage : public SimpleDBStorage
     {
     }
 
-    virtual QString GetWhereClause(MSqlBindings &bindings) const;
+    QString GetWhereClause(MSqlBindings &bindings) const override; // SimpleDBStorage
 
     const PlayGroupConfig &parent;
 };
@@ -106,14 +106,14 @@ class TimeStretch : public MythUISpinBoxSetting
                                         "speed."));
     };
 
-    virtual void Load(void)
+    void Load(void) override // StandardSetting
     {
         StandardSetting::Load();
         if (intValue() < 50 || intValue() > 200)
             setValue(45);
     }
 
-    virtual void Save(void)
+    void Save(void) override // StandardSetting
     {
         if (intValue() < 50 || intValue() > 200)
             setValue(0);
@@ -265,7 +265,7 @@ int PlayGroup::GetSetting(const QString &name, const QString &field,
 
 
 PlayGroupEditor::PlayGroupEditor()
-    : m_addGroupButton(NULL)
+    : m_addGroupButton(nullptr)
 {
     setLabel(tr("Playback Groups"));
     m_addGroupButton = new ButtonStandardSetting(tr("Create New Playback Group"));
@@ -318,7 +318,7 @@ void PlayGroupEditor::CreateNewPlayBackGroupSlot(const QString& name)
 
     addChild(new PlayGroupConfig(name, name, true));
 
-    emit settingsChanged(NULL);
+    emit settingsChanged(nullptr);
 }
 
 void PlayGroupEditor::Load()
@@ -336,5 +336,5 @@ void PlayGroupEditor::Load()
     GroupSetting::Load();
 
     //TODO select the new one or the edited one
-    emit settingsChanged(NULL);
+    emit settingsChanged(nullptr);
 }

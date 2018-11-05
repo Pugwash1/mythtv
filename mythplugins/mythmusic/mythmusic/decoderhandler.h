@@ -27,13 +27,13 @@ class DecoderHandlerEvent : public MythEvent
 {
   public:
     explicit DecoderHandlerEvent(Type t)
-        : MythEvent(t), m_msg(0), m_meta(0), m_available(0), m_maxSize(0) {}
+        : MythEvent(t), m_msg(nullptr), m_meta(nullptr), m_available(0), m_maxSize(0) {}
 
     DecoderHandlerEvent(Type t, QString *e)
-        : MythEvent(t), m_msg(e), m_meta(0), m_available(0), m_maxSize(0) {}
+        : MythEvent(t), m_msg(e), m_meta(nullptr), m_available(0), m_maxSize(0) {}
 
     DecoderHandlerEvent(Type t, int available, int maxSize)
-        : MythEvent(t), m_msg(0), m_meta(0), 
+        : MythEvent(t), m_msg(nullptr), m_meta(nullptr), 
           m_available(available), m_maxSize(maxSize) {}
 
     DecoderHandlerEvent(Type t, const MusicMetadata &m);
@@ -43,7 +43,7 @@ class DecoderHandlerEvent : public MythEvent
     MusicMetadata *getMetadata(void) const { return m_meta; }
     void getBufferStatus(int *available, int *maxSize) const;
 
-    virtual MythEvent *clone(void) const;
+    MythEvent *clone(void) const override; // MythEvent
 
     static Type Ready;
     static Type Meta;
@@ -88,7 +88,7 @@ class DecoderHandler : public QObject, public MythObservable
     void start(MusicMetadata *mdata);
 
     void stop(void);
-    void customEvent(QEvent *e);
+    void customEvent(QEvent *e) override; // QObject
     bool done(void);
     bool next(void);
     void error(const QString &msg);

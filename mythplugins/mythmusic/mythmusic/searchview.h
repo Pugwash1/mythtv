@@ -20,15 +20,15 @@ class SearchView : public MusicCommon
     Q_OBJECT
   public:
     SearchView(MythScreenStack *parent, MythScreenType *parentScreen);
-    ~SearchView(void);
+    ~SearchView(void) = default;
 
-    bool Create(void);
-    bool keyPressEvent(QKeyEvent *);
+    bool Create(void) override; // MythScreenType
+    bool keyPressEvent(QKeyEvent *) override; // MusicCommon
 
-    virtual void ShowMenu(void);
+    void ShowMenu(void) override; // MusicCommon
 
   protected:
-    void customEvent(QEvent *event);
+    void customEvent(QEvent *event) override; // MusicCommon
     void updateTracksList(void);
 
   protected slots:

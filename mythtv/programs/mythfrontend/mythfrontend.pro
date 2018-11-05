@@ -116,6 +116,7 @@ using_opengl:DEFINES += USING_OPENGL
 using_opengl_video:DEFINES += USING_OPENGL_VIDEO
 using_vdpau:DEFINES += USING_VDPAU
 using_vaapi:using_opengl_video:DEFINES += USING_GLVAAPI
+using_vaapi2:DEFINES += USING_VAAPI2
 
 using_pulse:DEFINES += USING_PULSE
 using_pulseoutput: DEFINES += USING_PULSEOUTPUT
@@ -123,6 +124,7 @@ using_alsa:DEFINES += USING_ALSA
 using_jack:DEFINES += USING_JACK
 using_oss: DEFINES += USING_OSS
 using_openmax: DEFINES += USING_OPENMAX
+using_libcec: DEFINES += USING_LIBCEC
 macx:      DEFINES += USING_COREAUDIO
 using_libdns_sd {
     DEFINES += USING_LIBDNS_SD
@@ -136,6 +138,9 @@ android {
     ANDROID_EXTRA_LIBS += $$(MYTHINSTALLLIBCOMMON)libexiv2.13.so
     ANDROID_EXTRA_LIBS += $$(MYTHINSTALLLIBCOMMON)libfreetype.so
     ANDROID_EXTRA_LIBS += $$(MYTHINSTALLLIBCOMMON)mariadb/libmariadb.so
+    ANDROID_EXTRA_LIBS += $$(MYTHINSTALLLIBCOMMON)liblzo2.so
+    ANDROID_EXTRA_LIBS += $$(MYTHINSTALLLIBCOMMON)libbluray.so
+    ANDROID_EXTRA_LIBS += $$(MYTHINSTALLLIBCOMMON)libxml2.so
     ANDROID_EXTRA_LIBS += $$(MYTHINSTALLLIBCOMMON)libmythavutil.so
     ANDROID_EXTRA_LIBS += $$(MYTHINSTALLLIBCOMMON)libmythpostproc.so
     ANDROID_EXTRA_LIBS += $$(MYTHINSTALLLIBCOMMON)libmythavfilter.so

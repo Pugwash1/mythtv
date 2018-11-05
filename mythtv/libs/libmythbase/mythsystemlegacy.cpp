@@ -27,12 +27,12 @@
 
 // C++/C headers
 #include <cerrno>
-#include <unistd.h>
-#include <stdlib.h>
+#include <csignal> // for kill() and SIGXXX
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
 #include <fcntl.h>
-#include <time.h>
-#include <signal.h> // for kill() and SIGXXX
-#include <string.h>
+#include <unistd.h>
 
 // QT headers
 #include <QCoreApplication>
@@ -253,9 +253,9 @@ uint MythSystemLegacy::Wait(time_t timeout)
     if (GetSetting("ProcessEvents"))
     {
         if (timeout > 0)
-            timeout += time(NULL);
+            timeout += time(nullptr);
 
-        while (!timeout || time(NULL) < timeout)
+        while (!timeout || time(nullptr) < timeout)
         {
             // loop until timeout hits or process ends
             if (m_semReady.tryAcquire(1,100))

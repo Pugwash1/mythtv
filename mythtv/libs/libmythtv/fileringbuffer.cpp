@@ -61,7 +61,7 @@ FileRingBuffer::FileRingBuffer(const QString &lfilename,
                     QString("RingBuffer::RingBuffer(): Failed to open "
                             "remote file (%1) for write").arg(filename));
                 delete remotefile;
-                remotefile = NULL;
+                remotefile = nullptr;
             }
             else
                 writemode = true;
@@ -74,7 +74,7 @@ FileRingBuffer::FileRingBuffer(const QString &lfilename,
             if (!tfw->Open())
             {
                 delete tfw;
-                tfw = NULL;
+                tfw = nullptr;
             }
             else
                 writemode = true;
@@ -91,10 +91,10 @@ FileRingBuffer::~FileRingBuffer()
     KillReadAheadThread();
 
     delete remotefile;
-    remotefile = NULL;
+    remotefile = nullptr;
 
     delete tfw;
-    tfw = NULL;
+    tfw = nullptr;
 
     if (fd2 >= 0)
     {
@@ -193,7 +193,7 @@ bool FileRingBuffer::OpenFile(const QString &lfilename, uint retry_ms)
     if (remotefile)
     {
         delete remotefile;
-        remotefile = NULL;
+        remotefile = nullptr;
     }
 
     if (fd2 >= 0)
@@ -375,7 +375,7 @@ bool FileRingBuffer::OpenFile(const QString &lfilename, uint retry_ms)
             //: %1 is the filename
             lastError = tr("Failed to open remote file %1").arg(filename);
             delete remotefile;
-            remotefile = NULL;
+            remotefile = nullptr;
         }
         else
         {
@@ -450,7 +450,6 @@ bool FileRingBuffer::IsOpen(void) const
  */
 int FileRingBuffer::safe_read(int /*fd*/, void *data, uint sz)
 {
-    int ret;
     unsigned tot = 0;
     unsigned errcnt = 0;
     unsigned zerocnt = 0;
@@ -476,7 +475,7 @@ int FileRingBuffer::safe_read(int /*fd*/, void *data, uint sz)
         // check that we have some data to read,
         // so we never attempt to read past the end of file
         // if fstat errored or isn't a regular file, default to previous behavior
-        ret = fstat(fd2, &sb);
+        int ret = fstat(fd2, &sb);
         if (ret == 0 && S_ISREG(sb.st_mode))
         {
             if ((internalreadpos + tot) >= sb.st_size)

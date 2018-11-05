@@ -30,10 +30,9 @@ static int gTTBackgroundAlpha;
 
 static QChar cvt_char(char ch, int lang)
 {
-    int c = 0;
     for (int j = 0; j < 14; j++)
     {
-        c = ch & 0x7F;
+        int c = ch & 0x7F;
         if (c == lang_chars[0][j])
             ch = lang_chars[lang + 1][j];
     }
@@ -42,8 +41,8 @@ static QChar cvt_char(char ch, int lang)
 
 TeletextScreen::TeletextScreen(MythPlayer *player, const char * name,
                                int fontStretch) :
-    MythScreenType((MythScreenType*)NULL, name),
-    m_player(player),           m_teletextReader(NULL),
+    MythScreenType((MythScreenType*)nullptr, name),
+    m_player(player),           m_teletextReader(nullptr),
     m_safeArea(QRect()),
     m_colWidth(10),             m_rowHeight(10),
     m_bgColor(QColor(kColorBlack)),
@@ -91,7 +90,7 @@ QImage* TeletextScreen::GetRowImage(int row, QRect &rect)
             m_rowImages.insert(y, img);
         }
         else
-            return NULL;
+            return nullptr;
     }
     return m_rowImages.value(y);
 }
@@ -205,7 +204,7 @@ void TeletextScreen::Pulse(void)
     if (!ttpage)
     {
         // no page selected so show the header and a list of available pages
-        DrawHeader(NULL, 0);
+        DrawHeader(nullptr, 0);
         m_teletextReader->SetPageChanged(false);
         OptimiseDisplayedArea();
         return;
@@ -268,7 +267,7 @@ void TeletextScreen::DrawHeader(const uint8_t *page, int lang)
     if (!m_displaying)
         return;
 
-    if (page != NULL)
+    if (page != nullptr)
         DrawLine(page, 1, lang);
 
     DrawStatus();
@@ -331,10 +330,10 @@ void TeletextScreen::DrawLine(const uint8_t *page, uint row, int lang)
 {
     bool mosaic;
     bool conceal;
-    MUNUSED bool seperation;
-    MUNUSED bool flash;
+    bool seperation;
+    bool flash;
     bool doubleheight;
-    MUNUSED bool blink;
+    bool blink;
     bool hold;
     bool endbox;
     bool startbox;
@@ -532,6 +531,9 @@ void TeletextScreen::DrawLine(const uint8_t *page, uint row, int lang)
             }
         }
     }
+    Q_UNUSED(seperation);
+    Q_UNUSED(flash);
+    Q_UNUSED(blink);
 }
 
 void TeletextScreen::DrawCharacter(int x, int y, QChar ch, int doubleheight)

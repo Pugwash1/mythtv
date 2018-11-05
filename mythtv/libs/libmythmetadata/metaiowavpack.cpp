@@ -1,4 +1,4 @@
-#include <math.h>
+#include <cmath>
 
 #include <apetag.h>
 #include <apeitem.h>
@@ -12,10 +12,6 @@
 
 MetaIOWavPack::MetaIOWavPack(void)
     : MetaIOTagLib()
-{
-}
-
-MetaIOWavPack::~MetaIOWavPack(void)
 {
 }
 
@@ -33,7 +29,7 @@ TagLib::WavPack::File *MetaIOWavPack::OpenFile(const QString &filename)
     if (!wpfile->isOpen())
     {
         delete wpfile;
-        wpfile = NULL;
+        wpfile = nullptr;
     }
 
     return wpfile;
@@ -97,14 +93,14 @@ MusicMetadata* MetaIOWavPack::read(const QString &filename)
     TagLib::WavPack::File *wpfile = OpenFile(filename);
 
     if (!wpfile)
-        return NULL;
+        return nullptr;
 
     TagLib::APE::Tag *tag = wpfile->APETag();
 
     if (!tag)
     {
         delete wpfile;
-        return NULL;
+        return nullptr;
     }
 
     MusicMetadata *metadata = new MusicMetadata(filename);

@@ -27,13 +27,13 @@ Weather::Weather(MythScreenStack *parent, const QString &name, SourceManager *sr
       m_nextpage_Timer(new QTimer(this)),
       m_firstSetup(true),
       m_createdSrcMan(false),
-      m_srcMan(NULL),
+      m_srcMan(nullptr),
       m_cur_screen(0),
-      m_currScreen(NULL),
+      m_currScreen(nullptr),
       m_paused(false),
-      m_pauseText(NULL),
-      m_headerText(NULL),
-      m_updatedText(NULL)
+      m_pauseText(nullptr),
+      m_headerText(nullptr),
+      m_updatedText(nullptr)
 {
     if (!srcMan)
     {
@@ -70,11 +70,8 @@ Weather::~Weather()
 
 bool Weather::Create()
 {
-    bool foundtheme = false;
-
     // Load the theme for this screen
-    foundtheme = LoadWindowFromXML("weather-ui.xml", "weatherbase", this);
-
+    bool foundtheme = LoadWindowFromXML("weather-ui.xml", "weatherbase", this);
     if (!foundtheme)
     {
         LOG(VB_GENERAL, LOG_ERR, "Missing required window - weatherbase.");
@@ -105,7 +102,7 @@ bool Weather::Create()
 
 void Weather::clearScreens()
 {
-    m_currScreen = NULL;
+    m_currScreen = nullptr;
 
     m_cur_screen = 0;
     while (!m_screens.empty())
@@ -237,7 +234,7 @@ void Weather::screenReady(WeatherScreen *ws)
 WeatherScreen *Weather::nextScreen(void)
 {
     if (m_screens.empty())
-        return NULL;
+        return nullptr;
 
     m_cur_screen = (m_cur_screen + 1) % m_screens.size();
     return m_screens[m_cur_screen];
@@ -246,7 +243,7 @@ WeatherScreen *Weather::nextScreen(void)
 WeatherScreen *Weather::prevScreen(void)
 {
     if (m_screens.empty())
-        return NULL;
+        return nullptr;
 
     m_cur_screen = (m_cur_screen < 0) ? 0 : m_cur_screen;
     m_cur_screen = (m_cur_screen + m_screens.size() - 1) % m_screens.size();
@@ -258,9 +255,8 @@ bool Weather::keyPressEvent(QKeyEvent *event)
     if (GetFocusWidget() && GetFocusWidget()->keyPressEvent(event))
         return true;
 
-    bool handled = false;
     QStringList actions;
-    handled = GetMythMainWindow()->TranslateKeyPress("Weather", event, actions);
+    bool handled = GetMythMainWindow()->TranslateKeyPress("Weather", event, actions);
 
     for (int i = 0; i < actions.size() && !handled; i++)
     {
@@ -311,7 +307,7 @@ void Weather::hideScreen()
     if (!m_currScreen)
         return;
 
-    m_weatherStack->PopScreen(NULL, false,false);
+    m_weatherStack->PopScreen(nullptr, false,false);
 }
 
 void Weather::holdPage()

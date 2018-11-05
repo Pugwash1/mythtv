@@ -35,8 +35,8 @@ const int TIME_UPDATE_TIME = 1000 * 1;    // update the time every 1 second
 
 FunctionDialog::FunctionDialog(MythScreenStack *parent, Monitor *monitor) :
     MythScreenType(parent, "functionpopup"), m_monitor(monitor),
-    m_captionText(NULL), m_functionList(NULL),
-    m_enabledCheck(NULL), m_notificationCheck(NULL), m_okButton(NULL)
+    m_captionText(nullptr), m_functionList(nullptr),
+    m_enabledCheck(nullptr), m_notificationCheck(nullptr), m_okButton(nullptr)
 {
 }
 
@@ -124,9 +124,9 @@ void FunctionDialog::setMonitorFunction(void)
 
 ZMConsole::ZMConsole(MythScreenStack *parent)
           :MythScreenType(parent, "zmconsole"),
-           m_monitor_list(NULL), m_running_text(NULL), m_status_text(NULL),
-           m_time_text(NULL), m_date_text(NULL), m_load_text(NULL),
-           m_disk_text(NULL), m_functionDialog(NULL),
+           m_monitor_list(nullptr), m_running_text(nullptr), m_status_text(nullptr),
+           m_time_text(nullptr), m_date_text(nullptr), m_load_text(nullptr),
+           m_disk_text(nullptr), m_functionDialog(nullptr),
            m_popupStack(GetMythMainWindow()->GetStack("popup stack")),
            m_timeTimer(new QTimer(this)), m_updateTimer(new QTimer(this))
 {
@@ -146,11 +146,8 @@ ZMConsole::~ZMConsole()
 
 bool ZMConsole::Create(void)
 {
-    bool foundtheme = false;
-
     // Load the theme for this screen
-    foundtheme = LoadWindowFromXML("zoneminder-ui.xml", "zmconsole", this);
-
+    bool foundtheme = LoadWindowFromXML("zoneminder-ui.xml", "zmconsole", this);
     if (!foundtheme)
         return false;
 
@@ -230,9 +227,8 @@ bool ZMConsole::keyPressEvent(QKeyEvent *event)
     if (GetFocusWidget()->keyPressEvent(event))
         return true;
 
-    bool handled = false;
     QStringList actions;
-    handled = GetMythMainWindow()->TranslateKeyPress("Global", event, actions);
+    bool handled = GetMythMainWindow()->TranslateKeyPress("Global", event, actions);
 
     for (int i = 0; i < actions.size() && !handled; i++)
     {
@@ -255,10 +251,7 @@ bool ZMConsole::keyPressEvent(QKeyEvent *event)
 
 void ZMConsole::showEditFunctionPopup()
 {
-    Monitor *currentMonitor = NULL;
-
-    currentMonitor = m_monitor_list->GetItemCurrent()->GetData().value<Monitor*>();
-
+    Monitor *currentMonitor = m_monitor_list->GetItemCurrent()->GetData().value<Monitor*>();
     if (!currentMonitor)
         return;
 
@@ -286,7 +279,7 @@ void ZMConsole::updateMonitorList()
         if (monitor)
         {
             MythUIButtonListItem *item = new MythUIButtonListItem(m_monitor_list,
-                "", NULL, true, MythUIButtonListItem::NotChecked);
+                "", nullptr, true, MythUIButtonListItem::NotChecked);
             item->SetData(qVariantFromValue(monitor));
             item->SetText(monitor->name, "name");
             item->SetText(monitor->zmcStatus, "zmcstatus");

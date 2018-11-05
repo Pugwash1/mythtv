@@ -11,11 +11,10 @@
 #include <QTime>                        // for QTime
 #include <QHash>                        // for QHash
 
-#include <stdint.h>                     // for uint8_t
-#include <string.h>                     // for memcpy, memset
-
 #include <algorithm>                    // for min
 #include <cmath>                        // for round, sqrt
+#include <cstdint>                      // for uint8_t
+#include <cstring>                      // for memcpy, memset
 #include <deque>                        // for _Deque_iterator, operator!=
 
 #include "dsmcc.h"                      // for Dsmcc
@@ -78,10 +77,10 @@ class MHIImageData
 
 MHIContext::MHIContext(InteractiveTV *parent)
     : m_parent(parent),     m_dsmcc(new Dsmcc()),
-      m_notify(0),          m_keyProfile(0),
+      m_notify(nullptr),    m_keyProfile(0),
       m_engine(MHCreateEngine(this)), m_stop(false),
-      m_updated(false),     m_face(NULL),
-      m_face_loaded(false), m_engineThread(NULL), m_currentChannel(-1),
+      m_updated(false),     m_face(nullptr),
+      m_face_loaded(false), m_engineThread(nullptr), m_currentChannel(-1),
       m_currentStream(-1),  m_isLive(false),      m_currentSource(-1),
       m_audioTag(-1),       m_videoTag(-1),
       m_lastNbiVersion(NBI_VERSION_UNSET)
@@ -165,7 +164,7 @@ void MHIContext::ClearQueue(void)
 // Ask the engine to stop and block until it has.
 void MHIContext::StopEngine(void)
 {
-    if (NULL == m_engineThread)
+    if (nullptr == m_engineThread)
         return;
 
     m_stop = true;
@@ -175,7 +174,7 @@ void MHIContext::StopEngine(void)
 
     m_engineThread->wait();
     delete m_engineThread;
-    m_engineThread = NULL;
+    m_engineThread = nullptr;
 }
 
 
@@ -285,7 +284,7 @@ void MHIContext::run(void)
 // Dequeue and process any DSMCC packets.
 void MHIContext::ProcessDSMCCQueue(void)
 {
-    DSMCCPacket *packet = NULL;
+    DSMCCPacket *packet = nullptr;
     do
     {
         QMutexLocker locker(&m_dsmccLock);
@@ -309,7 +308,7 @@ void MHIContext::QueueDSMCCPacket(
     unsigned char *dataCopy =
         (unsigned char*) malloc(length * sizeof(unsigned char));
 
-    if (dataCopy == NULL)
+    if (dataCopy == nullptr)
         return;
 
     memcpy(dataCopy, data, length*sizeof(unsigned char));
@@ -975,7 +974,7 @@ int MHIContext::GetChannelIndex(const QString &str)
             QString("[mhi] GetChannelIndex -- Unrecognized URL %1")
             .arg(str));
     }
-    while (0);
+    while (false);
 
     LOG(VB_MHEG, LOG_INFO, QString("[mhi] GetChannelIndex %1 => %2")
         .arg(str).arg(nResult));
@@ -1081,7 +1080,7 @@ void MHIContext::EndStream()
     LOG(VB_MHEG, LOG_INFO, QString("[mhi] EndStream 0x%1")
         .arg((quintptr)m_notify,0,16) );
 
-    m_notify = 0;
+    m_notify = nullptr;
     (void)m_parent->GetNVP()->SetStream(QString());
 }
 
@@ -1097,7 +1096,7 @@ bool MHIContext::StreamStarted(bool bStarted)
     QMutexLocker locker(&m_runLock);
     m_engine->StreamStarted(m_notify, bStarted);
     if (!bStarted)
-        m_notify = 0;
+        m_notify = nullptr;
     return m_currentStream == -1; // Return true if it's an http stream
 }
 
@@ -1873,10 +1872,10 @@ void MHIBitmap::CreateFromJPEG(const unsigned char *data, int length)
 // cost is outweighed by the simplification.
 void MHIBitmap::CreateFromMPEG(const unsigned char *data, int length)
 {
-    AVCodecContext *c = NULL;
+    AVCodecContext *c = nullptr;
     MythAVFrame picture;
     AVPacket pkt;
-    uint8_t *buff = NULL;
+    uint8_t *buff = nullptr;
     bool gotPicture = false;
     int len;
     m_image = QImage();
@@ -1888,9 +1887,9 @@ void MHIBitmap::CreateFromMPEG(const unsigned char *data, int length)
     if (!picture)
         return;
 
-    c = avcodec_alloc_context3(NULL);
+    c = avcodec_alloc_context3(nullptr);
 
-    if (avcodec_open2(c, codec, NULL) < 0)
+    if (avcodec_open2(c, codec, nullptr) < 0)
         goto Close;
 
     // Copy the data into AVPacket
@@ -1924,7 +1923,7 @@ void MHIBitmap::CreateFromMPEG(const unsigned char *data, int length)
         }
         else
         {
-            pkt.data = NULL;
+            pkt.data = nullptr;
             pkt.size = 0;
         }
     }

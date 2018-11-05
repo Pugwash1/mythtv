@@ -18,10 +18,10 @@ class KeyGrabPopupBox : public MythScreenType
 
   public:
     explicit KeyGrabPopupBox(MythScreenStack *parent);
-    ~KeyGrabPopupBox();
+    ~KeyGrabPopupBox() = default;
 
-    bool keyPressEvent(QKeyEvent *);
-    bool Create(void);
+    bool keyPressEvent(QKeyEvent *) override; // MythScreenType
+    bool Create(void) override; // MythScreenType
 
   signals:
     void HaveResult(QString);

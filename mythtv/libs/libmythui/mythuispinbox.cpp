@@ -16,10 +16,6 @@ MythUISpinBox::MythUISpinBox(MythUIType *parent, const QString &name)
 {
 }
 
-MythUISpinBox::~MythUISpinBox()
-{
-}
-
 /**
  * \brief Set the lower and upper bounds of the spinbox, the interval and page
  *        amount
@@ -69,7 +65,7 @@ void MythUISpinBox::SetRange(int low, int high, int step, uint pageMultiple)
             if (!temp.isEmpty())
             {
                 if (temp.contains("%n"))
-                    text = qApp->translate("ThemeUI", temp.toUtf8(), NULL,
+                    text = qApp->translate("ThemeUI", temp.toUtf8(), nullptr,
                                            qAbs(value));
                 else
                     text = qApp->translate("ThemeUI", temp.toUtf8());
@@ -227,6 +223,13 @@ bool MythUISpinBox::keyPressEvent(QKeyEvent *event)
 
     QString initialEntry = GetItemCurrent()->GetText();
     bool doEntry = false;
+
+    // Only invoke the entry dialog if the entry is a number
+    bool isNumber = false;
+    (void)initialEntry.toLongLong(&isNumber,10);
+    if (!isNumber)
+        return MythUIButtonList::keyPressEvent(event);
+
     for (int i = 0; i < actions.size(); ++i)
     {
         if (actions[i] >= ACTION_0 && actions[i] <= ACTION_9)
@@ -282,10 +285,10 @@ SpinBoxEntryDialog::SpinBoxEntryDialog(MythScreenStack *parent, const char *name
     : MythScreenType(parent, name, false),
         m_parentList(parentList),
         m_searchText(searchText),
-        m_entryEdit(NULL),
-        m_cancelButton(NULL),
-        m_okButton(NULL),
-        m_rulesText(NULL),
+        m_entryEdit(nullptr),
+        m_cancelButton(nullptr),
+        m_okButton(nullptr),
+        m_rulesText(nullptr),
         m_okClicked(false),
         m_low(low),
         m_high(high),
@@ -295,10 +298,6 @@ SpinBoxEntryDialog::SpinBoxEntryDialog(MythScreenStack *parent, const char *name
     m_selection = parentList->GetCurrentPos();
 }
 
-
-SpinBoxEntryDialog::~SpinBoxEntryDialog()
-{
-}
 
 bool SpinBoxEntryDialog::Create(void)
 {

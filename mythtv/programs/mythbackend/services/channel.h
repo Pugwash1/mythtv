@@ -36,7 +36,7 @@ class Channel : public ChannelServices
 
     public:
 
-        Q_INVOKABLE explicit Channel( QObject */*parent*/ = 0 ) {}
+        Q_INVOKABLE explicit Channel( QObject */*parent*/ = nullptr ) {}
 
     public:
 
@@ -49,9 +49,9 @@ class Channel : public ChannelServices
                                                      bool      OnlyVisible,
                                                      bool      Details,
                                                      bool      OrderByName,
-                                                     bool      GroupByCallsign);
+                                                     bool      GroupByCallsign) override; // ChannelServices
 
-        DTC::ChannelInfo*      GetChannelInfo      ( uint     ChanID     );
+        DTC::ChannelInfo*      GetChannelInfo      ( uint     ChanID     ) override; // ChannelServices
 
         bool                   UpdateDBChannel     ( uint          MplexID,
                                                      uint          SourceID,
@@ -68,7 +68,7 @@ class Channel : public ChannelServices
                                                      const QString &Icon,
                                                      const QString &Format,
                                                      const QString &XMLTVID,
-                                                     const QString &DefaultAuthority );
+                                                     const QString &DefaultAuthority ) override; // ChannelServices
 
         bool                   AddDBChannel        ( uint          MplexID,
                                                      uint          SourceID,
@@ -85,15 +85,15 @@ class Channel : public ChannelServices
                                                      const QString &Icon,
                                                      const QString &Format,
                                                      const QString &XMLTVID,
-                                                     const QString &DefaultAuthority );
+                                                     const QString &DefaultAuthority ) override; // ChannelServices
 
-        bool                   RemoveDBChannel     ( uint          ChannelID );
+        bool                   RemoveDBChannel     ( uint          ChannelID ) override; // ChannelServices
 
         /* Video Source Methods */
 
-        DTC::VideoSourceList*     GetVideoSourceList     ( void );
+        DTC::VideoSourceList*     GetVideoSourceList     ( void ) override; // ChannelServices
 
-        DTC::VideoSource*         GetVideoSource         ( uint SourceID );
+        DTC::VideoSource*         GetVideoSource         ( uint SourceID ) override; // ChannelServices
 
         bool                      UpdateVideoSource      ( uint          SourceID,
                                                            const QString &SourceName,
@@ -104,7 +104,7 @@ class Channel : public ChannelServices
                                                            const QString &Password,
                                                            bool          UseEIT,
                                                            const QString &ConfigPath,
-                                                           int           NITId );
+                                                           int           NITId ) override; // ChannelServices
 
         int                       AddVideoSource         ( const QString &SourceName,
                                                            const QString &Grabber,
@@ -114,27 +114,27 @@ class Channel : public ChannelServices
                                                            const QString &Password,
                                                            bool          UseEIT,
                                                            const QString &ConfigPath,
-                                                           int           NITId );
+                                                           int           NITId ) override; // ChannelServices
 
-        bool                      RemoveVideoSource      ( uint SourceID );
+        bool                      RemoveVideoSource      ( uint SourceID ) override; // ChannelServices
 
         DTC::LineupList*          GetDDLineupList        ( const QString &Source,
                                                            const QString &UserId,
-                                                           const QString &Password );
+                                                           const QString &Password ) override; // ChannelServices
 
         int                       FetchChannelsFromSource( const uint SourceId,
                                                            const uint CardId,
-                                                           bool       WaitForFinish );
+                                                           bool       WaitForFinish ) override; // ChannelServices
 
         /* Multiplex Methods */
 
         DTC::VideoMultiplexList*  GetVideoMultiplexList  ( uint SourceID,
                                                            uint StartIndex,
-                                                           uint Count      );
+                                                           uint Count      ) override; // ChannelServices
 
-        DTC::VideoMultiplex*      GetVideoMultiplex      ( uint MplexID    );
+        DTC::VideoMultiplex*      GetVideoMultiplex      ( uint MplexID    ) override; // ChannelServices
 
-        QStringList               GetXMLTVIdList         ( uint SourceID );
+        QStringList               GetXMLTVIdList         ( uint SourceID ) override; // ChannelServices
 
 };
 
@@ -164,7 +164,7 @@ class ScriptableChannel : public QObject
 
     public:
 
-        Q_INVOKABLE ScriptableChannel( QScriptEngine *pEngine, QObject *parent = 0 ) : QObject( parent )
+        Q_INVOKABLE ScriptableChannel( QScriptEngine *pEngine, QObject *parent = nullptr ) : QObject( parent )
         {
             m_pEngine = pEngine;
         }
@@ -181,14 +181,14 @@ class ScriptableChannel : public QObject
                                        bool     GroupByCallsign = false
                                      )
         {
-            SCRIPT_CATCH_EXCEPTION( NULL,
+            SCRIPT_CATCH_EXCEPTION( nullptr,
                 return m_obj.GetChannelInfoList( SourceID, ChannelGroupID, StartIndex, Count, OnlyVisible, Details, OrderByName, GroupByCallsign );
             )
         }
 
         QObject* GetChannelInfo      ( int      ChanID     )
         {
-            SCRIPT_CATCH_EXCEPTION( NULL,
+            SCRIPT_CATCH_EXCEPTION( nullptr,
                 return m_obj.GetChannelInfo( ChanID );
             )
         }
@@ -254,14 +254,14 @@ class ScriptableChannel : public QObject
 
         QObject* GetVideoSourceList ( void )
         {
-            SCRIPT_CATCH_EXCEPTION( NULL,
+            SCRIPT_CATCH_EXCEPTION( nullptr,
                 return m_obj.GetVideoSourceList();
             )
         }
 
         QObject* GetVideoSource ( uint SourceID )
         {
-            SCRIPT_CATCH_EXCEPTION( NULL,
+            SCRIPT_CATCH_EXCEPTION( nullptr,
                 return m_obj.GetVideoSource( SourceID );
             )
         }
@@ -312,14 +312,14 @@ class ScriptableChannel : public QObject
                                           int      StartIndex,
                                           int      Count      )
         {
-            SCRIPT_CATCH_EXCEPTION( NULL,
+            SCRIPT_CATCH_EXCEPTION( nullptr,
                 return m_obj.GetVideoMultiplexList( SourceID, StartIndex, Count );
             )
         }
 
         QObject* GetVideoMultiplex  ( int      MplexID )
         {
-            SCRIPT_CATCH_EXCEPTION( NULL,
+            SCRIPT_CATCH_EXCEPTION( nullptr,
                 return m_obj.GetVideoMultiplex( MplexID );
             )
         }

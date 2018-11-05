@@ -20,6 +20,7 @@
 #include "mthread.h"
 #include "inputinfo.h"
 #include "mythdeque.h"
+
 #include "recordinginfo.h"
 #include "tv.h"
 #include "signalmonitorlistener.h"
@@ -105,13 +106,13 @@ class TuningRequest
 {
   public:
     explicit TuningRequest(uint f) :
-        flags(f), program(NULL),
+        flags(f), program(nullptr),
         majorChan(0), minorChan(0), progNum(-1) {;}
     TuningRequest(uint f, RecordingInfo *p) :
         flags(f), program(p),
         majorChan(0), minorChan(0), progNum(-1) {;}
     TuningRequest(uint f, QString ch, QString in = QString()) :
-        flags(f), program(NULL), channel(ch),
+        flags(f), program(nullptr), channel(ch),
         input(in), majorChan(0), minorChan(0), progNum(-1) {;}
 
     QString toString(void) const;
@@ -128,12 +129,13 @@ class TuningRequest
     int          progNum;
 };
 typedef MythDeque<TuningRequest> TuningQueue;
+inline TuningRequest myth_deque_init(const TuningRequest*) { return (TuningRequest)(0); }
 
 class PendingInfo
 {
   public:
     PendingInfo() :
-        info(NULL), hasLaterShowing(false), canceled(false),
+        info(nullptr), hasLaterShowing(false), canceled(false),
         ask(false), doNotAsk(false) { }
     ProgramInfo *info;
     QDateTime    recordingStart;
@@ -186,7 +188,7 @@ class MTV_PUBLIC TVRec : public SignalMonitorListener, public QRunnable
 
     bool SetVideoFiltersForChannel(uint sourceid, const QString &channum);
 
-    bool IsBusy(InputInfo *busy_input = NULL, int time_buffer = 5) const;
+    bool IsBusy(InputInfo *busy_input = nullptr, int time_buffer = 5) const;
     bool IsReallyRecording(void);
 
     float GetFramerate(void);
@@ -250,13 +252,13 @@ class MTV_PUBLIC TVRec : public SignalMonitorListener, public QRunnable
 
     static TVRec *GetTVRec(uint inputid);
 
-    virtual void AllGood(void) { WakeEventLoop(); }
-    virtual void StatusChannelTuned(const SignalMonitorValue&) { }
-    virtual void StatusSignalLock(const SignalMonitorValue&) { }
-    virtual void StatusSignalStrength(const SignalMonitorValue&) { }
+    void AllGood(void) override { WakeEventLoop(); } // SignalMonitorListener
+    void StatusChannelTuned(const SignalMonitorValue&) override { } // SignalMonitorListener
+    void StatusSignalLock(const SignalMonitorValue&) override { } // SignalMonitorListener
+    void StatusSignalStrength(const SignalMonitorValue&) override { } // SignalMonitorListener
 
   protected:
-    virtual void run(void); // QRunnable
+    void run(void) override; // QRunnable
     bool WaitForEventThreadSleep(bool wake = true, ulong time = ULONG_MAX);
 
   private:

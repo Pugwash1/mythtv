@@ -61,7 +61,7 @@ class ShoutCastMetaParser
   public:
     ShoutCastMetaParser(void) :
         m_meta_artist_pos(-1), m_meta_title_pos(-1), m_meta_album_pos(-1) { }
-    ~ShoutCastMetaParser(void) { }
+    ~ShoutCastMetaParser(void) = default;
 
     void setMetaFormat(const QString &metaformat);
     ShoutCastMetaMap parseMeta(const QString &meta);
@@ -137,12 +137,11 @@ ShoutCastMetaMap ShoutCastMetaParser::parseMeta(const QString &mdata)
 {
     ShoutCastMetaMap result;
     int title_begin_pos = mdata.indexOf("StreamTitle='");
-    int title_end_pos;
 
     if (title_begin_pos >= 0)
     {
         title_begin_pos += 13;
-        title_end_pos = mdata.indexOf("';", title_begin_pos);
+        int title_end_pos = mdata.indexOf("';", title_begin_pos);
         QString title = mdata.mid(title_begin_pos, title_end_pos - title_begin_pos);
         QRegExp rx;
         rx.setPattern(m_meta_format);
@@ -243,9 +242,9 @@ avfDecoder::avfDecoder(const QString &file, DecoderFactory *d, AudioOutput *o) :
     m_freq(0),                    m_bitrate(0),
     m_channels(0),
     m_seekTime(-1.0),             m_devicename(""),
-    m_inputFormat(NULL),          m_inputContext(NULL),
-    m_audioDec(NULL),             m_inputIsFile(false),
-    m_mdataTimer(NULL),           m_errCode(0)
+    m_inputFormat(nullptr),       m_inputContext(nullptr),
+    m_audioDec(nullptr),          m_inputIsFile(false),
+    m_mdataTimer(nullptr),        m_errCode(0)
 {
     MThread::setObjectName("avfDecoder");
     setURL(file);
@@ -298,9 +297,6 @@ bool avfDecoder::initialize()
         return false;
     }
 
-    // register av codecs
-    av_register_all();
-
     output()->PauseUntilBuffered();
 
     if (m_inputContext)
@@ -327,7 +323,7 @@ bool avfDecoder::initialize()
         // we don't get metadata updates for MMS streams so grab the metadata from the headers
         if (getURL().startsWith("mmsh://"))
         {
-            AVDictionaryEntry *tag = NULL;
+            AVDictionaryEntry *tag = nullptr;
             MusicMetadata mdata =  gPlayer->getDecoderHandler()->getMetadata();
 
             tag = av_dict_get(m_inputContext->getContext()->metadata, "title", tag, AV_DICT_IGNORE_SUFFIX);
@@ -346,7 +342,7 @@ bool avfDecoder::initialize()
 
     // determine the stream format
     // this also populates information needed for metadata
-    if (avformat_find_stream_info(m_inputContext->getContext(), NULL) < 0)
+    if (avformat_find_stream_info(m_inputContext->getContext(), nullptr) < 0)
     {
         error("Could not determine the stream format.");
         deinit();
@@ -373,7 +369,7 @@ bool avfDecoder::initialize()
     // Store the input format of the context
     m_inputFormat = m_inputContext->getContext()->iformat;
 
-    if (avcodec_open2(m_audioDec, codec, NULL) < 0)
+    if (avcodec_open2(m_audioDec, codec, nullptr) < 0)
     {
         error(QString("Could not open audio codec: %1")
             .arg(m_audioDec->codec_id));
@@ -429,7 +425,7 @@ void avfDecoder::deinit()
     m_inited = m_userStop = m_finish = false;
     m_freq = m_bitrate = 0;
     m_stat = m_channels = 0;
-    setOutput(0);
+    setOutput(nullptr);
 
     // Cleanup here
     if (m_inputContext && m_inputContext->getContext())
@@ -441,8 +437,8 @@ void avfDecoder::deinit()
         }
     }
 
-    m_audioDec = NULL;
-    m_inputFormat = NULL;
+    m_audioDec = nullptr;
+    m_inputFormat = nullptr;
 }
 
 void avfDecoder::run()
@@ -568,7 +564,7 @@ void avfDecoder::run()
 
 void avfDecoder::checkMetatdata(void)
 {
-    uint8_t *mdata = NULL;
+    uint8_t *mdata = nullptr;
 
     if (av_opt_get(m_inputContext->getContext(), "icy_metadata_packet", AV_OPT_SEARCH_CHILDREN, &mdata) >= 0)
     {
@@ -635,7 +631,7 @@ Decoder *avfDecoderFactory::create(const QString &file, AudioOutput *output, boo
     if (deletable)
         return new avfDecoder(file, this, output);
 
-    static avfDecoder *decoder = 0;
+    static avfDecoder *decoder = nullptr;
     if (!decoder)
     {
         decoder = new avfDecoder(file, this, output);

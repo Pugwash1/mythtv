@@ -18,22 +18,16 @@
 
 SearchView::SearchView(MythScreenStack *parent, MythScreenType *parentScreen)
          :MusicCommon(parent, parentScreen,"searchview"),
-            m_playTrack(false), m_fieldList(NULL), m_criteriaEdit(NULL),
-            m_matchesText(NULL), m_tracksList(NULL)
+            m_playTrack(false), m_fieldList(nullptr), m_criteriaEdit(nullptr),
+            m_matchesText(nullptr), m_tracksList(nullptr)
 {
     m_currentView = MV_SEARCH;
 }
 
-SearchView::~SearchView()
-{
-}
-
 bool SearchView::Create(void)
 {
-    bool err = false;
-
     // Load the theme for this screen
-    err = LoadWindowFromXML("music-ui.xml", "searchview", this);
+    bool err = LoadWindowFromXML("music-ui.xml", "searchview", this);
 
     if (!err)
         return false;
@@ -212,9 +206,8 @@ bool SearchView::keyPressEvent(QKeyEvent *event)
     if (!m_moveTrackMode && GetFocusWidget() && GetFocusWidget()->keyPressEvent(event))
         return true;
 
-    bool handled = false;
     QStringList actions;
-    handled = GetMythMainWindow()->TranslateKeyPress("Music", event, actions);
+    bool handled = GetMythMainWindow()->TranslateKeyPress("Music", event, actions);
 
     for (int i = 0; i < actions.size() && !handled; i++)
     {
@@ -261,9 +254,6 @@ bool SearchView::keyPressEvent(QKeyEvent *event)
     if (!handled && MusicCommon::keyPressEvent(event))
         handled = true;
 
-    if (!handled && MythScreenType::keyPressEvent(event))
-        handled = true;
-
     return handled;
 }
 
@@ -294,7 +284,7 @@ void SearchView::ShowMenu(void)
         if (GetFocusWidget() == m_tracksList || GetFocusWidget() == m_currentPlaylist)
             menu->AddItem(tr("Search List..."));
 
-        menu->AddItem(tr("More Options"), NULL, createSubMenu());
+        menu->AddItem(tr("More Options"), nullptr, createSubMenu());
 
         MythScreenStack *popupStack = GetMythMainWindow()->GetStack("popup stack");
 

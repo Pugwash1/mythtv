@@ -32,6 +32,7 @@
 #define MYTH_APPNAME_MYTHLOGSERVER "mythlogserver"
 #define MYTH_APPNAME_MYTHSCREENWIZARD "mythscreenwizard"
 #define MYTH_APPNAME_MYTHFFPROBE "mythffprobe"
+#define MYTH_APPNAME_MYTHEXTERNRECORDER "mythexternrecorder"
 
 class MDBManager;
 class MythCoreContextPrivate;
@@ -70,7 +71,7 @@ class MBASE_PUBLIC MythCoreContext : public QObject, public MythObservable, publ
 
     MythSocket *ConnectCommandSocket(const QString &hostname, int  port,
                                      const QString &announcement,
-                                     bool *proto_mismatch = NULL,
+                                     bool *proto_mismatch = nullptr,
                                      int maxConnTry = -1,
                                      int setup_timeout = -1);
 
@@ -256,10 +257,10 @@ class MBASE_PUBLIC MythCoreContext : public QObject, public MythObservable, publ
   private:
     MythCoreContextPrivate *d;
 
-    void connected(MythSocket *sock)         { (void)sock; }
-    void connectionFailed(MythSocket *sock)  { (void)sock; }
-    void connectionClosed(MythSocket *sock);
-    void readyRead(MythSocket *sock);
+    void connected(MythSocket *sock) override { (void)sock; } //MythSocketCBs
+    void connectionFailed(MythSocket *sock) override { (void)sock; } //MythSocketCBs
+    void connectionClosed(MythSocket *sock) override; // MythSocketCBs
+    void readyRead(MythSocket *sock) override; // MythSocketCBs
 };
 
 /// This global variable contains the MythCoreContext instance for the app

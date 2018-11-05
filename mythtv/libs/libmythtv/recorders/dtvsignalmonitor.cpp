@@ -13,11 +13,11 @@ using namespace std;
 
 #undef DBG_SM
 #define DBG_SM(FUNC, MSG) LOG(VB_CHANNEL, LOG_INFO, \
-    QString("DTVSigMon[%1](%2)::%3: %4").arg(capturecardnum) \
+    QString("DTVSigMon[%1](%2)::%3: %4").arg(inputid) \
     .arg(channel->GetDevice()).arg(FUNC).arg(MSG))
 
 #define LOC QString("DTVSigMon[%1](%2): ") \
-            .arg(capturecardnum).arg(channel->GetDevice())
+            .arg(inputid).arg(channel->GetDevice())
 
 // inserts tid&crc value into an ordered list
 // returns true if item is inserted
@@ -46,7 +46,7 @@ DTVSignalMonitor::DTVSignalMonitor(int db_cardnum,
                                    bool _release_stream,
                                    uint64_t wait_for_mask)
     : SignalMonitor(db_cardnum, _channel, _release_stream, wait_for_mask),
-      stream_data(NULL),
+      stream_data(nullptr),
       seenPAT(QObject::tr("Seen")+" PAT", "seen_pat", 1, true, 0, 1, 0),
       seenPMT(QObject::tr("Seen")+" PMT", "seen_pmt", 1, true, 0, 1, 0),
       seenMGT(QObject::tr("Seen")+" MGT", "seen_mgt", 1, true, 0, 1, 0),
@@ -72,7 +72,7 @@ DTVSignalMonitor::DTVSignalMonitor(int db_cardnum,
 
 DTVSignalMonitor::~DTVSignalMonitor()
 {
-    SetStreamData(NULL);
+    SetStreamData(nullptr);
 }
 
 DTVChannel *DTVSignalMonitor::GetDTVChannel(void)

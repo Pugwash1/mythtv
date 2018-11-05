@@ -27,7 +27,7 @@ using namespace std;
 
 Streamer::Streamer(Commands *parent, const QString &fname,
                    int data_rate, bool loopinput) :
-    m_parent(parent), m_fileName(fname), m_file(NULL), m_loop(loopinput),
+    m_parent(parent), m_fileName(fname), m_file(nullptr), m_loop(loopinput),
     m_bufferMax(188 * 100000), m_blockSize(m_bufferMax / 4),
     m_data_rate(data_rate), m_data_read(0)
 {
@@ -60,7 +60,7 @@ void Streamer::CloseFile(void)
     if (m_file)
     {
         delete m_file;
-        m_file = NULL;
+        m_file = nullptr;
     }
 
     LOG(VB_RECORD, LOG_INFO, LOC + "Streamer::Close -- end");
@@ -68,7 +68,7 @@ void Streamer::CloseFile(void)
 
 void Streamer::SendBytes(void)
 {
-    int read_sz = 0, pkt_size = 0, buf_size = 0, write_len = 0, wrote = 0;
+    int pkt_size = 0, buf_size = 0, write_len = 0, wrote = 0;
 
     LOG(VB_RECORD, LOG_DEBUG, LOC + "SendBytes -- start");
 
@@ -88,7 +88,7 @@ void Streamer::SendBytes(void)
 
     if (!m_file->atEnd())
     {
-        read_sz = m_blockSize.loadAcquire();
+        int read_sz = m_blockSize.loadAcquire();
         if (!m_start_time.isValid())
             m_start_time = MythDate::current();
         int delta = m_start_time.secsTo(MythDate::current()) + 1;
@@ -154,14 +154,10 @@ void Streamer::SendBytes(void)
 }
 
 
-Commands::Commands(void) : m_streamer(NULL), m_timeout(10), m_run(true),
+Commands::Commands(void) : m_streamer(nullptr), m_timeout(10), m_run(true),
     m_eof(false)
 {
     setObjectName("Command");
-}
-
-Commands::~Commands(void)
-{
 }
 
 bool Commands::send_status(const QString & status) const
@@ -307,7 +303,6 @@ bool Commands::Run(const QString & filename, int data_rate, bool loopinput)
 {
     QString cmd;
 
-    int ret;
     int poll_cnt = 1;
     struct pollfd polls[2];
     memset(polls, 0, sizeof(polls));
@@ -338,7 +333,7 @@ bool Commands::Run(const QString & filename, int data_rate, bool loopinput)
 
     while (m_run)
     {
-        ret = poll(polls, poll_cnt, m_timeout);
+        int ret = poll(polls, poll_cnt, m_timeout);
 
         if (polls[0].revents & POLLHUP)
         {
@@ -361,8 +356,8 @@ bool Commands::Run(const QString & filename, int data_rate, bool loopinput)
                     streamThread->quit();
                     streamThread->wait();
                     delete streamThread;
-                    streamThread = NULL;
-                    m_streamer = NULL;
+                    streamThread = nullptr;
+                    m_streamer = nullptr;
                     m_run = false;
                 }
             }

@@ -32,13 +32,13 @@ FileSelector::FileSelector(
     m_filemask(filemask),
     m_curDirectory(startDir),
     m_archiveList(archiveList),
-    m_titleText(NULL),
-    m_fileButtonList(NULL),
-    m_locationEdit(NULL),
-    m_okButton(NULL),
-    m_cancelButton(NULL),
-    m_backButton(NULL),
-    m_homeButton(NULL)
+    m_titleText(nullptr),
+    m_fileButtonList(nullptr),
+    m_locationEdit(nullptr),
+    m_okButton(nullptr),
+    m_cancelButton(nullptr),
+    m_backButton(nullptr),
+    m_homeButton(nullptr)
 {
 }
 
@@ -50,11 +50,8 @@ FileSelector::~FileSelector()
 
 bool FileSelector::Create(void)
 {
-    bool foundtheme = false;
-
     // Load the theme for this screen
-    foundtheme = LoadWindowFromXML("mytharchive-ui.xml", "file_selector", this);
-
+    bool foundtheme = LoadWindowFromXML("mytharchive-ui.xml", "file_selector", this);
     if (!foundtheme)
         return false;
 
@@ -117,9 +114,8 @@ bool FileSelector::keyPressEvent(QKeyEvent *event)
     if (GetFocusWidget()->keyPressEvent(event))
         return true;
 
-    bool handled = false;
     QStringList actions;
-    handled = GetMythMainWindow()->TranslateKeyPress("Global", event, actions);
+    bool handled = GetMythMainWindow()->TranslateKeyPress("Global", event, actions);
 
     for (int i = 0; i < actions.size() && !handled; i++)
     {
@@ -303,7 +299,7 @@ void FileSelector::OKPressed()
                 a->videoHeight = 0;
                 a->fileCodec = "";
                 a->videoCodec = "";
-                a->encoderProfile = NULL;
+                a->encoderProfile = nullptr;
                 a->editedDetails = false;
                 m_archiveList->append(a);
             }
@@ -370,14 +366,12 @@ void FileSelector::updateSelectedList()
         m_selectedList.takeFirst();
     m_selectedList.clear();
 
-    FileData *f;
-    ArchiveItem *a;
     for (int x = 0; x < m_archiveList->size(); x++)
     {
-        a = m_archiveList->at(x);
+        ArchiveItem *a = m_archiveList->at(x);
         for (int y = 0; y < m_fileData.size(); y++)
         {
-            f = m_fileData.at(y);
+            FileData *f = m_fileData.at(y);
             if (f->filename == a->filename)
             {
                 if (m_selectedList.indexOf(f->filename) == -1)

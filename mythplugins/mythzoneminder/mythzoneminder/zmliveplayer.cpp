@@ -35,7 +35,7 @@ const int FRAME_UPDATE_TIME = 1000 / 10;  // try to update the frame 10 times a 
 ZMLivePlayer::ZMLivePlayer(MythScreenStack *parent, bool isMiniPlayer)
              :MythScreenType(parent, "zmliveview"),
               m_frameTimer(new QTimer(this)), m_paused(false), m_monitorLayout(1),
-              m_monitorCount(0), m_players(NULL), m_isMiniPlayer(isMiniPlayer),
+              m_monitorCount(0), m_players(nullptr), m_isMiniPlayer(isMiniPlayer),
               m_alarmMonitor(-1)
 {
     ZMClient::get()->setIsMiniPlayerEnabled(false);
@@ -168,11 +168,10 @@ ZMLivePlayer::~ZMLivePlayer()
     if (m_players)
     {
         QString s = "";
-        Player *p;
         vector<Player*>::iterator i = m_players->begin();
         for (; i != m_players->end(); ++i)
         {
-            p = *i;
+            Player *p = *i;
             if (s != "")
                 s += ",";
             s += QString("%1").arg(p->getMonitor()->id);
@@ -195,9 +194,8 @@ bool ZMLivePlayer::keyPressEvent(QKeyEvent *event)
     if (GetFocusWidget() && GetFocusWidget()->keyPressEvent(event))
         return true;
 
-    bool handled = false;
     QStringList actions;
-    handled = GetMythMainWindow()->TranslateKeyPress("TV Playback", event, actions);
+    bool handled = GetMythMainWindow()->TranslateKeyPress("TV Playback", event, actions);
 
     for (int i = 0; i < actions.size() && !handled; i++)
     {
@@ -282,11 +280,10 @@ void ZMLivePlayer::updateFrame()
 
     // get a list of monitor id's that need updating
     QList<int> monList;
-    Player *p;
     vector<Player*>::iterator i = m_players->begin();
     for (; i != m_players->end(); ++i)
     {
-        p = *i;
+        Player *p = *i;
         if (!monList.contains(p->getMonitor()->id))
             monList.append(p->getMonitor()->id);
     }
@@ -299,11 +296,10 @@ void ZMLivePlayer::updateFrame()
         if (frameSize > 0 && !status.startsWith("ERROR"))
         {
             // update each player that is displaying this monitor
-            Player *p;
             vector<Player*>::iterator i = m_players->begin();
             for (; i != m_players->end(); ++i)
             {
-                p = *i;
+                Player *p = *i;
                 if (p->getMonitor()->id == monList[x])
                 {
                     if (p->getMonitor()->status != status)
@@ -362,7 +358,7 @@ void ZMLivePlayer::setMonitorLayout(int layout, bool restore)
 
     for (int x = 1; x <= m_monitorCount; x++)
     {
-        Monitor *monitor = NULL;
+        Monitor *monitor = nullptr;
 
         if (restore)
         {
@@ -400,8 +396,8 @@ void ZMLivePlayer::setMonitorLayout(int layout, bool restore)
 ////////////////////////////////////////////////////////////////////////////////////
 
 Player::Player() :
-    m_frameImage(NULL), m_statusText(NULL), m_cameraText(NULL),
-    m_rgba(NULL)
+    m_frameImage(nullptr), m_statusText(nullptr), m_cameraText(nullptr),
+    m_rgba(nullptr)
 {
 }
 

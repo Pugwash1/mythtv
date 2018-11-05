@@ -57,15 +57,7 @@ HttpStatus::HttpStatus( QMap<int, EncoderLink *> *tvList, Scheduler *sched,
 
     m_nPreRollSeconds = gCoreContext->GetNumSetting("RecordPreRoll", 0);
 
-    m_pMainServer = NULL;
-}
-
-/////////////////////////////////////////////////////////////////////////////
-//
-/////////////////////////////////////////////////////////////////////////////
-
-HttpStatus::~HttpStatus()
-{
+    m_pMainServer = nullptr;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -212,7 +204,7 @@ void HttpStatus::FillStatusXML( QDomDocument *pDoc )
     {
         EncoderLink *elink = *iter;
 
-        if (elink != NULL)
+        if (elink != nullptr)
         {
             TVState state = elink->GetState();
             isLocal       = elink->IsLocal();
@@ -311,7 +303,7 @@ void HttpStatus::FillStatusXML( QDomDocument *pDoc )
         EntryMap map;
         fes->GetEntryMap(map);
         fes->DecrRef();
-        fes = NULL;
+        fes = nullptr;
 
         frontends.setAttribute( "count", map.size() );
         for (EntryMap::iterator it = map.begin(); it != map.end(); ++it)
@@ -357,7 +349,7 @@ void HttpStatus::FillStatusXML( QDomDocument *pDoc )
         EntryMap map;
         sbes->GetEntryMap(map);
         sbes->DecrRef();
-        sbes = NULL;
+        sbes = nullptr;
 
         for (EntryMap::iterator it = map.begin(); it != map.end(); ++it)
         {
@@ -449,7 +441,6 @@ void HttpStatus::FillStatusXML( QDomDocument *pDoc )
     QString isLocalstr;
     QString fsID;
     QString ids;
-    long long iTotal = -1, iUsed = -1, iAvail = -1;
 
     if (m_pMainServer)
         m_pMainServer->BackendQueryDiskSpace(strlist, true, m_bIsMaster);
@@ -468,9 +459,9 @@ void HttpStatus::FillStatusXML( QDomDocument *pDoc )
         fsID       = *(sit++);
         ++sit; // ignore dirID
         ++sit; // ignore blocksize
-        iTotal     = (*(sit++)).toLongLong();
-        iUsed      = (*(sit++)).toLongLong();;
-        iAvail     = iTotal - iUsed;
+        long long iTotal     = (*(sit++)).toLongLong();
+        long long iUsed      = (*(sit++)).toLongLong();;
+        long long iAvail     = iTotal - iUsed;
 
         if (fsID == "-2")
             fsID = "total";
@@ -1516,7 +1507,7 @@ void HttpStatus::FillProgramInfo(QDomDocument *pDoc,
                                  bool          bIncChannel /* = true */,
                                  bool          bDetails    /* = true */)
 {
-    if ((pDoc == NULL) || (pInfo == NULL))
+    if ((pDoc == nullptr) || (pInfo == nullptr))
         return;
 
     // Build Program Element

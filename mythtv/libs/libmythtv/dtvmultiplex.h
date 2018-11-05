@@ -7,8 +7,8 @@
 #ifndef _DTVMULTIPLEX_H_
 #define _DTVMULTIPLEX_H_
 
-// POSIX headers
-#include <stdint.h>
+// C++ headers
+#include <cstdint>
 
 // Qt headers
 #include <QString>
@@ -26,9 +26,9 @@ class MTV_PUBLIC DTVMultiplex
   public:
     DTVMultiplex()
         : frequency(0), symbolrate(0), mplex(0) { }
-    DTVMultiplex(const DTVMultiplex &other);
-    DTVMultiplex &operator=(const DTVMultiplex &other);
-    virtual ~DTVMultiplex() { }
+    DTVMultiplex(const DTVMultiplex &/*other*/) = default;
+    DTVMultiplex &operator=(const DTVMultiplex &/*other*/) = default;
+    virtual ~DTVMultiplex() = default;
 
     bool operator==(const DTVMultiplex &m) const;
 
@@ -110,9 +110,9 @@ class MTV_PUBLIC ScanDTVTransport : public DTVMultiplex
         cardid(0) { }
     ScanDTVTransport(const DTVMultiplex &mplex, DTVTunerType tt, uint cid) :
         DTVMultiplex(mplex), tuner_type(tt), cardid(cid) { }
-    virtual ~ScanDTVTransport() {}
+    virtual ~ScanDTVTransport() = default;
 
-    virtual bool FillFromDB(DTVTunerType type, uint mplexid);
+    bool FillFromDB(DTVTunerType type, uint mplexid) override; // DTVMultiplex
     uint SaveScan(uint scanid) const;
 
     bool ParseTuningParams(

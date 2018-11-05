@@ -20,13 +20,15 @@
 * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
 */
 
-// C headers
-#include <stdlib.h>
-#include <stdio.h>
-
-// POSIX headers
+// C++ headers
+#include <algorithm>
+#include <csignal>
+#include <cstdio>
+#include <cstdlib>
+#include <fstream>
+#include <iostream>
 #include <unistd.h>
-#include <signal.h>
+using namespace std;
 
 // System headers
 #include <sys/types.h>
@@ -38,12 +40,6 @@
 #include <sys/prctl.h>
 #endif
 #endif
-
-// C++ headers
-#include <algorithm>
-#include <iostream>
-#include <fstream>
-using namespace std;
 
 // Qt headers
 #include <QDir>
@@ -1168,7 +1164,7 @@ MythCommandLineParser::MythCommandLineParser(QString appname) :
     m_overridesImported(false), m_verbose(false)
 {
     char *verbose = getenv("VERBOSE_PARSER");
-    if (verbose != NULL)
+    if (verbose != nullptr)
     {
         cerr << "MythCommandLineParser is now operating verbosely." << endl;
         m_verbose = true;

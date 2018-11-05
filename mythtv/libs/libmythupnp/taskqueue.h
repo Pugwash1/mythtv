@@ -61,7 +61,7 @@ class Task : public ReferenceCounter
 
         // Destructor protected to force use of Release Method
 
-        virtual        ~Task();
+        virtual        ~Task() = default;
 
     public:
 
@@ -96,7 +96,7 @@ class UPNP_PUBLIC TaskQueue : public MThread
 
         bool  IsTermRequested();
 
-        virtual void run    ();
+        void run() override; // MThread
 
     private:
 

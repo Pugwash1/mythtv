@@ -1,12 +1,10 @@
-// C headers
-#include <cerrno>
-#include <cassert>
-#include <cstring>
-#include <sys/types.h>
-#include <stdio.h>                      // for SEEK_SET, SEEK_CUR
-
 // C++ headers
 #include <algorithm>
+#include <cassert>
+#include <cerrno>
+#include <cstdio>                      // for SEEK_SET, SEEK_CUR
+#include <cstring>
+#include <sys/types.h>
 #include <vector>                       // for vector
 using namespace std;
 
@@ -28,7 +26,7 @@ using namespace std;
 #include "audioplayer.h"                // for AudioPlayer
 #include "cc608reader.h"                // for CC608Reader
 
-#include "minilzo.h"
+#include "lzo/lzo1x.h"
 
 extern "C" {
 #if HAVE_BIGENDIAN
@@ -42,24 +40,24 @@ extern "C" {
 NuppelDecoder::NuppelDecoder(MythPlayer *parent,
                              const ProgramInfo &pginfo)
     : DecoderBase(parent, pginfo),
-      rtjd(0), video_width(0), video_height(0), video_size(0),
+      rtjd(nullptr), video_width(0), video_height(0), video_size(0),
       video_frame_rate(0.0f), audio_samplerate(44100),
 #if HAVE_BIGENDIAN
       audio_bits_per_sample(0),
 #endif
-      ffmpeg_extradatasize(0), ffmpeg_extradata(0), usingextradata(false),
+      ffmpeg_extradatasize(0), ffmpeg_extradata(nullptr), usingextradata(false),
       disablevideo(false), totalLength(0), totalFrames(0), effdsp(0),
-      directframe(NULL),            decoded_video_frame(NULL),
-      mpa_vidcodec(0), mpa_vidctx(0), mpa_audcodec(0), mpa_audctx(0),
+      directframe(nullptr),         decoded_video_frame(nullptr),
+      mpa_vidcodec(nullptr), mpa_vidctx(nullptr), mpa_audcodec(nullptr), mpa_audctx(nullptr),
       directrendering(false),
-      lastct('1'), strm(0), buf(0), buf2(0),
+      lastct('1'), strm(nullptr), buf(nullptr), buf2(nullptr),
       videosizetotal(0), videoframesread(0), setreadahead(false)
 {
     // initialize structures
     memset(&fileheader, 0, sizeof(rtfileheader));
     memset(&frameheader, 0, sizeof(rtframeheader));
     memset(&extradata, 0, sizeof(extendeddata));
-    planes[0] = planes[1] = planes[2] = 0;
+    planes[0] = planes[1] = planes[2] = nullptr;
     m_audioSamples = (uint8_t *)av_mallocz(AudioOutputUtil::MAX_SIZE_BUFFER);
 
     // set parent class variables
@@ -72,11 +70,6 @@ NuppelDecoder::NuppelDecoder(MythPlayer *parent,
     rtjd = new RTjpeg();
     int format = RTJ_YUV420;
     rtjd->SetFormat(&format);
-
-    {
-        QMutexLocker locker(avcodeclock);
-        avcodec_register_all();
-    }
 
     if (lzo_init() != LZO_E_OK)
     {
@@ -263,7 +256,7 @@ int NuppelDecoder::OpenFile(RingBuffer *rbuffer, bool novideo,
                 LOG(VB_GENERAL, LOG_ERR,
                     "File not big enough for first frame data");
                 delete [] ffmpeg_extradata;
-                ffmpeg_extradata = NULL;
+                ffmpeg_extradata = nullptr;
                 delete [] space;
                 return -1;
             }
@@ -704,7 +697,7 @@ bool NuppelDecoder::InitAVCodecVideo(int codec)
     if (mpa_vidctx)
         avcodec_free_context(&mpa_vidctx);
 
-    mpa_vidctx = avcodec_alloc_context3(NULL);
+    mpa_vidctx = avcodec_alloc_context3(nullptr);
 
     mpa_vidctx->codec_id = (enum AVCodecID)codec;
     mpa_vidctx->codec_type = AVMEDIA_TYPE_VIDEO;
@@ -717,7 +710,7 @@ bool NuppelDecoder::InitAVCodecVideo(int codec)
     if (directrendering)
     {
         // mpa_vidctx->flags |= CODEC_FLAG_EMU_EDGE;
-        mpa_vidctx->draw_horiz_band = NULL;
+        mpa_vidctx->draw_horiz_band = nullptr;
         mpa_vidctx->get_buffer2 = get_nuppel_buffer;
         mpa_vidctx->opaque = (void *)this;
     }
@@ -729,7 +722,7 @@ bool NuppelDecoder::InitAVCodecVideo(int codec)
     }
 
     QMutexLocker locker(avcodeclock);
-    if (avcodec_open2(mpa_vidctx, mpa_vidcodec, NULL) < 0)
+    if (avcodec_open2(mpa_vidctx, mpa_vidcodec, nullptr) < 0)
     {
         LOG(VB_GENERAL, LOG_ERR, LOC + "Couldn't find lavc video codec");
         return false;
@@ -775,13 +768,13 @@ bool NuppelDecoder::InitAVCodecAudio(int codec)
     if (mpa_audctx)
         avcodec_free_context(&mpa_audctx);
 
-    mpa_audctx = avcodec_alloc_context3(NULL);
+    mpa_audctx = avcodec_alloc_context3(nullptr);
 
     mpa_audctx->codec_id = (enum AVCodecID)codec;
     mpa_audctx->codec_type = AVMEDIA_TYPE_AUDIO;
 
     QMutexLocker locker(avcodeclock);
-    if (avcodec_open2(mpa_audctx, mpa_audcodec, NULL) < 0)
+    if (avcodec_open2(mpa_audctx, mpa_audcodec, nullptr) < 0)
     {
         LOG(VB_GENERAL, LOG_ERR, LOC + "Couldn't find lavc audio codec");
         return false;
@@ -809,7 +802,6 @@ static void CopyToVideo(unsigned char *buf, int video_width,
 bool NuppelDecoder::DecodeFrame(struct rtframeheader *frameheader,
                                 unsigned char *lstrm, VideoFrame *frame)
 {
-    int r;
     lzo_uint out_len;
     int compoff = 0;
 
@@ -856,8 +848,8 @@ bool NuppelDecoder::DecodeFrame(struct rtframeheader *frameheader,
 
     if (!compoff)
     {
-        r = lzo1x_decompress(lstrm, frameheader->packetlength, buf2, &out_len,
-                              NULL);
+        int r = lzo1x_decompress(lstrm, frameheader->packetlength, buf2, &out_len,
+                              nullptr);
         if (r != LZO_E_OK)
         {
             LOG(VB_GENERAL, LOG_ERR, "minilzo: can't decompress illegal data");
@@ -921,7 +913,7 @@ bool NuppelDecoder::DecodeFrame(struct rtframeheader *frameheader,
                 ret = 0;
             if (ret == 0)
                 ret = avcodec_send_packet(mpa_vidctx, &pkt);
-            directframe = NULL;
+            directframe = nullptr;
             // The code assumes that there is always space to add a new
             // packet. This seems risky but has always worked.
             // It should actually check if (ret == AVERROR(EAGAIN)) and then keep
@@ -942,12 +934,12 @@ bool NuppelDecoder::DecodeFrame(struct rtframeheader *frameheader,
         }
 
 /* XXX: Broken
-        if (mpa_pic->qscale_table != NULL && mpa_pic->qstride > 0)
+        if (mpa_pic->qscale_table != nullptr && mpa_pic->qstride > 0)
         {
             int tablesize = mpa_pic->qstride * ((video_height + 15) / 16);
 
             if (frame->qstride != mpa_pic->qstride ||
-                frame->qscale_table == NULL)
+                frame->qscale_table == nullptr)
             {
                 frame->qstride = mpa_pic->qstride;
 
@@ -994,7 +986,7 @@ void NuppelDecoder::StoreRawData(unsigned char *newstrm)
         memcpy(strmcpy, newstrm, frameheader.packetlength);
     }
     else
-        strmcpy = NULL;
+        strmcpy = nullptr;
 
     StoredData.push_back(new RawDataList(frameheader, strmcpy));
 }
@@ -1024,10 +1016,9 @@ long NuppelDecoder::UpdateStoredFrameNum(long framenum)
 void NuppelDecoder::WriteStoredData(RingBuffer *rb, bool storevid,
                                     long timecodeOffset)
 {
-    RawDataList *data;
     while (!StoredData.empty())
     {
-        data = StoredData.front();
+        RawDataList *data = StoredData.front();
 
         if (data->frameheader.frametype != 'S')
             data->frameheader.timecode -= timecodeOffset;
@@ -1045,10 +1036,9 @@ void NuppelDecoder::WriteStoredData(RingBuffer *rb, bool storevid,
 
 void NuppelDecoder::ClearStoredData()
 {
-    RawDataList *data;
     while (!StoredData.empty())
     {
-        data = StoredData.front();
+        RawDataList *data = StoredData.front();
         StoredData.pop_front();
         delete data;
     }
@@ -1061,7 +1051,7 @@ bool NuppelDecoder::GetFrame(DecodeType decodetype)
     int seeklen = 0;
     AVPacket pkt;
 
-    decoded_video_frame = NULL;
+    decoded_video_frame = nullptr;
 
     while (!gotvideo)
     {
@@ -1124,7 +1114,7 @@ bool NuppelDecoder::GetFrame(DecodeType decodetype)
         if (frameheader.frametype == 'R')
         {
             if (getrawframes)
-                StoreRawData(NULL);
+                StoreRawData(nullptr);
             continue; // the R-frame has no data packet
         }
 
@@ -1165,7 +1155,7 @@ bool NuppelDecoder::GetFrame(DecodeType decodetype)
                 }
             }
             if (getrawframes)
-                StoreRawData(NULL);
+                StoreRawData(nullptr);
         }
 
         if (frameheader.packetlength > 0)
@@ -1193,7 +1183,7 @@ bool NuppelDecoder::GetFrame(DecodeType decodetype)
             if (!(kDecodeVideo & decodetype))
             {
                 framesPlayed++;
-                gotvideo = 1;
+                gotvideo = true;
                 continue;
             }
 
@@ -1219,7 +1209,7 @@ bool NuppelDecoder::GetFrame(DecodeType decodetype)
                 GetPlayer()->DeLimboFrame(buf);
 
             decoded_video_frame = buf;
-            gotvideo = 1;
+            gotvideo = true;
             if (getrawframes && getrawvideo)
                 StoreRawData(strm);
             framesPlayed++;
@@ -1269,7 +1259,6 @@ bool NuppelDecoder::GetFrame(DecodeType decodetype)
                 av_init_packet(&pkt);
                 pkt.data = strm;
                 pkt.size = frameheader.packetlength;
-                int ret = 0;
 
                 QMutexLocker locker(avcodeclock);
 
@@ -1277,7 +1266,7 @@ bool NuppelDecoder::GetFrame(DecodeType decodetype)
                 {
                     int data_size = 0;
 
-                    ret = m_audio->DecodeAudio(mpa_audctx, m_audioSamples,
+                    int ret = m_audio->DecodeAudio(mpa_audctx, m_audioSamples,
                                                data_size, &pkt);
                     if (ret < 0)
                     {
@@ -1296,7 +1285,7 @@ bool NuppelDecoder::GetFrame(DecodeType decodetype)
             }
             else
             {
-                getrawframes = 0;
+                getrawframes = false;
 #if HAVE_BIGENDIAN
                 // Why endian correct the audio buffer here?
                 // Don't big-endian clients have to do it in audiooutBlah.cpp?

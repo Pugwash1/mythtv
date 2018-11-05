@@ -15,12 +15,12 @@ class CustomEdit : public MythScreenType
     Q_OBJECT
   public:
 
-    explicit CustomEdit(MythScreenStack *parent, ProgramInfo *m_pginfo = NULL);
+    explicit CustomEdit(MythScreenStack *parent, ProgramInfo *m_pginfo = nullptr);
    ~CustomEdit(void);
 
-   bool Create();
-   bool keyPressEvent(QKeyEvent *);
-   void customEvent(QEvent *event);
+    bool Create() override; // MythScreenType
+    bool keyPressEvent(QKeyEvent *) override; // MythScreenType
+    void customEvent(QEvent *event) override; // MythUIType
 
   protected slots:
     void ruleChanged(MythUIButtonListItem *item);

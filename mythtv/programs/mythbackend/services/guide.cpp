@@ -23,7 +23,7 @@
 //
 //////////////////////////////////////////////////////////////////////////////
 
-#include <math.h>
+#include <cmath>
 
 #include "guide.h"
 
@@ -124,8 +124,7 @@ DTC::ProgramGuide *Guide::GetProgramGuide( const QDateTime &rawStartTime ,
     for (chan_it = chanList.begin(); chan_it != chanList.end(); ++chan_it)
     {
         // Create ChannelInfo Object
-        DTC::ChannelInfo *pChannel   = NULL;
-        pChannel = pGuide->AddNewChannel();
+        DTC::ChannelInfo *pChannel = pGuide->AddNewChannel();
         FillChannelInfo( pChannel, (*chan_it), bDetails );
 
         // Load the list of programmes for this channel
@@ -438,8 +437,6 @@ QFileInfo Guide::GetChannelIcon( int nChanId,
         return QFileInfo();
     }
 
-    float fAspect = 0.0;
-
     QImage *pImage = new QImage( sFullFileName );
 
     if (!pImage)
@@ -449,9 +446,7 @@ QFileInfo Guide::GetChannelIcon( int nChanId,
         return QFileInfo();
     }
 
-    if (fAspect <= 0)
-           fAspect = (float)(pImage->width()) / pImage->height();
-
+    float fAspect = (float)(pImage->width()) / pImage->height();
     if (fAspect == 0)
     {
         LOG(VB_UPNP, LOG_ERR, QString("GetImageFile - zero aspect"));

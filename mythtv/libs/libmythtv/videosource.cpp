@@ -60,7 +60,11 @@ using namespace std;
 #endif
 
 #ifdef USING_HDHOMERUN
-#include "hdhomerun.h"
+#ifdef HDHOMERUN_LIBPREFIX
+#include "libhdhomerun/hdhomerun.h"
+#else
+#include "hdhomerun/hdhomerun.h"
+#endif
 #endif
 
 static const uint kDefaultMultirecCount = 2;
@@ -229,7 +233,7 @@ class XMLTVGrabber : public MythUIComboBoxSetting
         setLabel(QObject::tr("Listings grabber"));
     };
 
-    void Load(void)
+    void Load(void) override // StandardSetting
     {
         addTargetedChild("schedulesdirect1",
                          new DataDirect_config(m_parent, DD_SCHEDULES_DIRECT,
@@ -296,7 +300,7 @@ class XMLTVGrabber : public MythUIComboBoxSetting
 #endif
     }
 
-    void Save(void)
+    void Save(void) override // StandardSetting
     {
         MythUIComboBoxSetting::Save();
 
@@ -824,7 +828,7 @@ class VideoDevice : public CaptureCardComboBoxSetting
         uint cnt = 0;
 
         QFileInfoList il = dir.entryInfoList();
-        QRegExp *driverExp = NULL;
+        QRegExp *driverExp = nullptr;
         if (!driver.isEmpty())
             driverExp = new QRegExp(driver);
 
@@ -1141,7 +1145,7 @@ class DVBCardNum : public CaptureCardComboBoxSetting
         }
     }
 
-    virtual void Load(void)
+    void Load(void) override // StandardSetting
     {
         clearSelections();
         addSelection(QString());
@@ -1939,7 +1943,7 @@ class ASIDevice : public CaptureCardComboBoxSetting
         }
     }
 
-    virtual void Load(void)
+    void Load(void) override // StandardSetting
     {
         clearSelections();
         addSelection(QString());
@@ -2203,7 +2207,7 @@ bool HDHomeRunConfigurationGroup::ProbeCard(HDHomeRunDevice &tmpdevice)
 #ifdef USING_HDHOMERUN
     hdhomerun_device_t *thisdevice =
         hdhomerun_device_create_from_str(
-            tmpdevice.mythdeviceid.toLocal8Bit().constData(), NULL);
+            tmpdevice.mythdeviceid.toLocal8Bit().constData(), nullptr);
 
     if (thisdevice)
     {
@@ -2230,6 +2234,7 @@ bool HDHomeRunConfigurationGroup::ProbeCard(HDHomeRunDevice &tmpdevice)
         return true;
     }
 #endif // USING_HDHOMERUN
+    Q_UNUSED(tmpdevice);
     return false;
 }
 
@@ -2388,6 +2393,7 @@ void CetonDeviceID::UpdateValues(void)
     }
 }
 
+#ifdef USING_CETON
 static void CetonConfigurationGroup(CaptureCard& parent, CardType& cardtype)
 {
     CetonDeviceID *deviceid = new CetonDeviceID(parent);
@@ -2418,6 +2424,7 @@ static void CetonConfigurationGroup(CaptureCard& parent, CardType& cardtype)
     QObject::connect(deviceid, SIGNAL(LoadedTuner(const QString&)),
                      tuner,    SLOT(  LoadValue(const QString&)));
 }
+#endif
 
 V4LConfigurationGroup::V4LConfigurationGroup(CaptureCard& a_parent,
                                              CardType& a_cardtype) :
@@ -2466,7 +2473,7 @@ void V4LConfigurationGroup::probeCard(const QString &device)
 MPEGConfigurationGroup::MPEGConfigurationGroup(CaptureCard &a_parent,
                                                CardType &a_cardtype) :
     parent(a_parent),
-    device(NULL), vbidevice(NULL),
+    device(nullptr), vbidevice(nullptr),
     cardinfo(new TransTextEditSetting())
 {
     setVisible(false);
@@ -2619,7 +2626,7 @@ HDPVRConfigurationGroup::HDPVRConfigurationGroup(CaptureCard &a_parent,
                                                  CardType &a_cardtype) :
     parent(a_parent), cardinfo(new GroupSetting()),
     audioinput(new TunerCardAudioInput(parent, QString(), "HDPVR")),
-    vbidevice(NULL)
+    vbidevice(nullptr)
 {
     setVisible(false);
 
@@ -3008,7 +3015,7 @@ class InputName : public MythUIComboBoxSetting
         setLabel(QObject::tr("Input name"));
     };
 
-    virtual void Load(void)
+    void Load(void) override // StandardSetting
     {
         fillSelections();
         MythUIComboBoxSetting::Load();
@@ -3064,7 +3071,7 @@ class SourceID : public CardInputComboBoxSetting
         addSelection(QObject::tr("(None)"), "0");
     };
 
-    virtual void Load(void)
+    void Load(void) override // StandardSetting
     {
         fillSelections();
         CardInputComboBoxSetting::Load();
@@ -3092,9 +3099,9 @@ class InputGroup : public TransMythUIComboBoxSetting
                         "group will be allowed to record at any given time."));
     }
 
-    virtual void Load(void);
+    void Load(void) override; // StandardSetting
 
-    virtual void Save(void)
+    void Save(void) override // StandardSetting
     {
         uint inputid     = cardinput.getInputID();
         uint new_groupid = getValue().toUInt();
@@ -3373,8 +3380,8 @@ CardInput::CardInput(const QString & cardtype, const QString & device,
     externalInputSettings(new DiSEqCDevSettings()),
     inputgrp0(new InputGroup(*this, 0)),
     inputgrp1(new InputGroup(*this, 1)),
-    instancecount(NULL),
-    schedgroup(NULL)
+    instancecount(nullptr),
+    schedgroup(nullptr)
 {
     addChild(id);
 
@@ -3461,7 +3468,7 @@ CardInput::~CardInput()
     if (externalInputSettings)
     {
         delete externalInputSettings;
-        externalInputSettings = NULL;
+        externalInputSettings = nullptr;
     }
 }
 
@@ -3617,6 +3624,7 @@ void CardInput::sourceFetch(void)
         if (!CardUtil::IsCableCardPresent(crdid, cardtype) &&
             !CardUtil::IsUnscanable(cardtype) &&
             !CardUtil::IsEncoder(cardtype)    &&
+            cardtype != "HDHOMERUN"           &&
             !num_channels_before)
         {
             LOG(VB_GENERAL, LOG_ERR, "Skipping channel fetch, you need to "
@@ -4191,7 +4199,7 @@ DVBConfigurationGroup::~DVBConfigurationGroup()
     if (diseqc_tree)
     {
         delete diseqc_tree;
-        diseqc_tree = NULL;
+        diseqc_tree = nullptr;
     }
 }
 

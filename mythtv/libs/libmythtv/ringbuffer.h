@@ -162,9 +162,6 @@ class MTV_PUBLIC RingBuffer : protected MThread
 
     long long SetAdjustFilesize(void);
 
-    /// \deprecated Calls SetOldFile(), do not use
-    void SetTimeout(bool is_old) MDEPRECATED { SetOldFile(is_old); }
-
     static const int kDefaultOpenTimeout;
     static const int kLiveTVOpenTimeout;
 
@@ -173,7 +170,7 @@ class MTV_PUBLIC RingBuffer : protected MThread
   protected:
     explicit RingBuffer(RingBufferType rbtype);
 
-    void run(void); // MThread
+    void run(void) override; // MThread
     void CreateReadAheadBuffer(void);
     void CalcReadAheadThresh(void);
     bool PauseAndWait(void);

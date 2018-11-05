@@ -51,16 +51,16 @@ class channelRecPrioritySort
 
 ChannelRecPriority::ChannelRecPriority(MythScreenStack *parent)
                   : MythScreenType(parent, "ChannelRecPriority"),
-                    m_channelList(NULL), m_chanstringText(NULL),
-                    m_channameText(NULL), m_channumText(NULL),
-                    m_callsignText(NULL), m_sourcenameText(NULL),
-                    m_sourceidText(NULL), m_priorityText(NULL),
-                    m_iconImage(NULL)
+                    m_channelList(nullptr), m_chanstringText(nullptr),
+                    m_channameText(nullptr), m_channumText(nullptr),
+                    m_callsignText(nullptr), m_sourcenameText(nullptr),
+                    m_sourceidText(nullptr), m_priorityText(nullptr),
+                    m_iconImage(nullptr)
 {
     m_sortType = (SortType)gCoreContext->GetNumSetting("ChannelRecPrioritySorting",
                                                  (int)byChannel);
 
-    m_currentItem = NULL;
+    m_currentItem = nullptr;
 
     gCoreContext->addListener(this);
 }
@@ -106,9 +106,8 @@ bool ChannelRecPriority::keyPressEvent(QKeyEvent *event)
     if (GetFocusWidget()->keyPressEvent(event))
         return true;
 
-    bool handled = false;
     QStringList actions;
-    handled = GetMythMainWindow()->TranslateKeyPress("TV Frontend", event, actions);
+    bool handled = GetMythMainWindow()->TranslateKeyPress("TV Frontend", event, actions);
 
     for (int i = 0; i < actions.size() && !handled; i++)
     {
@@ -172,7 +171,7 @@ void ChannelRecPriority::ShowMenu()
     if (!menuPopup->Create())
     {
         delete menuPopup;
-        menuPopup = NULL;
+        menuPopup = nullptr;
         return;
     }
 
@@ -301,12 +300,12 @@ void ChannelRecPriority::updateList()
     m_channelList->Reset();
 
     QMap<QString, ChannelInfo*>::Iterator it;
-    MythUIButtonListItem *item;
     for (it = m_sortedChannel.begin(); it != m_sortedChannel.end(); ++it)
     {
         ChannelInfo *chanInfo = *it;
 
-        item = new MythUIButtonListItem(m_channelList, "",
+        MythUIButtonListItem *item =
+               new MythUIButtonListItem(m_channelList, "",
                                                    qVariantFromValue(chanInfo));
 
         QString fontState = "default";
@@ -359,14 +358,12 @@ void ChannelRecPriority::SortList()
     vector<RecPriorityInfo> sortingList;
     QMap<QString, ChannelInfo>::iterator pit;
     vector<RecPriorityInfo>::iterator sit;
-    ChannelInfo *chanInfo;
-    RecPriorityInfo *recPriorityInfo;
 
     // copy m_channelData into sortingList
     for (i = 0, pit = m_channelData.begin(); pit != m_channelData.end();
             ++pit, ++i)
     {
-        chanInfo = &(*pit);
+        ChannelInfo *chanInfo = &(*pit);
         RecPriorityInfo tmp = {chanInfo, i};
         sortingList.push_back(tmp);
     }
@@ -389,7 +386,7 @@ void ChannelRecPriority::SortList()
     // rebuild m_channelData in sortingList order from m_sortedChannel
     for (i = 0, sit = sortingList.begin(); sit != sortingList.end(); i++, ++sit)
     {
-        recPriorityInfo = &(*sit);
+        RecPriorityInfo *recPriorityInfo = &(*sit);
 
         // find recPriorityInfo[i] in m_sortedChannel
         for (j = 0, pit = m_channelData.begin(); j !=recPriorityInfo->cnt; j++, ++pit);

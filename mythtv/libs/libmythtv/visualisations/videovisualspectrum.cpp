@@ -75,7 +75,6 @@ void VideoVisualSpectrum::Draw(const QRect &area, MythPainter *painter,
     fftw_execute(lplan);
     fftw_execute(rplan);
 
-    double magL, magR, tmp;
     double falloff = (((double)SetLastUpdate()) / 40.0) * m_falloff;
     if (falloff < 0.0)
         falloff = 0.0;
@@ -88,11 +87,11 @@ void VideoVisualSpectrum::Draw(const QRect &area, MythPainter *painter,
         // The 1D output is Hermitian symmetric (Yk = Yn-k) so Yn = Y0 etc.
         // The dft_r2c_1d plan doesn't output these redundant values
         // and furthermore they're not allocated in the ctor
-        tmp = 2 * sq(real(lout[index]));
-        magL = (tmp > 1.) ? (log(tmp) - 22.0) * m_scaleFactor : 0.;
+        double tmp = 2 * sq(real(lout[index]));
+        double magL = (tmp > 1.) ? (log(tmp) - 22.0) * m_scaleFactor : 0.;
 
         tmp = 2 * sq(real(rout[index]));
-        magR = (tmp > 1.) ? (log(tmp) - 22.0) * m_scaleFactor : 0.;
+        double magR = (tmp > 1.) ? (log(tmp) - 22.0) * m_scaleFactor : 0.;
 
         if (magL > m_range)
             magL = 1.0;
@@ -190,17 +189,17 @@ bool VideoVisualSpectrum::InitialisePriv(void)
 static class VideoVisualSpectrumFactory : public VideoVisualFactory
 {
   public:
-    const QString &name(void) const
+    const QString &name(void) const override // VideoVisualFactory
     {
         static QString name("Spectrum");
         return name;
     }
 
     VideoVisual *Create(AudioPlayer *audio,
-                        MythRender  *render) const
+                        MythRender  *render) const override // VideoVisualFactory
     {
         return new VideoVisualSpectrum(audio, render);
     }
 
-    virtual bool SupportedRenderer(RenderType /*type*/) { return true; }
+    bool SupportedRenderer(RenderType /*type*/) override { return true; } // VideoVisualFactory
 } VideoVisualSpectrumFactory;

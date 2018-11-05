@@ -94,7 +94,7 @@ H264Parser::H264Parser(void)
 {
     rbsp_buffer_size = 188 * 2;
     rbsp_buffer = new uint8_t[rbsp_buffer_size];
-    if (rbsp_buffer == 0)
+    if (rbsp_buffer == nullptr)
         rbsp_buffer_size = 0;
 
     Reset();
@@ -149,7 +149,7 @@ void H264Parser::Reset(void)
     sar_width = sar_height = 0;
     unitsInTick = 0;
     timeScale = 0;
-    fixedRate = 0;
+    fixedRate = false;
 
     pkt_offset = AU_offset = frame_start_offset = keyframe_start_offset = 0;
     on_frame = on_key_frame = false;
@@ -338,7 +338,7 @@ bool H264Parser::fillRBSP(const uint8_t *byteP, uint32_t byte_count,
         /* Need a bigger buffer */
         uint8_t *new_buffer = new uint8_t[required_size];
 
-        if (new_buffer == NULL)
+        if (new_buffer == nullptr)
         {
             /* Allocation failed. Discard the new bytes */
             LOG(VB_GENERAL, LOG_ERR,
@@ -404,7 +404,6 @@ uint32_t H264Parser::addBytes(const uint8_t  *bytes,
 {
     const uint8_t *startP = bytes;
     const uint8_t *endP;
-    bool           found_start_code;
     bool           good_nal_unit;
 
     state_changed = false;
@@ -416,7 +415,7 @@ uint32_t H264Parser::addBytes(const uint8_t  *bytes,
         endP = avpriv_find_start_code(startP,
                                   bytes + byte_count, &sync_accumulator);
 
-        found_start_code = ((sync_accumulator & 0xffffff00) == 0x00000100);
+        bool found_start_code = ((sync_accumulator & 0xffffff00) == 0x00000100);
 
         /* Between startP and endP we potentially have some more
          * bytes of a NAL that we've been parsing (plus some bytes of
@@ -812,9 +811,6 @@ bool H264Parser::decode_Header(GetBitContext *gb)
 void H264Parser::decode_SPS(GetBitContext * gb)
 {
     int profile_idc;
-    int lastScale;
-    int nextScale;
-    int deltaScale;
 
     seen_sps = true;
 
@@ -844,13 +840,14 @@ void H264Parser::decode_SPS(GetBitContext * gb)
             {
                 if (get_bits1(gb)) // Scaling list present
                 {
-                    lastScale = nextScale = 8;
+                    int lastScale = 8;
+                    int nextScale = 8;
                     int sl_n = ((idx < 6) ? 16 : 64);
                     for(int sl_i = 0; sl_i < sl_n; ++sl_i)
                     {
                         if (nextScale != 0)
                         {
-                            deltaScale = get_se_golomb(gb);
+                            int deltaScale = get_se_golomb(gb);
                             nextScale = (lastScale + deltaScale + 256) % 256;
                         }
                         lastScale = (nextScale == 0) ? lastScale : nextScale;

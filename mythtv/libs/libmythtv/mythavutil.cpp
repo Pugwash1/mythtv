@@ -10,6 +10,7 @@
 #include "mythavutil.h"
 #include "mythcorecontext.h"
 #include "mythconfig.h"
+#include "vaapi2context.h"
 extern "C" {
 #include "libswscale/swscale.h"
 #include "libavfilter/avfilter.h"
@@ -82,7 +83,7 @@ class MythAVCopyPrivate
 {
 public:
     explicit MythAVCopyPrivate(bool uswc)
-    : swsctx(NULL), copyctx(new MythUSWCCopy(4096, !uswc)),
+    : swsctx(nullptr), copyctx(new MythUSWCCopy(4096, !uswc)),
       width(0), height(0), size(0), format(AV_PIX_FMT_NONE)
     {
     }
@@ -180,8 +181,8 @@ int MythAVCopy::Copy(AVFrame *dst, AVPixelFormat dst_pix_fmt,
 #endif
     d->swsctx = sws_getCachedContext(d->swsctx, width, height, pix_fmt,
                                      new_width, height, dst_pix_fmt,
-                                     SWS_FAST_BILINEAR, NULL, NULL, NULL);
-    if (d->swsctx == NULL)
+                                     SWS_FAST_BILINEAR, nullptr, nullptr, nullptr);
+    if (d->swsctx == nullptr)
     {
         return -1;
     }
@@ -312,7 +313,7 @@ int MythPictureDeinterlacer::DeinterlaceSingle(AVFrame *dst, const AVFrame *src)
     int res = Deinterlace(dst, src);
     if (res == AVERROR(EAGAIN))
     {
-        res = Deinterlace(dst, NULL);
+        res = Deinterlace(dst, nullptr);
         // We have drained the filter, we need to recreate it on the next run.
         avfilter_graph_free(&m_filter_graph);
     }
@@ -321,11 +322,6 @@ int MythPictureDeinterlacer::DeinterlaceSingle(AVFrame *dst, const AVFrame *src)
 
 int MythPictureDeinterlacer::Flush()
 {
-    {
-        QMutexLocker locker(avcodeclock);
-        avfilter_register_all();
-    }
-
     if (m_filter_graph)
     {
         avfilter_graph_free(&m_filter_graph);
@@ -337,19 +333,19 @@ int MythPictureDeinterlacer::Flush()
         return -1;
     }
 
-    AVFilterInOut *inputs = NULL, *outputs = NULL;
+    AVFilterInOut *inputs = nullptr, *outputs = nullptr;
     AVRational ar = av_d2q(m_ar, 100000);
     QString args = QString("buffer=video_size=%1x%2:pix_fmt=%3:time_base=1/1:pixel_aspect=%4/%5[in];"
                            "[in]yadif[out];[out] buffersink")
                        .arg(m_width).arg(m_height).arg(m_pixfmt).arg(ar.num).arg(ar.den);
     int res = avfilter_graph_parse2(m_filter_graph, args.toLatin1().data(), &inputs, &outputs);
-    while (1)
+    while (true)
     {
         if (res < 0 || inputs || outputs)
         {
             break;
         }
-        res = avfilter_graph_config(m_filter_graph, NULL);
+        res = avfilter_graph_config(m_filter_graph, nullptr);
         if (res < 0)
         {
             break;
@@ -393,13 +389,13 @@ AVCodecContext *MythCodecMap::getCodecContext(const AVStream *stream,
     const AVCodec *pCodec, bool nullCodec)
 {
     QMutexLocker lock(&mapLock);
-    AVCodecContext *avctx = streamMap.value(stream, NULL);
+    AVCodecContext *avctx = streamMap.value(stream, nullptr);
     if (!avctx)
     {
-        if (stream == NULL || stream->codecpar == NULL)
-            return NULL;
+        if (stream == nullptr || stream->codecpar == nullptr)
+            return nullptr;
         if (nullCodec)
-            pCodec = NULL;
+            pCodec = nullptr;
         else
         {
             if (!pCodec)
@@ -408,7 +404,7 @@ AVCodecContext *MythCodecMap::getCodecContext(const AVStream *stream,
             {
                 LOG(VB_GENERAL, LOG_WARNING,
                     QString("avcodec_find_decoder fail for %1").arg(stream->codecpar->codec_id));
-                return NULL;
+                return nullptr;
             }
         }
         avctx = avcodec_alloc_context3(pCodec);
@@ -416,7 +412,7 @@ AVCodecContext *MythCodecMap::getCodecContext(const AVStream *stream,
             avcodec_free_context(&avctx);
         if (avctx)
         {
-            av_codec_set_pkt_timebase(avctx, stream->time_base);
+            avctx->pkt_timebase =  stream->time_base;
             streamMap.insert(stream, avctx);
         }
     }
@@ -425,7 +421,7 @@ AVCodecContext *MythCodecMap::getCodecContext(const AVStream *stream,
 
 AVCodecContext *MythCodecMap::hasCodecContext(const AVStream *stream)
 {
-    return streamMap.value(stream, NULL);
+    return streamMap.value(stream, nullptr);
 }
 
 void MythCodecMap::freeCodecContext(const AVStream *stream)

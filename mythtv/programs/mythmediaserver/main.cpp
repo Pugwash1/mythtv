@@ -1,13 +1,11 @@
-
+#include <csignal>
+#include <cstdio>
+#include <cstdlib>
 #include <fcntl.h>
-#include <signal.h>
-
-#include <iostream>
 #include <fstream>
+#include <iostream>
 #include <string>
 #include <unistd.h>
-#include <cstdlib>
-#include <cstdio>
 
 #include <QCoreApplication>
 #include <QString>
@@ -44,7 +42,7 @@ QString   logfile  = "";
 static void cleanup(void)
 {
     delete gContext;
-    gContext = NULL;
+    gContext = nullptr;
 
     if (pidfile.size())
     {

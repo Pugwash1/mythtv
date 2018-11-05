@@ -1,10 +1,8 @@
 #ifndef CHANNELSETTINGS_H
 #define CHANNELSETTINGS_H
 
-// ANSI C
-#include <cstdlib>
-
 // C++
+#include <cstdlib>
 #include <vector>
 
 // Qt
@@ -28,7 +26,7 @@ class ChannelID : public GroupSetting
         setVisible(false);
     }
 
-    void Save(void)
+    void Save(void) override // StandardSetting
     {
         if (getValue().toInt() == 0) {
             setValue(findHighest());
@@ -97,8 +95,8 @@ class ChannelDBStorage : public SimpleDBStorage
     ChannelDBStorage(StorageUser *_user, const ChannelID &_id, QString _name) :
         SimpleDBStorage(_user, "channel", _name), id(_id) { }
 
-    virtual QString GetSetClause(MSqlBindings &bindings) const;
-    virtual QString GetWhereClause(MSqlBindings &bindings) const;
+    QString GetSetClause(MSqlBindings &bindings) const override; // SimpleDBStorage
+    QString GetWhereClause(MSqlBindings &bindings) const override; // SimpleDBStorage
 
     const ChannelID& id;
 };
@@ -142,8 +140,8 @@ class MTV_PUBLIC ChannelOptionsRawTS: public GroupSetting
   public:
     explicit ChannelOptionsRawTS(const ChannelID &id);
 
-    virtual void Load(void);
-    virtual void Save(void);
+    void Load(void) override; // StandardSetting
+    void Save(void) override; // StandardSetting
     virtual void Save(QString /*destination*/) { Save(); }
 
   private:

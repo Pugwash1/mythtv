@@ -5,9 +5,9 @@
 #include <QFile>
 #include <QString>
 
+#include <cstdint>
 #include <sys/types.h>
 #include <unistd.h>
-#include <stdint.h>
 
 #include <mythdate.h>
 
@@ -60,7 +60,7 @@ class Commands : public QObject
 
   public:
     Commands(void);
-    virtual ~Commands(void);
+    virtual ~Commands(void) = default;
     bool Run(const QString & filename, int data_rate, bool loopinput);
     void setEoF(void) { m_eof = true; }
 
