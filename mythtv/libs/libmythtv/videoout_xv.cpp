@@ -156,7 +156,7 @@ VideoOutputXv::VideoOutputXv()
     LOG(VB_PLAYBACK, LOG_INFO, LOC + "ctor");
     memset(&av_pause_frame, 0, sizeof(av_pause_frame));
 
-    if (gCoreContext->GetNumSetting("UseVideoModes", 0))
+    if (gCoreContext->GetBoolSetting("UseVideoModes", false))
         display_res = DisplayRes::GetDisplayRes(true);
 }
 
@@ -321,16 +321,15 @@ void VideoOutputXv::MoveResizeWindow(QRect new_rect)
 class XvAttributes
 {
   public:
-    XvAttributes() :
-        xv_flags(0), feature_flags(0) {}
+    XvAttributes() = default;
     XvAttributes(const QString &a, uint b, uint c) :
         description(a), xv_flags(b), feature_flags(c)
         { description.detach(); }
 
   public:
     QString description;
-    uint    xv_flags;
-    uint    feature_flags;
+    uint    xv_flags {0};
+    uint    feature_flags {0};
 
     static const uint kFeatureNone      = 0x00;
     static const uint kFeatureChromakey = 0x01;
@@ -794,7 +793,7 @@ bool VideoOutputXv::CreateOSD(void)
 do { \
     if (test) \
     { \
-        LOG(VB_GENERAL, LOG_ERR, LOC + msg + " Exiting playback."); \
+        LOG(VB_GENERAL, LOG_ERR, LOC + (msg) + " Exiting playback."); \
         errorState = kError_Unknown; \
         return false; \
     } \
@@ -853,8 +852,8 @@ bool VideoOutputXv::InitSetupBuffers(void)
 
     if (!ok && window.GetPIPState() == kPIPOff)
     {
-        use_xv     |= (bool) renderers.contains("xv-blit");
-        use_shm    |= (bool) renderers.contains("xshm");
+        use_xv     |= renderers.contains("xv-blit");
+        use_shm    |= renderers.contains("xshm");
         ok = InitVideoBuffers(use_xv, use_shm);
     }
     XV_INIT_FATAL_ERROR_TEST(!ok, "Failed to get any video output");
@@ -1294,8 +1293,8 @@ void VideoOutputXv::DeleteBuffers(VOSType subtype, bool delete_pause_frame)
             xv_buffers[(unsigned char*) XJ_shm_infos[i]->shmaddr];
         if (image)
         {
-            if ((XImage*)image == (XImage*)XJ_non_xv_image)
-                XDestroyImage((XImage*)XJ_non_xv_image);
+            if ((XImage*)image == XJ_non_xv_image)
+                XDestroyImage(XJ_non_xv_image);
             else
                 XFree(image);
         }
@@ -1450,7 +1449,7 @@ void VideoOutputXv::PrepareFrameMem(VideoFrame *buffer, FrameScanType /*scan*/)
         unsigned char *sbuf = (unsigned char*)av_malloc(size);
 
         av_image_fill_arrays(image_out.data, image_out.linesize,
-            (uint8_t *)sbuf, AV_PIX_FMT_YUV420P,
+            sbuf, AV_PIX_FMT_YUV420P,
             out_width, out_height, IMAGE_ALIGN);
         AVPictureFill(&image_in, buffer);
         QMutexLocker locker(&lock);
@@ -1521,7 +1520,7 @@ static void calc_bob(FrameScanType scan, int imgh, int disphoff,
     if (dispyoff < 0)
     {
         dest_y_incr = -dispyoff;
-        src_y_incr = (int) (dest_y_incr * imgh / disphoff);
+        src_y_incr = dest_y_incr * imgh / disphoff;
         xv_src_y_incr -= (int) (0.5 * dest_y_incr * imgh / disphoff);
     }
 
@@ -1874,8 +1873,8 @@ int VideoOutputXv::SetXVPictureAttribute(PictureAttribute attribute, int newValu
 
     if (xv_set_defaults && range && (kPictureAttribute_Hue == attribute))
     {
-        float tmp = (((float)(port_def - port_min) / (float)range) * 100.0);
-        valAdj = (int)(tmp + 0.5);
+        float tmp = (((float)(port_def - port_min) / (float)range) * 100.0f);
+        valAdj = lroundf(tmp);
     }
 
     int tmpval2 = (newValue + valAdj) % 100;

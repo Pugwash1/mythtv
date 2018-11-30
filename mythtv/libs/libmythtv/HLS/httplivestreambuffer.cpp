@@ -890,9 +890,8 @@ private:
 class HLSPlayback
 {
 public:
-    HLSPlayback(void) : m_offset(0), m_stream(0), m_segment(0)
-    {
-    }
+    HLSPlayback(void) = default;
+
     /* offset is only used from main thread, no need for locking */
     uint64_t Offset(void) const
     {
@@ -933,9 +932,9 @@ public:
     }
 
 private:
-    uint64_t        m_offset;   // current offset in media
-    int             m_stream;   // current HLSStream
-    int             m_segment;  // current segment for playback
+    uint64_t        m_offset {0};   // current offset in media
+    int             m_stream {0};   // current HLSStream
+    int             m_segment {0};  // current segment for playback
     QMutex          m_lock;
 };
 
@@ -1775,7 +1774,7 @@ bool HLSRingBuffer::TestForHTTPLiveStreaming(const QString &filename)
         QUrl url = filename;
         isHLS =
         url.path().endsWith(QLatin1String("m3u8"), Qt::CaseInsensitive) ||
-        QString(url.query( QUrl::FullyEncoded )).contains(QLatin1String("m3u8"), Qt::CaseInsensitive);
+        url.query( QUrl::FullyEncoded ).contains(QLatin1String("m3u8"), Qt::CaseInsensitive);
     }
     return isHLS;
 }
@@ -1787,7 +1786,7 @@ QString HLSRingBuffer::ParseAttributes(const QString &line, const char *attr) co
     if (p < 0)
         return QString();
 
-    QStringList list = QStringList(line.mid(p+1).split(','));
+    QStringList list = line.mid(p+1).split(',');
     QStringList::iterator it = list.begin();
     for (; it != list.end(); ++it)
     {
@@ -1836,7 +1835,7 @@ int HLSRingBuffer::ParseSegmentInformation(const HLSStream *hls, const QString &
     if (p < 0)
         return RET_ERROR;
 
-    QStringList list = QStringList(line.mid(p+1).split(','));
+    QStringList list = line.mid(p+1).split(',');
 
     /* read duration */
     if (list.isEmpty())

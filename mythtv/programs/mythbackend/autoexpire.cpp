@@ -50,7 +50,7 @@ extern AutoExpire *expirer;
 /** If calculated desired space for 10 min freq is > SPACE_TOO_BIG_KB
  *  then we use 5 min expire frequency.
  */
-#define SPACE_TOO_BIG_KB 3*1024*1024
+#define SPACE_TOO_BIG_KB (3*1024*1024)
 
 /// \brief This calls AutoExpire::RunExpirer() from within a new thread.
 void ExpireThread::run(void)
@@ -215,7 +215,7 @@ void AutoExpire::CalcParams()
                 uint64_t maxBitrate = enc->GetMaxBitrate();
                 if (maxBitrate==0)
                     maxBitrate = 19500000LL;
-                thisKBperMin += (((uint64_t)maxBitrate)*((uint64_t)15))>>11;
+                thisKBperMin += (maxBitrate*((uint64_t)15))>>11;
                 LOG(VB_FILE, LOG_INFO, QString("    Cardid %1: max bitrate "
                         "%2 Kb/sec, fsID %3 max is now %4 KB/min")
                         .arg(enc->GetInputID())
@@ -738,7 +738,7 @@ void AutoExpire::ExpireEpisodesOverMax(void)
 
                     // allow re-record if auto expired
                     RecordingInfo recInfo(chanid, startts);
-                    if (gCoreContext->GetNumSetting("RerecordWatched", 0) ||
+                    if (gCoreContext->GetBoolSetting("RerecordWatched", false) ||
                         !recInfo.IsWatched())
                     {
                         recInfo.ForgetHistory();
@@ -919,21 +919,21 @@ void AutoExpire::FillDBOrdered(pginfolist_t &expireList, int expMethod)
         case emOldestFirst:
             msg = "Adding programs expirable in Oldest First order";
             where = "autoexpire > 0";
-            if (gCoreContext->GetNumSetting("AutoExpireWatchedPriority", 0))
+            if (gCoreContext->GetBoolSetting("AutoExpireWatchedPriority", false))
                 orderby = "recorded.watched DESC, ";
             orderby += "starttime ASC";
             break;
         case emLowestPriorityFirst:
             msg = "Adding programs expirable in Lowest Priority First order";
             where = "autoexpire > 0";
-            if (gCoreContext->GetNumSetting("AutoExpireWatchedPriority", 0))
+            if (gCoreContext->GetBoolSetting("AutoExpireWatchedPriority", false))
                 orderby = "recorded.watched DESC, ";
             orderby += "recorded.recpriority ASC, starttime ASC";
             break;
         case emWeightedTimePriority:
             msg = "Adding programs expirable in Weighted Time Priority order";
             where = "autoexpire > 0";
-            if (gCoreContext->GetNumSetting("AutoExpireWatchedPriority", 0))
+            if (gCoreContext->GetBoolSetting("AutoExpireWatchedPriority", false))
                 orderby = "recorded.watched DESC, ";
             orderby += QString("DATE_ADD(starttime, INTERVAL '%1' * "
                                         "recorded.recpriority DAY) ASC")

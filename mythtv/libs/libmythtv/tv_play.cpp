@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <thread> // for sleep_for
+#include <assert.h>
 
 using namespace std;
 
@@ -92,14 +93,14 @@ using namespace std;
 #define GetOSDLock(X) GetOSDL(X, __FILE__, __LINE__)
 
 #define SetOSDText(CTX, GROUP, FIELD, TEXT, TIMEOUT) { \
-    OSD *osd = GetOSDLock(CTX); \
-    if (osd) \
+    OSD *osd_m = GetOSDLock(CTX); \
+    if (osd_m) \
     { \
         InfoMap map; \
         map.insert(FIELD,TEXT); \
-        osd->SetText(GROUP, map, TIMEOUT); \
+        osd_m->SetText(GROUP, map, TIMEOUT); \
     } \
-    ReturnOSDLock(CTX, osd); }
+    ReturnOSDLock(CTX, osd_m); }
 
 #define SetOSDMessage(CTX, MESSAGE) \
     SetOSDText(CTX, "osd_message", "message_text", MESSAGE, kOSDTimeout_Med)
@@ -210,12 +211,17 @@ class DDLoader : public QRunnable
     QWaitCondition m_wait;
 };
 
+static const MenuBase dummy_menubase;
+
 class MenuNodeTuple
 {
 public:
     MenuNodeTuple(const MenuBase &menu, const QDomNode &node) :
         m_menu(menu), m_node(node) {}
-    MenuNodeTuple(void) : m_menu(MenuBase()) {}
+    MenuNodeTuple(void) : m_menu(dummy_menubase)
+        {
+            assert("Should never be reached.");
+        }
     const MenuBase &m_menu;
     const QDomNode  m_node;
 };
@@ -1272,8 +1278,8 @@ bool TV::Init(bool createWindow)
 
     if (createWindow)
     {
-        bool fullscreen = !gCoreContext->GetNumSetting("GuiSizeForTV", 0);
-        bool switchMode = gCoreContext->GetNumSetting("UseVideoModes", 0);
+        bool fullscreen = !gCoreContext->GetBoolSetting("GuiSizeForTV", false);
+        bool switchMode = gCoreContext->GetBoolSetting("UseVideoModes", false);
 
         saved_gui_bounds = QRect(GetMythMainWindow()->geometry().topLeft(),
                                  GetMythMainWindow()->size());
@@ -2004,7 +2010,7 @@ void TV::ShowOSDAskAllow(PlayerContext *ctx)
         {
             if (!(*it).is_in_same_input_group)
                 (*it).is_conflicting = false;
-            else if (cardid == (uint)(*it).info->GetInputID())
+            else if (cardid == (*it).info->GetInputID())
                 (*it).is_conflicting = true;
             else if (!CardUtil::IsTunerShared(cardid, (*it).info->GetInputID()))
                 (*it).is_conflicting = true;
@@ -2250,7 +2256,7 @@ TVState TV::RemoveRecording(TVState state)
 }
 
 #define TRANSITION(ASTATE,BSTATE) \
-   ((ctxState == ASTATE) && (desiredNextState == BSTATE))
+   ((ctxState == (ASTATE)) && (desiredNextState == (BSTATE)))
 
 #define SET_NEXT() do { nextState = desiredNextState; changed = true; } while(0)
 #define SET_LAST() do { nextState = ctxState; changed = true; } while(0)
@@ -2633,7 +2639,7 @@ void TV::HandleStateChange(PlayerContext *mctx, PlayerContext *ctx)
     {
         if (!ctx->IsPIP())
             GetMythUI()->DisableScreensaver();
-        bool switchMode = gCoreContext->GetNumSetting("UseVideoModes", 0);
+        bool switchMode = gCoreContext->GetBoolSetting("UseVideoModes", false);
         // player_bounds is not applicable when switching modes so
         // skip this logic in that case.
         if (!switchMode)
@@ -2825,13 +2831,13 @@ void TV::timerEvent(QTimerEvent *te)
 {
     const int timer_id = te->timerId();
 
-    PlayerContext *mctx = GetPlayerReadLock(0, __FILE__, __LINE__);
-    if (mctx->IsErrored())
+    PlayerContext *mctx2 = GetPlayerReadLock(0, __FILE__, __LINE__);
+    if (mctx2->IsErrored())
     {
-        ReturnPlayerLock(mctx);
+        ReturnPlayerLock(mctx2);
         return;
     }
-    ReturnPlayerLock(mctx);
+    ReturnPlayerLock(mctx2);
 
     bool ignore = false;
     {
@@ -3218,9 +3224,9 @@ void TV::timerEvent(QTimerEvent *te)
 
         for (uint i = 0; i < player.size(); i++)
         {
-            PlayerContext *ctx = GetPlayer(mctx, i);
-            if (error || ctx->IsErrored())
-                ForceNextStateNone(ctx);
+            PlayerContext *ctx2 = GetPlayer(mctx, i);
+            if (error || ctx2->IsErrored())
+                ForceNextStateNone(ctx2);
         }
         ReturnPlayerLock(mctx);
 
@@ -5340,7 +5346,7 @@ void TV::ProcessNetworkControlCommand(PlayerContext *ctx,
                     if (ctx->ff_rew_state)
                         SetFFRew(ctx, index);
                 }
-                else if (0.48 <= tmpSpeed && tmpSpeed <= 2.0) {
+                else if (0.48f <= tmpSpeed && tmpSpeed <= 2.0f) {
                     StopFFRew(ctx);
 
                     ctx->ts_normal = tmpSpeed;   // alter speed before display
@@ -5533,7 +5539,7 @@ void TV::ProcessNetworkControlCommand(PlayerContext *ctx,
             else
             {
                 QRegExp re = QRegExp("Play (.*)x");
-                if (QString(ctx->GetPlayMessage()).contains(re))
+                if (ctx->GetPlayMessage().contains(re))
                 {
                     QStringList matches = re.capturedTexts();
                     speedStr = QString("%1x").arg(matches[1]);
@@ -6668,7 +6674,7 @@ bool TV::DoPlayerSeek(PlayerContext *ctx, float time)
 
     if (time > 0.0f)
         res = ctx->player->FastForward(time);
-    else if (time < 0.0)
+    else if (time < 0.0f)
         res = ctx->player->Rewind(-time);
     ctx->UnlockDeletePlayer(__FILE__, __LINE__);
 
@@ -6845,7 +6851,7 @@ void TV::DoSeekAbsolute(PlayerContext *ctx, long long seconds,
     DoSeek(ctx, seconds, tr("Jump To"),
            /*timeIsOffset*/false,
            honorCutlist);
-    gCoreContext->emitTVPlaybackSought((qint64)seconds);
+    gCoreContext->emitTVPlaybackSought(seconds);
 }
 
 void TV::DoArbSeek(PlayerContext *ctx, ArbSeekWhence whence,
@@ -7450,7 +7456,7 @@ void TV::SwitchInputs(PlayerContext *ctx,
         bool ok = false;
         if (ctx->playingInfo && StartRecorder(ctx,-1))
         {
-            PlayerContext *mctx = GetPlayer(ctx, 0);
+            PlayerContext *mctx2 = GetPlayer(ctx, 0);
             QRect dummy = QRect();
             if (ctx->CreatePlayer(
                     this, GetMythMainWindow(), ctx->GetState(),
@@ -7460,12 +7466,12 @@ void TV::SwitchInputs(PlayerContext *ctx,
                 ok = true;
                 ctx->PushPreviousChannel();
                 for (uint i = 1; i < player.size(); i++)
-                    PIPAddPlayer(mctx, GetPlayer(ctx, i));
+                    PIPAddPlayer(mctx2, GetPlayer(ctx, i));
 
                 SetSpeedChangeTimer(25, __LINE__);
             }
             else
-                StopStuff(mctx, ctx, true, true, true);
+                StopStuff(mctx2, ctx, true, true, true);
         }
 
         if (!ok)
@@ -8121,10 +8127,10 @@ void TV::ToggleOSD(PlayerContext *ctx, bool includeStatusOSD)
 
     if (hideAll || showStatus)
     {
-        OSD *osd = GetOSDLock(ctx);
-        if (osd)
-            osd->HideAll();
-        ReturnOSDLock(ctx, osd);
+        OSD *osd2 = GetOSDLock(ctx);
+        if (osd2)
+            osd2->HideAll();
+        ReturnOSDLock(ctx, osd2);
     }
 
     if (showStatus)
@@ -8197,7 +8203,7 @@ void TV::UpdateOSDProgInfo(const PlayerContext *ctx, const char *whichInfo)
     InfoMap infoMap;
     ctx->GetPlayingInfoMap(infoMap);
 
-    QString nightmode = gCoreContext->GetNumSetting("NightModeEnabled", 0)
+    QString nightmode = gCoreContext->GetBoolSetting("NightModeEnabled", false)
                             ? "yes" : "no";
     infoMap["nightmode"] = nightmode;
 
@@ -8218,7 +8224,7 @@ void TV::UpdateOSDStatus(const PlayerContext *ctx, osdInfo &info,
     if (osd)
     {
         osd->ResetWindow("osd_status");
-        QString nightmode = gCoreContext->GetNumSetting("NightModeEnabled", 0)
+        QString nightmode = gCoreContext->GetBoolSetting("NightModeEnabled", false)
                                 ? "yes" : "no";
         info.text.insert("nightmode", nightmode);
         osd->SetValues("osd_status", info.values, timeout);
@@ -8998,7 +9004,7 @@ void TV::ChangeTimeStretch(PlayerContext *ctx, int dir, bool allowEdit)
 {
     const float kTimeStretchMin = 0.5;
     const float kTimeStretchMax = 2.0;
-    float new_ts_normal = ctx->ts_normal + 0.05*dir;
+    float new_ts_normal = ctx->ts_normal + (0.05f * dir);
     stretchAdjustment = allowEdit;
 
     if (new_ts_normal > kTimeStretchMax &&
@@ -9828,9 +9834,9 @@ void TV::customEvent(QEvent *e)
         if ((tokens.size() >= 2) &&
             (tokens[1] != "ANSWER") && (tokens[1] != "RESPONSE"))
         {
-            QStringList tokens = message.split(" ", QString::SkipEmptyParts);
-            if ((tokens.size() >= 2) &&
-                (tokens[1] != "ANSWER") && (tokens[1] != "RESPONSE"))
+            QStringList tokens2 = message.split(" ", QString::SkipEmptyParts);
+            if ((tokens2.size() >= 2) &&
+                (tokens2[1] != "ANSWER") && (tokens2[1] != "RESPONSE"))
             {
                 QMutexLocker locker(&timerIdLock);
                 message.detach();
@@ -9872,7 +9878,7 @@ void TV::customEvent(QEvent *e)
 
         // player_bounds is not applicable when switching modes so
         // skip this logic in that case.
-        bool switchMode = gCoreContext->GetNumSetting("UseVideoModes", 0);
+        bool switchMode = gCoreContext->GetBoolSetting("UseVideoModes", false);
         if (!switchMode
             && (!db_use_gui_size_for_tv || !db_use_fixed_size))
         {
@@ -9958,9 +9964,9 @@ void TV::customEvent(QEvent *e)
                 QStringList mark;
                 QStringList marks =
                     tokens[2].split(",", QString::SkipEmptyParts);
-                for (uint i = 0; i < (uint)marks.size(); i++)
+                for (uint j = 0; j < (uint)marks.size(); j++)
                 {
-                    mark = marks[i].split(":", QString::SkipEmptyParts);
+                    mark = marks[j].split(":", QString::SkipEmptyParts);
                     if (marks.size() >= 2)
                     {
                         newMap[mark[0].toLongLong()] =
@@ -10139,7 +10145,7 @@ PictureAttribute TV::NextPictureAdjustType(
                kPictureAttributeSupported_Hue);
     }
 
-    return ::next((PictureAttributeSupported)sup, (PictureAttribute) attr);
+    return ::next((PictureAttributeSupported)sup, attr);
 }
 
 void TV::DoToggleStudioLevels(const PlayerContext *ctx)
@@ -10943,8 +10949,8 @@ void TV::OSDDialogEvent(int result, QString text, QString action)
         bool floatRead;
         float stretch = action.right(action.length() - 13).toFloat(&floatRead);
         if (floatRead &&
-            stretch <= 2.0 &&
-            stretch >= 0.48)
+            stretch <= 2.0f &&
+            stretch >= 0.48f)
         {
             actx->ts_normal = stretch;   // alter speed before display
         }
@@ -12024,7 +12030,7 @@ bool TV::MenuItemDisplayPlayback(const MenuItemContext &c)
         {
             if (m_tvm_sup != kPictureAttributeSupported_None)
             {
-                active = gCoreContext->GetNumSetting("NightModeEnabled", 0);
+                active = gCoreContext->GetBoolSetting("NightModeEnabled", false);
                 BUTTON2(actionName,
                         tr("Disable Night Mode"), tr("Enable Night Mode"));
             }
@@ -12638,7 +12644,7 @@ void TV::FillOSDMenuJumpRec(PlayerContext* ctx, const QString &category,
         QMutexLocker locker(&progListsLock);
         progLists.clear();
         vector<ProgramInfo*> *infoList = RemoteGetRecordedList(0);
-        bool LiveTVInAllPrograms = gCoreContext->GetNumSetting("LiveTVInAllPrograms",0);
+        bool LiveTVInAllPrograms = gCoreContext->GetBoolSetting("LiveTVInAllPrograms",false);
         if (infoList)
         {
             QList<QString> titles_seen;
@@ -12683,21 +12689,19 @@ void TV::FillOSDMenuJumpRec(PlayerContext* ctx, const QString &category,
                 }
                 else if (level == 1 && Iprog.key() == category)
                 {
-                    ProgramList::const_iterator it = plist.begin();
-                    for (; it != plist.end(); ++it)
+                    for (auto pit = plist.begin(); pit != plist.end(); ++pit)
                     {
-                        const ProgramInfo *p = *it;
+                        const ProgramInfo *p = *pit;
 
                         if (titles_seen.contains(p->GetTitle()))
                             continue;
 
                         titles_seen.push_back(p->GetTitle());
 
-                        ProgramList::const_iterator it2 = plist.begin();
                         int j = -1;
-                        for (; it2 != plist.end(); ++it2)
+                        for (auto pit2 = plist.begin(); pit2 != plist.end(); ++pit2)
                         {
-                            const ProgramInfo *q = *it2;
+                            const ProgramInfo *q = *pit2;
                             j++;
 
                             if (q->GetTitle() != p->GetTitle())
@@ -12843,11 +12847,10 @@ bool TV::HandleJumpToProgramAction(
         if (ok)
         {
             QMutexLocker locker(&progListsLock);
-            QMap<QString,ProgramList>::const_iterator it =
-                progLists.find(progKey);
-            if (it != progLists.end())
+            auto pit = progLists.find(progKey);
+            if (pit != progLists.end())
             {
-                const ProgramInfo *tmp = (*it)[progIndex];
+                const ProgramInfo *tmp = (*pit)[progIndex];
                 if (tmp)
                     p = new ProgramInfo(*tmp);
             }
@@ -12926,7 +12929,7 @@ bool TV::HandleJumpToProgramAction(
     return true;
 }
 
-#define MINUTE 60*1000
+#define MINUTE (60*1000)
 
 void TV::ToggleSleepTimer(const PlayerContext *ctx, const QString &time)
 {

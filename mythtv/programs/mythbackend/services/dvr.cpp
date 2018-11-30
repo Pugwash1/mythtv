@@ -1562,6 +1562,17 @@ bool Dvr::DisableRecordSchedule( uint nRecordId )
     return bResult;
 }
 
+int Dvr::RecordedIdForKey(int chanid, const QDateTime &recstarttsRaw)
+{
+    int recordedid;
+
+    if (!RecordingInfo::QueryRecordedIdForKey(recordedid, chanid,
+                                              recstarttsRaw))
+        return -1;
+
+    return recordedid;
+}
+
 int Dvr::RecordedIdForPathname(const QString & pathname)
 {
     uint recordedid;
@@ -1698,8 +1709,8 @@ int Dvr::ManageJobQueue( const QString   &sAction,
         return nReturn;
     }
 
-    if (!gCoreContext->GetNumSettingOnHost(QString("JobAllow%1").arg(sJobName),
-                                           sRemoteHost, 0))
+    if (!gCoreContext->GetBoolSettingOnHost(QString("JobAllow%1").arg(sJobName),
+                                            sRemoteHost, false))
     {
         LOG(VB_GENERAL, LOG_ERR, QString("%1 hasn't been allowed on host %2.")
                                          .arg(sJobName).arg(sRemoteHost));

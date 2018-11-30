@@ -103,7 +103,7 @@ bool PESPacket::AddTSPacket(const TSPacket* packet, bool &broken)
  */
 void PESPacket::GetAsTSPackets(vector<TSPacket> &output, uint cc) const
 {
-#define INCR_CC(_CC_) do { _CC_ = (_CC_ + 1) & 0xf; } while (0)
+#define INCR_CC(_CC_) do { (_CC_) = ((_CC_) + 1) & 0xf; } while (0)
     uint last_byte_of_pesdata = Length() + 4 - 1;
     uint size = last_byte_of_pesdata + _pesdata - _fullbuffer;
 
@@ -176,8 +176,8 @@ const float SequenceHeader::mpeg1_aspect[16] =
 /// while the positive ones are pixel aspect ratios
 const float SequenceHeader::mpeg2_aspect[16] =
 {
-    0.0000f,       1.0000f,       -3.0/4.0f,     -9.0/16.0f,
-    -1.0/2.21f,    0.0000f,       0.0000f,       0.0000f,
+    0.0000f,       1.0000f,      -3.0f/4.0f,    -9.0f/16.0f,
+   -1.0f/2.21f,    0.0000f,       0.0000f,       0.0000f,
     0.0000f,       0.0000f,       0.0000f,       0.0000f,
     0.0000f,       0.0000f,       0.0000f,       0.0000f,
 };

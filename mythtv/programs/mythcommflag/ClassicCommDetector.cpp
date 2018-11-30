@@ -180,7 +180,7 @@ ClassicCommDetector::ClassicCommDetector(SkipType commDetectMethod_in,
         gCoreContext->GetNumSetting("CommDetectMaxCommLength", 125);
 
     commDetectBlankCanHaveLogo =
-        !!gCoreContext->GetNumSetting("CommDetectBlankCanHaveLogo", 1);
+        !!gCoreContext->GetBoolSetting("CommDetectBlankCanHaveLogo", true);
 }
 
 void ClassicCommDetector::Init()
@@ -369,7 +369,7 @@ bool ClassicCommDetector::go()
         return false;
 
     aggressiveDetection =
-        gCoreContext->GetNumSetting("AggressiveCommDetect", 1);
+        gCoreContext->GetBoolSetting("AggressiveCommDetect", true);
 
     if (!player->InitVideo())
     {
@@ -579,7 +579,7 @@ bool ClassicCommDetector::go()
                 recordingStartedAt.secsTo(MythDate::current());
             int secondsFlagged = (int)(framesProcessed / fps);
             int secondsBehind = secondsRecorded - secondsFlagged;
-            long usecPerFrame = (long)(1.0 / player->GetFrameRate() * 1000000);
+            long usecPerFrame = (long)(1.0f / player->GetFrameRate() * 1000000);
 
             struct timeval endTime;
             gettimeofday(&endTime, nullptr);
@@ -737,7 +737,7 @@ void ClassicCommDetector::SetVideoParams(float aspect)
             .arg(aspect));
     // Default to Widescreen but use the same check as VideoOutput::MoveResize()
     // to determine if is normal 4:3 aspect
-    if (fabs(aspect - 1.333333) < 0.1)
+    if (fabs(aspect - 1.333333f) < 0.1f)
         newAspect = COMM_ASPECT_NORMAL;
 
     if (newAspect != currentAspect)

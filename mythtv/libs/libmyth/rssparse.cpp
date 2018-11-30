@@ -189,12 +189,12 @@ class MRSSParser
         QString Keywords;
         QString CopyrightURL;
         QString CopyrightText;
-        int RatingAverage;
-        int RatingCount;
-        int RatingMin;
-        int RatingMax;
-        int Views;
-        int Favs;
+        int RatingAverage {0};
+        int RatingCount {0};
+        int RatingMin {0};
+        int RatingMax {0};
+        int Views {0};
+        int Favs {0};
         QString Tags;
         QList<MRSSThumbnail> Thumbnails;
         QList<MRSSCredit> Credits;
@@ -202,8 +202,7 @@ class MRSSParser
         QList<MRSSPeerLink> PeerLinks;
         QList<MRSSScene> Scenes;
 
-        ArbitraryLocatedData() : RatingAverage(0), RatingCount(0), RatingMin(0),
-                                 RatingMax(0), Views(0), Favs(0) {}
+        ArbitraryLocatedData() = default;
 
         /**  Updates *this's fields according to the
          * child. Some kind of merge.
@@ -373,7 +372,7 @@ private:
         if (!elems.size())
             return QString();
 
-        return QString(elems.at(0).toElement().attribute("url"));
+        return elems.at(0).toElement().attribute("url");
     }
 
     QString GetTitle(const QDomElement& element)
@@ -385,7 +384,7 @@ private:
             return QString();
 
         QDomElement telem = elems.at(0).toElement();
-        return QString(Parse::UnescapeHTML(telem.text()));
+        return Parse::UnescapeHTML(telem.text());
     }
 
     QString GetDescription(const QDomElement& element)
@@ -397,7 +396,7 @@ private:
             return QString();
 
         QDomElement telem = elems.at(0).toElement();
-        return QString(Parse::UnescapeHTML(telem.text()));
+        return Parse::UnescapeHTML(telem.text());
     }
 
     QString GetKeywords(const QDomElement& element)
@@ -409,7 +408,7 @@ private:
             return QString();
 
         QDomElement telem = elems.at(0).toElement();
-        return QString(telem.text());
+        return telem.text();
     }
 
     int GetInt(const QDomElement& elem, const QString& attrname)
@@ -419,7 +418,7 @@ private:
             bool ok = false;
             int result = elem.attribute(attrname).toInt(&ok);
             if (ok)
-                return int(result);
+                return result;
         }
         return int();
     }

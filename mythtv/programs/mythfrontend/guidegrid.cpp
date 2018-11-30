@@ -502,7 +502,7 @@ GuideGrid::GuideGrid(MythScreenStack *parent,
            m_startChanNum(channum),
            m_currentRow(0),
            m_currentCol(0),
-           m_sortReverse(gCoreContext->GetNumSetting("EPGSortReverse", 0)),
+           m_sortReverse(gCoreContext->GetBoolSetting("EPGSortReverse", false)),
            m_channelCount(5),
            m_timeCount(30),
            m_verticalLayout(false),
@@ -601,7 +601,7 @@ void GuideGrid::Load(void)
     fillChannelInfos();
 
     int maxchannel = max((int)GetChannelCount() - 1, 0);
-    setStartChannel((int)(m_currentStartChannel) - (int)(m_channelCount / 2));
+    setStartChannel((int)(m_currentStartChannel) - (m_channelCount / 2));
     m_channelCount = min(m_channelCount, maxchannel + 1);
 
     for (int y = 0; y < m_channelCount; ++y)
@@ -622,7 +622,7 @@ void GuideGrid::Load(void)
 
 void GuideGrid::Init(void)
 {
-    m_currentRow = (int)(m_channelCount / 2);
+    m_currentRow = m_channelCount / 2;
     m_currentCol = 0;
 
     fillTimeInfos();
@@ -682,7 +682,7 @@ GuideGrid::~GuideGrid()
     if (m_player)
         m_player->UpdateChannelList(m_changrpid);
 
-    if (gCoreContext->GetNumSetting("ChannelGroupRememberLast", 0))
+    if (gCoreContext->GetBoolSetting("ChannelGroupRememberLast", false))
         gCoreContext->SaveSetting("ChannelGroupDefault", m_changrpid);
 }
 
@@ -1288,7 +1288,7 @@ uint GuideGrid::GetAlternateChannelIndex(
 }
 
 
-#define MKKEY(IDX,SEL) ((((uint64_t)IDX) << 32) | SEL)
+#define MKKEY(IDX,SEL) ((((uint64_t)(IDX)) << 32) | (SEL))
 ChannelInfoList GuideGrid::GetSelection(void) const
 {
     ChannelInfoList selected;
@@ -1822,7 +1822,7 @@ void GuideUpdateProgramRow::fillProgramRowInfosWith(int row,
             if (tempRect.bottom() + 2 >=  programRect.bottom())
                 tempRect.setBottom(programRect.bottom());
 
-            if (m_currentRow == (int)row && (m_currentCol >= x) &&
+            if (m_currentRow == row && (m_currentCol >= x) &&
                 (m_currentCol < (x + spread)))
                 isCurrent = true;
             else
@@ -1882,7 +1882,7 @@ void GuideUpdateProgramRow::fillProgramRowInfosWith(int row,
 
 void GuideGrid::customEvent(QEvent *event)
 {
-    if ((MythEvent::Type)(event->type()) == MythEvent::MythEventMessage)
+    if (event->type() == MythEvent::MythEventMessage)
     {
         MythEvent *me = static_cast<MythEvent *>(event);
         QString message = me->Message();

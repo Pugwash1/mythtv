@@ -92,11 +92,7 @@ Scheduler::Scheduler(bool runthread, QMap<int, EncoderLink *> *tvList,
         recordTable = "record";
     }
 
-    if (!VerifyCards())
-    {
-        error = true;
-        return;
-    }
+    VerifyCards();
 
     InitInputInfoMap();
 
@@ -176,7 +172,6 @@ bool Scheduler::VerifyCards(void)
     if (!query.exec("SELECT count(*) FROM capturecard") || !query.next())
     {
         MythDB::DBError("verifyCards() -- main query 1", query);
-        error = GENERIC_EXIT_DB_ERROR;
         return false;
     }
 
@@ -186,7 +181,6 @@ bool Scheduler::VerifyCards(void)
         LOG(VB_GENERAL, LOG_ERR, LOC +
                 "No capture cards are defined in the database.\n\t\t\t"
                 "Perhaps you should re-read the installation instructions?");
-        error = GENERIC_EXIT_SETUP_ERROR;
         return false;
     }
 
@@ -195,7 +189,6 @@ bool Scheduler::VerifyCards(void)
     if (!query.exec())
     {
         MythDB::DBError("verifyCards() -- main query 2", query);
-        error = GENERIC_EXIT_DB_ERROR;
         return false;
     }
 
@@ -231,7 +224,6 @@ bool Scheduler::VerifyCards(void)
     {
         LOG(VB_GENERAL, LOG_ERR, LOC +
             "No channel sources defined in the database");
-        error = GENERIC_EXIT_SETUP_ERROR;
         return false;
     }
 
@@ -577,8 +569,10 @@ void Scheduler::FillRecordListFromDB(uint recordid)
     msg.sprintf("Speculative scheduled %d items in %.1f "
                 "= %.2f match + %.2f check + %.2f place",
                 (int)reclist.size(),
-                matchTime + checkTime + placeTime,
-                matchTime, checkTime, placeTime);
+                static_cast<double>(matchTime + checkTime + placeTime),
+                static_cast<double>(matchTime),
+                static_cast<double>(checkTime),
+                static_cast<double>(placeTime));
     LOG(VB_GENERAL, LOG_INFO, msg);
 }
 
@@ -2086,7 +2080,7 @@ void Scheduler::run(void)
     int       idleTimeoutSecs = 0;
     int       idleWaitForRecordingTime = 15; // in minutes
     bool      blockShutdown   =
-        gCoreContext->GetNumSetting("blockSDWUwithoutClient", 1);
+        gCoreContext->GetBoolSetting("blockSDWUwithoutClient", true);
     bool      firstRun        = true;
     QDateTime nextSleepCheck  = MythDate::current();
     RecIter   startIter       = reclist.begin();
@@ -2473,8 +2467,11 @@ bool Scheduler::HandleReschedule(void)
 
     msg.sprintf("Scheduled %d items in %.1f "
                 "= %.2f match + %.2f check + %.2f place",
-                (int)reclist.size(), matchTime + checkTime + placeTime,
-                matchTime, checkTime, placeTime);
+                (int)reclist.size(),
+                static_cast<double>(matchTime + checkTime + placeTime),
+                static_cast<double>(matchTime),
+                static_cast<double>(checkTime),
+                static_cast<double>(placeTime));
     LOG(VB_GENERAL, LOG_INFO, msg);
 
     fsInfoCacheFillTime = MythDate::current().addSecs(-1000);
@@ -3183,8 +3180,8 @@ void Scheduler::HandleIdleShutdown(
                 }
 
                 // If we're due to grab guide data, then block shutdown
-                if (gCoreContext->GetNumSetting("MythFillGrabberSuggestsTime") &&
-                    gCoreContext->GetNumSetting("MythFillEnabled"))
+                if (gCoreContext->GetBoolSetting("MythFillGrabberSuggestsTime") &&
+                    gCoreContext->GetBoolSetting("MythFillEnabled"))
                 {
                     QString str = gCoreContext->GetSetting("MythFillSuggestedRunTime");
                     QDateTime guideRunTime = MythDate::fromString(str);
@@ -3324,8 +3321,8 @@ bool Scheduler::CheckShutdownServer(int prerollseconds, QDateTime &idleSince,
                 // (needs a clientconnection again,
                 // before shutdown is executed)
                 blockShutdown =
-                    gCoreContext->GetNumSetting("blockSDWUwithoutClient",
-                                                1);
+                    gCoreContext->GetBoolSetting("blockSDWUwithoutClient",
+                                                 true);
                 idleSince = QDateTime();
                 break;
 #if 0
@@ -3372,8 +3369,8 @@ void Scheduler::ShutdownServer(int prerollseconds, QDateTime &idleSince)
     QString str = gCoreContext->GetSetting("MythFillSuggestedRunTime");
     QDateTime guideRefreshTime = MythDate::fromString(str);
 
-    if (gCoreContext->GetNumSetting("MythFillEnabled")
-        && gCoreContext->GetNumSetting("MythFillGrabberSuggestsTime")
+    if (gCoreContext->GetBoolSetting("MythFillEnabled")
+        && gCoreContext->GetBoolSetting("MythFillGrabberSuggestsTime")
         && guideRefreshTime.isValid()
         && (guideRefreshTime > MythDate::current())
         && (restarttime.isNull() || guideRefreshTime < restarttime))
@@ -3869,16 +3866,16 @@ void Scheduler::BuildNewRecordsQueries(uint recordid, QStringList &from,
                       .arg(qphrase));
             break;
         case kTitleSearch:
-            bindings[bindlikephrase1] = QString(QString("%") + qphrase + "%");
+            bindings[bindlikephrase1] = QString("%") + qphrase + "%";
             from << "";
             where << (QString("%1.recordid = ").arg(recordTable) + bindrecid + " AND "
                       "program.manualid = 0 AND "
                       "program.title LIKE " + bindlikephrase1);
             break;
         case kKeywordSearch:
-            bindings[bindlikephrase1] = QString(QString("%") + qphrase + "%");
-            bindings[bindlikephrase2] = QString(QString("%") + qphrase + "%");
-            bindings[bindlikephrase3] = QString(QString("%") + qphrase + "%");
+            bindings[bindlikephrase1] = QString("%") + qphrase + "%";
+            bindings[bindlikephrase2] = QString("%") + qphrase + "%";
+            bindings[bindlikephrase3] = QString("%") + qphrase + "%";
             from << "";
             where << (QString("%1.recordid = ").arg(recordTable) + bindrecid +
                       " AND program.manualid = 0"

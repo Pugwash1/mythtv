@@ -257,13 +257,13 @@ MainServer::MainServer(bool master, int port,
     threadPool.setMaxThreadCount(PRT_STARTUP_THREAD_COUNT);
 
     masterBackendOverride =
-        gCoreContext->GetNumSetting("MasterBackendOverride", 0);
+        gCoreContext->GetBoolSetting("MasterBackendOverride", false);
 
     mythserver = new MythServer();
     mythserver->setProxy(QNetworkProxy::NoProxy);
 
     QList<QHostAddress> listenAddrs = mythserver->DefaultListen();
-    if (!gCoreContext->GetNumSetting("ListenOnAllIps",1))
+    if (!gCoreContext->GetBoolSetting("ListenOnAllIps",true))
     {
         // test to make sure listen addresses are available
         // no reason to run the backend if the mainserver is not active
@@ -1135,7 +1135,7 @@ void MainServer::customEvent(QEvent *e)
         }
     }
 
-    if ((MythEvent::Type)(e->type()) == MythEvent::MythEventMessage)
+    if (e->type() == MythEvent::MythEventMessage)
     {
         MythEvent *me = static_cast<MythEvent *>(e);
 
@@ -1258,7 +1258,7 @@ void MainServer::customEvent(QEvent *e)
                 // or already "deleted" programs
                 if (recInfo.GetRecordingGroup() != "LiveTV" &&
                     recInfo.GetRecordingGroup() != "Deleted" &&
-                    (gCoreContext->GetNumSetting("RerecordWatched", 0) ||
+                    (gCoreContext->GetBoolSetting("RerecordWatched", false) ||
                      !recInfo.IsWatched()))
                 {
                     recInfo.ForgetHistory();
@@ -2405,8 +2405,8 @@ void MainServer::DoDeleteThread(DeleteStruct *ds)
     if (tvchain)
         tvchain->DeleteProgram(&pginfo);
 
-    bool followLinks = gCoreContext->GetNumSetting("DeletesFollowLinks", 0);
-    bool slowDeletes = gCoreContext->GetNumSetting("TruncateDeletesSlowly", 0);
+    bool followLinks = gCoreContext->GetBoolSetting("DeletesFollowLinks", false);
+    bool slowDeletes = gCoreContext->GetBoolSetting("TruncateDeletesSlowly", false);
     int fd = -1;
     off_t size = 0;
     bool errmsg = false;
@@ -3574,7 +3574,7 @@ void MainServer::HandleQueryCheckFile(QStringList &slist, PlaybackSock *pbs)
         (recinfo.GetHostname() != gCoreContext->GetHostName()) &&
         (checkSlaves))
     {
-        PlaybackSock *slave = GetSlaveByHostname(recinfo.GetHostname());
+        PlaybackSock *slave = GetMediaServerByHostname(recinfo.GetHostname());
 
         if (slave)
         {
@@ -3762,7 +3762,7 @@ void MainServer::HandleQueryGuideDataThrough(PlaybackSock *pbs)
     if (GuideDataThrough.isNull())
         strlist << QString("0000-00-00 00:00");
     else
-        strlist << QDateTime(GuideDataThrough).toString("yyyy-MM-dd hh:mm");
+        strlist << GuideDataThrough.toString("yyyy-MM-dd hh:mm");
 
     SendResponse(pbssock, strlist);
 }
@@ -5490,7 +5490,7 @@ void TruncateThread::run(void)
 
 void MainServer::DoTruncateThread(DeleteStruct *ds)
 {
-    if (gCoreContext->GetNumSetting("TruncateDeletesSlowly", 0))
+    if (gCoreContext->GetBoolSetting("TruncateDeletesSlowly", false))
     {
         TruncateAndClose(nullptr, ds->m_fd, ds->m_filename, ds->m_size);
     }
@@ -5541,7 +5541,7 @@ bool MainServer::HandleDeleteFile(QString filename, QString storagegroup,
     }
 
     QFile checkFile(fullfile);
-    bool followLinks = gCoreContext->GetNumSetting("DeletesFollowLinks", 0);
+    bool followLinks = gCoreContext->GetBoolSetting("DeletesFollowLinks", false);
     off_t size = 0;
 
     // This will open the file and unlink the dir entry.  The actual file
@@ -6444,7 +6444,7 @@ void MainServer::HandleMusicTagChangeImage(const QStringList &slist, PlaybackSoc
         {
             AlbumArtImage oldImage = *image;
 
-            image->imageType = (ImageType) newType;
+            image->imageType = newType;
 
             if (image->imageType == oldImage.imageType)
             {
@@ -6491,7 +6491,7 @@ void MainServer::HandleMusicTagChangeImage(const QStringList &slist, PlaybackSoc
                 oldImage.filename = artGroup.FindFile("AlbumArt/" + image->filename);
 
                 QFileInfo fi(oldImage.filename);
-                image->filename = QString(fi.path() + "/%1-%2.jpg")
+                image->filename = fi.path() + QString("/%1-%2.jpg")
                                           .arg(mdata->ID())
                                           .arg(AlbumArtImages::getTypeFilename(image->imageType));
 
@@ -6522,7 +6522,7 @@ void MainServer::HandleMusicTagChangeImage(const QStringList &slist, PlaybackSoc
                 QFileInfo fi(oldImage.filename);
 
                 // get the new images filename
-                image->filename = QString(fi.absolutePath() + "/%1.jpg")
+                image->filename = fi.absolutePath() + QString("/%1.jpg")
                         .arg(AlbumArtImages::getTypeFilename(image->imageType));
 
                 if (image->filename != oldImage.filename && QFile::exists(oldImage.filename))

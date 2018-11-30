@@ -70,7 +70,7 @@ MusicCommon::MusicCommon(MythScreenStack *parent, MythScreenType *parentScreen,
     m_coverartImage(nullptr),     m_currentPlaylist(nullptr),
     m_playedTracksList(nullptr),  m_visualizerVideo(nullptr)
 {
-    m_cycleVisualizer = gCoreContext->GetNumSetting("VisualCycleOnSongChange", 0);
+    m_cycleVisualizer = gCoreContext->GetBoolSetting("VisualCycleOnSongChange", false);
 
     if (LCD *lcd = LCD::Get())
     {
@@ -248,7 +248,7 @@ void MusicCommon::init(bool startPlayback)
 
         m_fullscreenBlank = false;
 
-        m_randomVisualizer = gCoreContext->GetNumSetting("VisualRandomize", 0);
+        m_randomVisualizer = gCoreContext->GetBoolSetting("VisualRandomize", false);
 
         m_currentVisual = m_mainvisual->getCurrentVisual();
 
@@ -265,7 +265,7 @@ void MusicCommon::init(bool startPlayback)
             startVisualizer();
     }
 
-    m_controlVolume = gCoreContext->GetNumSetting("MythControlsVolume", 0);
+    m_controlVolume = gCoreContext->GetBoolSetting("MythControlsVolume", false);
     updateVolume();
 
     if (m_movingTracksState)
@@ -470,15 +470,15 @@ void MusicCommon::switchView(MusicView view)
     {
         case MV_PLAYLIST:
         {
-            PlaylistView *view = new PlaylistView(mainStack, this);
+            PlaylistView *plview = new PlaylistView(mainStack, this);
 
-            if (view->Create())
+            if (plview->Create())
             {
-                mainStack->AddScreen(view);
-                connect(view, SIGNAL(Exiting()), this, SLOT(viewExited()));
+                mainStack->AddScreen(plview);
+                connect(plview, SIGNAL(Exiting()), this, SLOT(viewExited()));
             }
             else
-                delete view;
+                delete plview;
 
             break;
         }
@@ -494,15 +494,15 @@ void MusicCommon::switchView(MusicView view)
 
             MythScreenType *parentScreen = (oldView != nullptr ? m_parentScreen : this);
 
-            PlaylistEditorView *view = new PlaylistEditorView(mainStack, parentScreen, "tree", restorePos);
+            PlaylistEditorView *pleview = new PlaylistEditorView(mainStack, parentScreen, "tree", restorePos);
 
-            if (view->Create())
+            if (pleview->Create())
             {
-                mainStack->AddScreen(view);
-                connect(view, SIGNAL(Exiting()), this, SLOT(viewExited()));
+                mainStack->AddScreen(pleview);
+                connect(pleview, SIGNAL(Exiting()), this, SLOT(viewExited()));
             }
             else
-                delete view;
+                delete pleview;
 
             if (oldView)
             {
@@ -524,15 +524,15 @@ void MusicCommon::switchView(MusicView view)
 
             MythScreenType *parentScreen = (oldView != nullptr ? m_parentScreen : this);
 
-            PlaylistEditorView *view = new PlaylistEditorView(mainStack, parentScreen, "gallery", restorePos);
+            PlaylistEditorView *pleview = new PlaylistEditorView(mainStack, parentScreen, "gallery", restorePos);
 
-            if (view->Create())
+            if (pleview->Create())
             {
-                mainStack->AddScreen(view);
-                connect(view, SIGNAL(Exiting()), this, SLOT(viewExited()));
+                mainStack->AddScreen(pleview);
+                connect(pleview, SIGNAL(Exiting()), this, SLOT(viewExited()));
             }
             else
-                delete view;
+                delete pleview;
 
             if (oldView)
             {
@@ -545,45 +545,45 @@ void MusicCommon::switchView(MusicView view)
 
         case MV_SEARCH:
         {
-            SearchView *view = new SearchView(mainStack, this);
+            SearchView *sview = new SearchView(mainStack, this);
 
-            if (view->Create())
+            if (sview->Create())
             {
-                mainStack->AddScreen(view);
-                connect(view, SIGNAL(Exiting()), this, SLOT(viewExited()));
+                mainStack->AddScreen(sview);
+                connect(sview, SIGNAL(Exiting()), this, SLOT(viewExited()));
             }
             else
-                delete view;
+                delete sview;
 
             break;
         }
 
         case MV_VISUALIZER:
         {
-            VisualizerView *view = new VisualizerView(mainStack, this);
+            VisualizerView *vview = new VisualizerView(mainStack, this);
 
-            if (view->Create())
+            if (vview->Create())
             {
-                mainStack->AddScreen(view);
-                connect(view, SIGNAL(Exiting()), this, SLOT(viewExited()));
+                mainStack->AddScreen(vview);
+                connect(vview, SIGNAL(Exiting()), this, SLOT(viewExited()));
             }
             else
-                delete view;
+                delete vview;
 
             break;
         }
 
         case MV_LYRICS:
         {
-            LyricsView *view = new LyricsView(mainStack, this);
+            LyricsView *lview = new LyricsView(mainStack, this);
 
-            if (view->Create())
+            if (lview->Create())
             {
-                mainStack->AddScreen(view);
-                connect(view, SIGNAL(Exiting()), this, SLOT(viewExited()));
+                mainStack->AddScreen(lview);
+                connect(lview, SIGNAL(Exiting()), this, SLOT(viewExited()));
             }
             else
-                delete view;
+                delete lview;
 
             break;
         }
@@ -613,7 +613,7 @@ bool MusicCommon::keyPressEvent(QKeyEvent *e)
         if (gPlayer->isPlaying() && gCoreContext->GetSetting("MusicJumpPointAction", "stop") == "stop")
             gPlayer->stop(true);
 
-        return false;
+        return MythScreenType::keyPressEvent(e);
     }
 
     QStringList actions;
@@ -1165,7 +1165,7 @@ void MusicCommon::seek(int pos)
 
             if (LCD *lcd = LCD::Get())
             {
-                float percent_heard = m_maxTime <= 0 ? 0.0 : ((float)pos /
+                float percent_heard = m_maxTime <= 0 ? 0.0f : ((float)pos /
                                       (float)m_maxTime);
 
                 QString lcd_time_string = getTimeString(pos, m_maxTime);
@@ -1298,7 +1298,7 @@ void MusicCommon::customEvent(QEvent *event)
             if (LCD *lcd = LCD::Get())
             {
                 float percent_heard = m_maxTime <= 0 ?
-                    0.0:((float)rs / (float)curMeta->Length()) * 1000.0;
+                    0.0f:((float)rs / (float)curMeta->Length()) * 1000.0f;
 
                 QString lcd_time_string = time_string;
 
@@ -1315,15 +1315,27 @@ void MusicCommon::customEvent(QEvent *event)
         //  Hack around for cd bitrates
         if (oe->bitrate() < 2000)
         {
+#if QT_VERSION < QT_VERSION_CHECK(5,4,0)
             info_string.sprintf(QString("%d "+tr("kbps")+ "   %.1f "+ tr("kHz")+ "   %s "+ tr("ch")).toUtf8().data(),
-                                oe->bitrate(), float(oe->frequency()) / 1000.0,
+                                static_cast<double>(oe->frequency()) / 1000.0,
                                 oe->channels() > 1 ? "2" : "1");
+#else
+            info_string.sprintf(qUtf8Printable("%d "+tr("kbps")+ "   %.1f "+ tr("kHz")+ "   %s "+ tr("ch")),
+                                oe->bitrate(), static_cast<double>(oe->frequency()) / 1000.0,
+                                oe->channels() > 1 ? "2" : "1");
+#endif
         }
         else
         {
-            info_string.sprintf(QString("%.1f "+ tr("kHz")+ "   %s "+ tr("ch")).toUtf8().data(),
-                                float(oe->frequency()) / 1000.0,
+#if QT_VERSION < QT_VERSION_CHECK(5,4,0)
+            info_string.sprintf(QString("%d "+tr("kbps")+ "   %.1f "+ tr("kHz")+ "   %s "+ tr("ch")).toUtf8().data(),
+                                static_cast<double>(oe->frequency()) / 1000.0,
                                 oe->channels() > 1 ? "2" : "1");
+#else
+            info_string.sprintf(qUtf8Printable("%.1f "+ tr("kHz")+ "   %s "+ tr("ch")),
+                                static_cast<double>(oe->frequency()) / 1000.0,
+                                oe->channels() > 1 ? "2" : "1");
+#endif
         }
 
         if (curMeta)
@@ -2691,7 +2703,7 @@ void MusicCommon::playFirstTrack()
 //---------------------------------------------------------
 // MythMusicVolumeDialog
 //---------------------------------------------------------
-#define MUSICVOLUMEPOPUPTIME 4 * 1000
+#define MUSICVOLUMEPOPUPTIME (4 * 1000)
 
 MythMusicVolumeDialog::MythMusicVolumeDialog(MythScreenStack *parent, const char *name)
          : MythScreenType(parent, name, false),

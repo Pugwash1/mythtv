@@ -48,7 +48,7 @@
 #define LOG
 */
 
-#define ERR           (void *)-1
+#define ERR           ((void *)-1)
 #define LINE_LEN      1000
 #define LINE_LEN_QUOT "1000"
 
@@ -56,7 +56,7 @@
  * Demuxer code start
  */
 
-#define FORMAT_UNKNOWN   -1
+#define FORMAT_UNKNOWN   (-1)
 #define FORMAT_MICRODVD   0
 #define FORMAT_SUBRIP     1
 #define FORMAT_SUBVIEWER  2
@@ -296,7 +296,8 @@ static subtitle_t *sub_read_line_subviewer(demux_sputext_t *demuxstr, subtitle_t
 
     p=q=line;
     for (current->lines=1; current->lines <= SUB_MAX_TEXT; current->lines++) {
-      for (q=p,len=0; *p && *p!='\r' && *p!='\n' && *p!='|' && strncasecmp(p,"[br]",4); p++,len++);
+      for (q=p,len=0; *p && *p!='\r' && *p!='\n' && *p!='|' &&
+               (strncasecmp(p,"[br]",4) != 0); p++,len++);
       current->text[current->lines-1]=(char *)malloc (len+1);
       if (!current->text[current->lines-1]) return (subtitle_t *)ERR;
       strncpy (current->text[current->lines-1], q, len);
@@ -629,9 +630,9 @@ static subtitle_t *sub_read_line_mpsub (demux_sputext_t *demuxstr, subtitle_t *c
       return nullptr;
   } while (sscanf (line, "%f %f", &a, &b) !=2);
 
-  demuxstr->mpsub_position += (a*100.0);
+  demuxstr->mpsub_position += (a*100.0f);
   current->start = (int) demuxstr->mpsub_position;
-  demuxstr->mpsub_position += (b*100.0);
+  demuxstr->mpsub_position += (b*100.0f);
   current->end = (int) demuxstr->mpsub_position;
 
   while (num < SUB_MAX_TEXT) {

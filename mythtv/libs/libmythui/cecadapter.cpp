@@ -65,10 +65,6 @@ class CECAdapterPriv
 {
   public:
     CECAdapterPriv()
-      : adapter(nullptr), valid(false),
-         powerOffTV(false),  powerOffTVAllowed(false), powerOffTVOnExit(false),
-         powerOnTV(false),   powerOnTVAllowed(false),  powerOnTVOnStart(false),
-         switchInput(false), switchInputAllowed(true)
      {
 #if CEC_LIB_VERSION_MAJOR < 2
         // libcec1 has this as a POD struct, with no
@@ -247,7 +243,7 @@ class CECAdapterPriv
     int LogMessage(const cec_log_message &message)
     {
         QString msg(message.message);
-        int lvl = LOG_UNKNOWN;
+        LogLevel_t lvl = LOG_UNKNOWN;
         switch (message.level)
         {
             case CEC_LOG_ERROR:   lvl = LOG_ERR;     break;
@@ -263,7 +259,7 @@ class CECAdapterPriv
     void LogMessage(const cec_log_message* message)
     {
         QString msg(message->message);
-        int lvl = LOG_UNKNOWN;
+        LogLevel_t lvl = LOG_UNKNOWN;
         switch (message->level)
         {
             case CEC_LOG_ERROR:   lvl = LOG_ERR;     break;
@@ -1120,17 +1116,17 @@ class CECAdapterPriv
         switchInput = false;
     }
 
-    ICECAdapter *adapter;
+    ICECAdapter *adapter {nullptr};
     ICECCallbacks callbacks;
-    bool         valid;
-    bool         powerOffTV;
-    bool         powerOffTVAllowed;
-    bool         powerOffTVOnExit;
-    bool         powerOnTV;
-    bool         powerOnTVAllowed;
-    bool         powerOnTVOnStart;
-    bool         switchInput;
-    bool         switchInputAllowed;
+    bool         valid {false};
+    bool         powerOffTV {false};
+    bool         powerOffTVAllowed {false};
+    bool         powerOffTVOnExit {false};
+    bool         powerOnTV {false};
+    bool         powerOnTVAllowed {false};
+    bool         powerOnTVOnStart {false};
+    bool         switchInput {false};
+    bool         switchInputAllowed {true};
 };
 
 CECAdapter::CECAdapter() : MThread("CECAdapter"), m_priv(new CECAdapterPriv)
@@ -1138,7 +1134,7 @@ CECAdapter::CECAdapter() : MThread("CECAdapter"), m_priv(new CECAdapterPriv)
     QMutexLocker lock(gLock);
 
     // don't try if disabled
-    if (!gCoreContext->GetNumSetting(LIBCEC_ENABLED, 1))
+    if (!gCoreContext->GetBoolSetting(LIBCEC_ENABLED, true))
     {
         LOG(VB_GENERAL, LOG_INFO, LOC + "libCEC support is disabled.");
         return;

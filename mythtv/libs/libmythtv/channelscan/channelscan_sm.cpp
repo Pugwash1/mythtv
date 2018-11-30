@@ -88,7 +88,7 @@ QString ChannelScanSM::loc(const ChannelScanSM *siscan)
 class ScannedChannelInfo
 {
   public:
-    ScannedChannelInfo() : mgt(nullptr) {}
+    ScannedChannelInfo() = default;
 
     bool IsEmpty() const
     {
@@ -104,7 +104,7 @@ class ScannedChannelInfo
     QMap<uint,uint>   program_encryption_status; // pnum->enc_status
 
     // ATSC
-    const MasterGuideTable *mgt;
+    const MasterGuideTable *mgt {nullptr};
     cvct_vec_t        cvcts;
     tvct_vec_t        tvcts;
 
@@ -144,7 +144,8 @@ ChannelScanSM::ChannelScanSM(ScanMonitor *_scan_monitor,
     : // Set in constructor
       m_scanMonitor(_scan_monitor),
       m_channel(_channel),
-      m_signalMonitor(SignalMonitor::Init(_cardtype, -1, _channel, true)),
+      m_signalMonitor(SignalMonitor::Init(_cardtype, m_channel->GetInputID(),
+                                          _channel, true)),
       m_sourceID(_sourceID),
       m_signalTimeout(signal_timeout),
       m_channelTimeout(channel_timeout),
@@ -1602,7 +1603,7 @@ void ChannelScanSM::run(void)
 bool ChannelScanSM::HasTimedOut(void)
 {
     if (m_currentTestingDecryption &&
-        (m_timer.elapsed() > (int)kDecryptionTimeout))
+        (m_timer.elapsed() > kDecryptionTimeout))
     {
         m_currentTestingDecryption = false;
         return true;

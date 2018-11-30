@@ -45,7 +45,8 @@ bool ExternalChannel::Open(void)
     if (!m_inputid)
         return false;
 
-    m_stream_handler = ExternalStreamHandler::Get(m_device, GetInputID());
+    m_stream_handler = ExternalStreamHandler::Get(m_device, GetInputID(),
+						  GetMajorID());
     if (!m_stream_handler || m_stream_handler->HasError())
     {
         LOG(VB_GENERAL, LOG_ERR, LOC + "Open failed");
@@ -84,8 +85,8 @@ bool ExternalChannel::Tune(const QString &channum)
 
     LOG(VB_CHANNEL, LOG_INFO, LOC + "Tuning to " + channum);
 
-    if (!m_stream_handler->ProcessCommand("TuneChannel:" + channum, 10000,
-                                          result))
+    if (!m_stream_handler->ProcessCommand("TuneChannel:" + channum, result,
+                                          20000))
     {
         LOG(VB_CHANNEL, LOG_ERR, LOC + QString
             ("Failed to Tune %1: %2").arg(channum).arg(result));

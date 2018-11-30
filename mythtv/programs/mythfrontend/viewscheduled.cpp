@@ -49,7 +49,7 @@ ViewScheduled::ViewScheduled(MythScreenStack *parent, TV* player, bool /*showTV*
                m_conflictDate(QDate()),
                m_schedulesList(nullptr),
                m_groupList(nullptr),
-               m_showAll(!gCoreContext->GetNumSetting("ViewSchedShowLevel", 0)),
+               m_showAll(!gCoreContext->GetBoolSetting("ViewSchedShowLevel", false)),
                m_inEvent(false),
                m_inFill(false),
                m_needFill(false),
@@ -593,7 +593,7 @@ void ViewScheduled::EmbedTVWindow(void)
 
 void ViewScheduled::customEvent(QEvent *event)
 {
-    if ((MythEvent::Type)(event->type()) == MythEvent::MythEventMessage)
+    if (event->type() == MythEvent::MythEventMessage)
     {
         MythEvent *me = static_cast<MythEvent *>(event);
         QString message = me->Message();

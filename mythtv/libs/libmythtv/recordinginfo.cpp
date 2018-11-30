@@ -905,6 +905,38 @@ int RecordingInfo::getRecordID(void)
     return recordid;
 }
 
+bool RecordingInfo::QueryRecordedIdForKey(int & recordedid,
+                                          uint chanid, QDateTime recstartts)
+{
+    if (chanid < 1)
+    {
+        LOG(VB_RECORD, LOG_WARNING,
+            QString("QueryRecordedIdFromKey: Invalid chanid %1").arg(chanid));
+        return false;
+    }
+    if (!recstartts.isValid())
+    {
+        LOG(VB_RECORD, LOG_WARNING,
+            QString("QueryRecordedIdFromKey: Invalid start ts %1")
+            .arg(recstartts.toString()));
+        return false;
+    }
+
+    MSqlQuery query(MSqlQuery::InitCon());
+    query.prepare(
+        "SELECT recordedid FROM recorded "
+        "WHERE chanid = :CHANID AND starttime = :RECSTARTTS");
+    query.bindValue(":CHANID", chanid);
+    query.bindValue(":RECSTARTTS", recstartts);
+    if (query.exec() && query.next())
+    {
+        recordedid = query.value(0).toUInt();
+        return true;
+    }
+
+    return false;
+}
+
 /**
  *  \brief Inserts this RecordingInfo into the database as an existing recording.
  *
@@ -942,7 +974,7 @@ void RecordingInfo::StartedRecording(QString ext)
 
     pathname = dirname + "/" + pathname;
 
-    LOG(VB_FILE, LOG_INFO, QString(LOC + "StartedRecording: Recording to '%1'")
+    LOG(VB_FILE, LOG_INFO, LOC + QString("StartedRecording: Recording to '%1'")
                              .arg(pathname));
 
 

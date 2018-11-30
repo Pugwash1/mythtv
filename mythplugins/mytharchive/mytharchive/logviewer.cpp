@@ -94,7 +94,7 @@ LogViewer::LogViewer(MythScreenStack *parent) :
 {
     m_updateTime = gCoreContext->GetNumSetting(
         "LogViewerUpdateTime", DEFAULT_UPDATE_TIME);
-    m_autoUpdate = gCoreContext->GetNumSetting("LogViewerAutoUpdate", 1);
+    m_autoUpdate = gCoreContext->GetBoolSetting("LogViewerAutoUpdate", true);
 }
 
 LogViewer::~LogViewer(void)
@@ -165,7 +165,7 @@ bool LogViewer::keyPressEvent(QKeyEvent *event)
         handled = true;
 
         if (action == "MENU")
-            showMenu();
+            ShowMenu();
         else
             handled = false;
     }
@@ -345,7 +345,7 @@ void LogViewer::showFullLog(void)
     updateClicked();
 }
 
-void LogViewer::showMenu()
+void LogViewer::ShowMenu()
 {
     MythScreenStack *popupStack = GetMythMainWindow()->GetStack("popup stack");
     MythDialogBox *menuPopup = new MythDialogBox(tr("Menu"), popupStack, "actionmenu");

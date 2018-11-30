@@ -51,7 +51,7 @@
 
 #define GET_PROC(FUNC_ID, PROC) \
     vdp_st = vdp_get_proc_address( \
-        m_device, FUNC_ID, (void **)&PROC); \
+        m_device, FUNC_ID, (void **)&(PROC)); \
     CHECK_ST
 
 #define CREATE_CHECK(arg1, arg2) \
@@ -59,7 +59,7 @@
   { \
       ok = arg1; \
       if (!ok) \
-          LOG(VB_GENERAL, LOG_ERR, LOC + arg2); \
+          LOG(VB_GENERAL, LOG_ERR, LOC + (arg2)); \
   }
 
 #define CHECK_VIDEO_SURFACES(arg1) \
@@ -166,28 +166,28 @@ class VDPAULayer
 class VDPAUResource
 {
   public:
-    VDPAUResource() : m_id(0) {}
+    VDPAUResource() = default;
     VDPAUResource(uint id, QSize size) : m_id(id), m_size(size) { }
     virtual ~VDPAUResource() = default;
 
-    uint  m_id;
+    uint  m_id {0};
     QSize m_size;
 };
 
 class VDPAUOutputSurface : public VDPAUResource
 {
   public:
-    VDPAUOutputSurface() : m_fmt(0) {}
+    VDPAUOutputSurface() = default;
     VDPAUOutputSurface(uint id, QSize size, VdpRGBAFormat fmt)
       : VDPAUResource(id, size), m_fmt(fmt) { }
 
-    VdpRGBAFormat m_fmt;
+    VdpRGBAFormat m_fmt {0};
 };
 
 class VDPAUVideoSurface : public VDPAUResource
 {
   public:
-    VDPAUVideoSurface() : m_type(0), m_needs_reset(false), m_owner(nullptr)
+    VDPAUVideoSurface()
     {
         memset(&m_render, 0, sizeof(struct vdpau_render_state));
     }
@@ -206,42 +206,37 @@ class VDPAUVideoSurface : public VDPAUResource
         m_render.surface = m_id;
     }
 
-    VdpChromaType      m_type;
+    VdpChromaType      m_type {0};
     vdpau_render_state m_render;
-    bool               m_needs_reset;
-    QThread*           m_owner;
+    bool               m_needs_reset {false};
+    QThread*           m_owner {nullptr};
 };
 
 class VDPAUBitmapSurface : public VDPAUResource
 {
   public:
-    VDPAUBitmapSurface() : m_fmt(0) {}
+    VDPAUBitmapSurface() = default;
     VDPAUBitmapSurface(uint id, QSize size, VdpRGBAFormat fmt)
       : VDPAUResource(id, size), m_fmt(fmt) { }
 
-    VdpRGBAFormat m_fmt;
+    VdpRGBAFormat m_fmt {0};
 };
 
 class VDPAUDecoder : public VDPAUResource
 {
   public:
-    VDPAUDecoder() : m_profile(0), m_max_refs(0) {}
+    VDPAUDecoder() = default;
     VDPAUDecoder(uint id, QSize size, VdpDecoderProfile profile, uint refs)
       : VDPAUResource(id, size), m_profile(profile), m_max_refs(refs) { }
 
-    VdpDecoderProfile m_profile;
-    uint              m_max_refs;
+    VdpDecoderProfile m_profile {0};
+    uint              m_max_refs {0};
 };
 
 class VDPAUVideoMixer : public VDPAUResource
 {
   public:
-    VDPAUVideoMixer() :
-        m_layers(0), m_features(0), m_type(0),
-        m_noise_reduction(nullptr), m_sharpness(nullptr),
-        m_skip_chroma(nullptr), m_background(nullptr)
-    {
-    }
+    VDPAUVideoMixer() = default;
     VDPAUVideoMixer(uint id, QSize size, uint layers, uint features,
                     VdpChromaType type)
      : VDPAUResource(id, size), m_layers(layers), m_features(features),
@@ -263,14 +258,14 @@ class VDPAUVideoMixer : public VDPAUResource
             delete m_background;
     }
 
-    uint            m_layers;
-    uint            m_features;
-    VdpChromaType   m_type;
+    uint            m_layers {0};
+    uint            m_features {0};
+    VdpChromaType   m_type {0};
     VdpCSCMatrix    m_csc;
-    float          *m_noise_reduction;
-    float          *m_sharpness;
-    uint8_t        *m_skip_chroma;
-    VDPAUColor     *m_background;
+    float          *m_noise_reduction {nullptr};
+    float          *m_sharpness {nullptr};
+    uint8_t        *m_skip_chroma {nullptr};
+    VDPAUColor     *m_background {nullptr};
 };
 
 static void vdpau_preemption_callback(VdpDevice device, void *myth_render)
@@ -339,7 +334,7 @@ bool MythRenderVDPAU::IsHEVCAvailable(void)
 
 bool MythRenderVDPAU::H264DecoderSizeSupported(uint width, uint height)
 {
-    int mbs = ceil((double)width / 16.0f);
+    int mbs = ceil((double)width / 16.0);
     // see Appendix H of the NVIDIA proprietary driver README
     int check = (mbs == 49 ) || (mbs == 54 ) || (mbs == 59 ) || (mbs == 64) ||
                 (mbs == 113) || (mbs == 118) || (mbs == 123) || (mbs == 128);
@@ -2118,9 +2113,9 @@ void MythRenderVDPAU::Preempted(void)
         QHash<uint, VDPAULayer>::iterator layers;
         for (layers = m_layers.begin(); layers != m_layers.end(); ++layers)
         {
-            uint old = layers.value().m_layer.source_surface;
-            if (old_surfaces.contains(old))
-                layers.value().m_layer.source_surface = old_surfaces[old];
+            uint surface = layers.value().m_layer.source_surface;
+            if (old_surfaces.contains(surface))
+                layers.value().m_layer.source_surface = old_surfaces[surface];
         }
         if (ok)
             LOG(VB_GENERAL, LOG_INFO, LOC + "Re-created output surfaces.");

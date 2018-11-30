@@ -136,10 +136,10 @@ IconView::IconView(MythScreenStack *parent, const char *name,
 {
     m_showcaption = gCoreContext->GetNumSetting("GalleryOverlayCaption", 0);
     m_sortorder = gCoreContext->GetNumSetting("GallerySortOrder", 0);
-    m_useOpenGL = gCoreContext->GetNumSetting("SlideshowUseOpenGL", 0);
-    m_recurse = gCoreContext->GetNumSetting("GalleryRecursiveSlideshow", 0);
+    m_useOpenGL = gCoreContext->GetBoolSetting("SlideshowUseOpenGL", false);
+    m_recurse = gCoreContext->GetBoolSetting("GalleryRecursiveSlideshow", false);
     m_paths = gCoreContext->GetSetting("GalleryImportDirs").split(":");
-    m_allowImportScripts = gCoreContext->GetNumSetting("GalleryAllowImportScripts", 0);
+    m_allowImportScripts = gCoreContext->GetBoolSetting("GalleryAllowImportScripts", false);
 
     QDir dir(m_galleryDir);
     if (!dir.exists() || !dir.isReadable())
@@ -1117,10 +1117,10 @@ void IconView::ReloadSettings(void)
     // reload settings
     m_showcaption = gCoreContext->GetNumSetting("GalleryOverlayCaption", 0);
     m_sortorder   = gCoreContext->GetNumSetting("GallerySortOrder", 0);
-    m_useOpenGL   = gCoreContext->GetNumSetting("SlideshowUseOpenGL", 0);
-    m_recurse     = gCoreContext->GetNumSetting("GalleryRecursiveSlideshow", 0);
+    m_useOpenGL   = gCoreContext->GetBoolSetting("SlideshowUseOpenGL", false);
+    m_recurse     = gCoreContext->GetBoolSetting("GalleryRecursiveSlideshow", false);
     m_paths       = gCoreContext->GetSetting("GalleryImportDirs").split(":");
-    m_allowImportScripts = gCoreContext->GetNumSetting("GalleryAllowImportScripts", 0);
+    m_allowImportScripts = gCoreContext->GetBoolSetting("GalleryAllowImportScripts", false);
 
     // reload directory
     MediaMonitor *mon = MediaMonitor::GetMediaMonitor();
@@ -1274,13 +1274,13 @@ void IconView::HandleShowDevices(void)
         {
             if (mon->ValidateAndLock(*it))
             {
-                item = new ThumbItem(
+                ThumbItem *item2 = new ThumbItem(
                     (*it)->getVolumeID().isEmpty() ?
                     (*it)->getDevicePath() : (*it)->getVolumeID(),
                     (*it)->getMountPath(), true, *it);
 
-                m_itemList.append(item);
-                m_itemHash.insert(item->GetName(), item);
+                m_itemList.append(item2);
+                m_itemHash.insert(item2->GetName(), item2);
 
                 mon->Unlock(*it);
             }
@@ -1289,13 +1289,13 @@ void IconView::HandleShowDevices(void)
 
     for (int x = 0; x < m_itemList.size(); x++)
     {
-        ThumbItem *thumbitem = m_itemList.at(x);
+        ThumbItem *item3 = m_itemList.at(x);
 
-        thumbitem->InitCaption(m_showcaption);
-        MythUIButtonListItem* item =
-            new MythUIButtonListItem(m_imageList, thumbitem->GetCaption(), nullptr,
+        item3->InitCaption(m_showcaption);
+        MythUIButtonListItem* menuitem =
+            new MythUIButtonListItem(m_imageList, item3->GetCaption(), nullptr,
                                      true, MythUIButtonListItem::NotChecked);
-        item->SetData(qVariantFromValue(thumbitem));
+        menuitem->SetData(qVariantFromValue(item3));
     }
 
     // exit from menu on show devices action..

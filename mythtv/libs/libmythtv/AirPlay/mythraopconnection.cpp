@@ -228,7 +228,7 @@ bool MythRAOPConnection::Init(void)
         return false;
 
     // use internal volume control
-    m_allowVolumeControl = gCoreContext->GetNumSetting("MythControlsVolume", 1);
+    m_allowVolumeControl = gCoreContext->GetBoolSetting("MythControlsVolume", true);
 
     // start the watchdog timer to auto delete the client after a period of inactivity
     m_watchdogTimer = new QTimer();
@@ -397,7 +397,7 @@ void MythRAOPConnection::ProcessSync(const QByteArray &buf)
 
     if (m_audioStarted)
     {
-        currentLatency = (int64_t)audiots - (int64_t)m_currentTimestamp;
+        currentLatency = audiots - (int64_t)m_currentTimestamp;
     }
 
     LOG(VB_PLAYBACK, LOG_DEBUG, LOC +
@@ -589,7 +589,7 @@ bool MythRAOPConnection::GetPacketType(const QByteArray &buf, uint8_t &type,
         return false;
     }
 
-    type = (char)buf[1];
+    type = buf[1];
     // Is it first sync packet?
     if ((uint8_t)buf[0] == 0x90 && type == FIRSTSYNC)
     {
@@ -947,7 +947,7 @@ void MythRAOPConnection::ProcessRequest(const QStringList &header,
             .arg(RTPseq).arg(RTPtimestamp));
     }
 
-    if (gCoreContext->GetNumSetting("AirPlayPasswordEnabled", false))
+    if (gCoreContext->GetBoolSetting("AirPlayPasswordEnabled", false))
     {
         if (m_nonce.isEmpty())
         {
@@ -1691,7 +1691,7 @@ bool MythRAOPConnection::OpenAudioDevice(void)
 {
     CloseAudioDevice();
 
-    QString passthru = gCoreContext->GetNumSetting("PassThruDeviceOverride", false)
+    QString passthru = gCoreContext->GetBoolSetting("PassThruDeviceOverride", false)
                         ? gCoreContext->GetSetting("PassThruOutputDevice") : QString();
     QString device = gCoreContext->GetSetting("AudioOutputDevice");
 
@@ -1796,7 +1796,7 @@ void MythRAOPConnection::SendNotification(bool update)
 {
     QImage image = m_artwork.isEmpty() ? QImage() : QImage::fromData(m_artwork);
     int duration  =
-        (float)(m_progressEnd-m_progressStart) / m_frameRate + 0.5f;
+        lroundf(static_cast<float>(m_progressEnd-m_progressStart) / m_frameRate);
     int position =
         (m_progressCurrent-m_progressStart) / m_frameRate;
 
@@ -1815,7 +1815,7 @@ void MythRAOPConnection::SendNotification(bool update)
     n->SetId(m_id);
     n->SetParent(this);
     n->SetDuration(5);
-    n->SetFullScreen(gCoreContext->GetNumSetting("AirPlayFullScreen"));
+    n->SetFullScreen(gCoreContext->GetBoolSetting("AirPlayFullScreen"));
     GetNotificationCenter()->Queue(*n);
     m_firstsend = true;
     delete n;

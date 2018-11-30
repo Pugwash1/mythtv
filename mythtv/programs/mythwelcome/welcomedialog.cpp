@@ -131,7 +131,7 @@ void WelcomeDialog::checkAutoStart(void)
     LOG(VB_GENERAL, LOG_NOTICE,
         QString("mythshutdown --startup returned: %1").arg(state));
 
-    bool bAutoStartFrontend = gCoreContext->GetNumSetting("AutoStartFrontend", 1);
+    bool bAutoStartFrontend = gCoreContext->GetBoolSetting("AutoStartFrontend", true);
 
     if (state == 1 && bAutoStartFrontend)
         startFrontendClick();
@@ -142,7 +142,7 @@ void WelcomeDialog::checkAutoStart(void)
 
 void WelcomeDialog::customEvent(QEvent *e)
 {
-    if ((MythEvent::Type)(e->type()) == MythEvent::MythEventMessage)
+    if (e->type() == MythEvent::MythEventMessage)
     {
         MythEvent *me = static_cast<MythEvent *>(e);
 
@@ -235,7 +235,7 @@ bool WelcomeDialog::keyPressEvent(QKeyEvent *event)
         }
         else if (action == "MENU")
         {
-            showMenu();
+            ShowMenu();
         }
         else if (action == "NEXTVIEW")
         {
@@ -582,7 +582,7 @@ bool WelcomeDialog::checkConnectionToServer(void)
     return bRes;
 }
 
-void WelcomeDialog::showMenu(void)
+void WelcomeDialog::ShowMenu(void)
 {
     MythScreenStack *popupStack = GetMythMainWindow()->GetStack("popup stack");
 

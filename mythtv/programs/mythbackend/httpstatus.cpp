@@ -549,7 +549,7 @@ void HttpStatus::FillStatusXML( QDomDocument *pDoc )
                        setting_to_localtime("mythfilldatabaseLastRunEnd"));
     guide.setAttribute("status",
         gCoreContext->GetSetting("mythfilldatabaseLastRunStatus"));
-    if (gCoreContext->GetNumSetting("MythFillGrabberSuggestsTime", 0))
+    if (gCoreContext->GetBoolSetting("MythFillGrabberSuggestsTime", false))
     {
         guide.setAttribute("next",
             gCoreContext->GetSetting("MythFillSuggestedRunTime"));
@@ -558,7 +558,7 @@ void HttpStatus::FillStatusXML( QDomDocument *pDoc )
     if (!GuideDataThrough.isNull())
     {
         guide.setAttribute("guideThru",
-            QDateTime(GuideDataThrough).toString(Qt::ISODate));
+            GuideDataThrough.toString(Qt::ISODate));
         guide.setAttribute("guideDays", qdtNow.daysTo(GuideDataThrough));
     }
 

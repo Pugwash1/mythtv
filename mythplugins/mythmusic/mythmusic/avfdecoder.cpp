@@ -59,8 +59,7 @@ typedef QMap<QString,QString> ShoutCastMetaMap;
 class ShoutCastMetaParser
 {
   public:
-    ShoutCastMetaParser(void) :
-        m_meta_artist_pos(-1), m_meta_title_pos(-1), m_meta_album_pos(-1) { }
+    ShoutCastMetaParser(void) = default;
     ~ShoutCastMetaParser(void) = default;
 
     void setMetaFormat(const QString &metaformat);
@@ -68,9 +67,9 @@ class ShoutCastMetaParser
 
   private:
     QString m_meta_format;
-    int m_meta_artist_pos;
-    int m_meta_title_pos;
-    int m_meta_album_pos;
+    int m_meta_artist_pos {-1};
+    int m_meta_title_pos {-1};
+    int m_meta_album_pos {-1};
 };
 
 void ShoutCastMetaParser::setMetaFormat(const QString &metaformat)
@@ -564,11 +563,11 @@ void avfDecoder::run()
 
 void avfDecoder::checkMetatdata(void)
 {
-    uint8_t *mdata = nullptr;
+    uint8_t *pdata = nullptr;
 
-    if (av_opt_get(m_inputContext->getContext(), "icy_metadata_packet", AV_OPT_SEARCH_CHILDREN, &mdata) >= 0)
+    if (av_opt_get(m_inputContext->getContext(), "icy_metadata_packet", AV_OPT_SEARCH_CHILDREN, &pdata) >= 0)
     {
-        QString s = QString::fromUtf8((const char*) mdata);
+        QString s = QString::fromUtf8((const char*) pdata);
 
         if (m_lastMetadata != s)
         {
@@ -591,7 +590,7 @@ void avfDecoder::checkMetatdata(void)
             dispatch(ev);
         }
 
-        av_free(mdata);
+        av_free(pdata);
     }
 
     if (m_inputContext->getContext()->pb)

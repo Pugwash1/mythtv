@@ -18,8 +18,7 @@ class VolumeWriteBackThread : public MThread
 {
     VolumeWriteBackThread(const VolumeWriteBackThread &);
     VolumeWriteBackThread & operator =(const VolumeWriteBackThread &);
-    VolumeWriteBackThread() : MThread("VolumeWriteBack"),
-        m_state(kStopped), m_volume(-1)
+    VolumeWriteBackThread() : MThread("VolumeWriteBack") 
     { }
 
   public:
@@ -89,8 +88,8 @@ class VolumeWriteBackThread : public MThread
   private:
     static QMutex s_mutex;
     QMutex mutable m_mutex;
-    enum { kStopped, kRunning, kFinished } m_state;
-    int m_volume;
+    enum { kStopped, kRunning, kFinished } m_state {kStopped};
+    int m_volume {-1};
 };
 
 QMutex VolumeWriteBackThread::s_mutex;
@@ -100,7 +99,7 @@ QMutex VolumeWriteBackThread::s_mutex;
 VolumeBase::VolumeBase() :
     volume(80), current_mute_state(kMuteOff), channels(0)
 {
-    internal_vol = gCoreContext->GetNumSetting("MythControlsVolume", 1);
+    internal_vol = gCoreContext->GetBoolSetting("MythControlsVolume", true);
     swvol = swvol_setting =
         (gCoreContext->GetSetting("MixerDevice", "default").toLower() == "software");
 }

@@ -92,8 +92,8 @@ static int BuildKeyframeIndex(MPEG2fixup *m2f, QString &infile,
 static void UpdateJobQueue(float percent_done)
 {
     JobQueue::ChangeJobComment(glbl_jobID,
-                               QString("%1% " + QObject::tr("Completed"))
-                               .arg(percent_done, 0, 'f', 1));
+                               QString("%1% ").arg(percent_done, 0, 'f', 1) +
+                               QObject::tr("Completed"));
 }
 
 static int CheckJobQueue()
@@ -940,11 +940,11 @@ static void CompleteJob(int jobID, ProgramInfo *pginfo, bool useCutlist,
                     .arg(tmpfile).arg(newfile) + ENO);
         }
 
-        if (!gCoreContext->GetNumSetting("SaveTranscoding", 0) || forceDelete)
+        if (!gCoreContext->GetBoolSetting("SaveTranscoding", false) || forceDelete)
         {
             int err;
             bool followLinks =
-                gCoreContext->GetNumSetting("DeletesFollowLinks", 0);
+                gCoreContext->GetBoolSetting("DeletesFollowLinks", false);
 
             LOG(VB_FILE, LOG_INFO,
                 QString("mythtranscode: About to unlink/delete file: %1")

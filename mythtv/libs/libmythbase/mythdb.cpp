@@ -72,11 +72,11 @@ class MythDBPrivate
     QString m_localhostname;
     MDBManager m_dbmanager;
 
-    bool ignoreDatabase;
-    bool suppressDBMessages;
+    bool ignoreDatabase {false};
+    bool suppressDBMessages {true};
 
     QReadWriteLock settingsCacheLock;
-    volatile bool useSettingsCache;
+    volatile bool useSettingsCache {false};
     /// Permanent settings in the DB and overridden settings
     SettingsMap settingsCache;
     /// Overridden this session only
@@ -85,15 +85,13 @@ class MythDBPrivate
     /// available
     QList<SingleSetting> delayedSettings;
 
-    bool haveDBConnection;
-    bool haveSchema;
+    bool haveDBConnection {false};
+    bool haveSchema {false};
 };
 
 static const int settings_reserve = 61;
 
-MythDBPrivate::MythDBPrivate() :
-    ignoreDatabase(false), suppressDBMessages(true), useSettingsCache(false),
-    haveDBConnection(false), haveSchema(false)
+MythDBPrivate::MythDBPrivate()
 {
     m_localhostname.clear();
     settingsCache.reserve(settings_reserve);
@@ -558,6 +556,14 @@ bool MythDB::GetSettings(QMap<QString,QString> &_key_value_pairs)
 }
 
 
+bool MythDB::GetBoolSetting(const QString &key, bool defaultval)
+{
+    QString val = QString::number(defaultval);
+    QString retval = GetSetting(key, val);
+
+    return retval.toInt() > 0 ? true : false;
+}
+
 int MythDB::GetNumSetting(const QString &key, int defaultval)
 {
     QString val = QString::number(defaultval);
@@ -579,6 +585,15 @@ QString MythDB::GetSetting(const QString &key)
     QString sentinel = QString(kSentinelValue);
     QString retval = GetSetting(key, sentinel);
     return (retval == sentinel) ? "" : retval;
+}
+
+bool MythDB::GetBoolSetting(const QString &key)
+{
+    QString sentinel = QString(kSentinelValue);
+    QString retval = GetSetting(key, sentinel);
+    if (retval == sentinel)
+        return false;
+    return retval.toInt() > 0 ? true : false;
 }
 
 int MythDB::GetNumSetting(const QString &key)

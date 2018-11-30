@@ -1573,9 +1573,9 @@ void ProgramInfo::ToStringList(QStringList &list) const
 #define DATETIME_FROM_LIST(x) \
     do { NEXT_STR();                                                    \
          if (ts.isEmpty() or (ts.toUInt() == kInvalidDateTime)) {       \
-              x = QDateTime();                                          \
+              (x) = QDateTime();                                        \
          } else {                                                       \
-              x = MythDate::fromSecsSinceEpoch(ts.toLongLong());        \
+              (x) = MythDate::fromSecsSinceEpoch(ts.toLongLong());      \
          }                                                              \
     } while (0)
 #endif
@@ -2749,7 +2749,7 @@ QString ProgramInfo::GetPlaybackURL(
 
     // Check to see if we should stream from the master backend
     if ((checkMaster) &&
-        (gCoreContext->GetNumSetting("MasterBackendOverride", 0)) &&
+        (gCoreContext->GetBoolSetting("MasterBackendOverride", false)) &&
         (RemoteCheckFile(this, false)))
     {
         tmpURL = gCoreContext->GenMythURL(gCoreContext->GetMasterHostName(),
@@ -3822,7 +3822,7 @@ void ProgramInfo::QueryPositionMap(
     if (positionMapDBReplacement)
     {
         QMutexLocker locker(positionMapDBReplacement->lock);
-        posMap = positionMapDBReplacement->map[(MarkTypes)type];
+        posMap = positionMapDBReplacement->map[type];
 
         return;
     }
@@ -3911,8 +3911,8 @@ void ProgramInfo::SavePositionMap(
         if ((min_frame >= 0) || (max_frame >= 0))
         {
             frm_pos_map_t::const_iterator it, it_end;
-            it     = positionMapDBReplacement->map[(MarkTypes)type].begin();
-            it_end = positionMapDBReplacement->map[(MarkTypes)type].end();
+            it     = positionMapDBReplacement->map[type].begin();
+            it_end = positionMapDBReplacement->map[type].end();
 
             frm_pos_map_t new_map;
             for (; it != it_end; ++it)
@@ -3924,11 +3924,11 @@ void ProgramInfo::SavePositionMap(
                     continue;
                 new_map.insert(it.key(), *it);
             }
-            positionMapDBReplacement->map[(MarkTypes)type] = new_map;
+            positionMapDBReplacement->map[type] = new_map;
         }
         else
         {
-            positionMapDBReplacement->map[(MarkTypes)type].clear();
+            positionMapDBReplacement->map[type].clear();
         }
 
         frm_pos_map_t::const_iterator it     = posMap.begin();
@@ -3941,7 +3941,7 @@ void ProgramInfo::SavePositionMap(
             if ((min_frame >= 0) && (frame <= (uint64_t)max_frame))
                 continue;
 
-            positionMapDBReplacement->map[(MarkTypes)type]
+            positionMapDBReplacement->map[type]
                 .insert(frame, *it);
         }
 
@@ -6271,7 +6271,7 @@ bool GetNextRecordingList(QDateTime &nextRecordingStart,
              (*it)->GetRecordingStatus()    == RecStatus::Pending) &&
             ((*it)->GetRecordingStartTime() == nextRecordingStart))
         {
-            list->push_back(ProgramInfo(**it));
+            list->push_back(**it);
         }
     }
 

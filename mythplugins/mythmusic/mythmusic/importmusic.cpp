@@ -195,7 +195,7 @@ bool ImportMusicDialog::keyPressEvent(QKeyEvent *event)
         }
         else if (action == "MENU")
         {
-            showMenu();
+            ShowMenu();
         }
         else if (action == "ESCAPE" && !GetMythMainWindow()->IsExitingToMain())
         {
@@ -660,7 +660,7 @@ void ImportMusicDialog::metadataChanged(void)
     fillWidgets();
 }
 
-void ImportMusicDialog::showMenu()
+void ImportMusicDialog::ShowMenu()
 {
     if (m_tracks->empty())
         return;
@@ -1103,7 +1103,7 @@ void ImportCoverArtDialog::prevPressed()
 
 void ImportCoverArtDialog::nextPressed()
 {
-    if (m_currentFile < (int) m_filelist.size() - 1)
+    if (m_currentFile < m_filelist.size() - 1)
     {
         m_currentFile++;
         updateTypeSelector();

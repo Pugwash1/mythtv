@@ -56,7 +56,7 @@ using namespace omxcontext;
 #define LOC QString("VideoOutputOMX: ")
 
 // Roundup a value: y = ROUNDUP(x,4)
-#define ROUNDUP( _x,_z) ((_x) + ((-(int)(_x)) & ((_z) -1)) )
+#define ROUNDUP( _x,_z) ((_x) + ((-(_x)) & ((_z) -1)) )
 
 // VideoFrame <> OMX_BUFFERHEADERTYPE
 #define FRAMESETHDR(f,h) ((f)->priv[3] = reinterpret_cast<unsigned char* >(h))
@@ -290,7 +290,7 @@ VideoOutputOMX::VideoOutputOMX() :
 #endif
     init(&av_pause_frame, FMT_YV12, nullptr, 0, 0, 0);
 
-    if (gCoreContext->GetNumSetting("UseVideoModes", 0))
+    if (gCoreContext->GetBoolSetting("UseVideoModes", false))
         display_res = DisplayRes::GetDisplayRes(true);
 
     if (OMX_ErrorNone != m_render.Init(OMX_IndexParamVideoInit))

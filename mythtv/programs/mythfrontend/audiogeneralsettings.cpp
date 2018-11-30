@@ -108,6 +108,7 @@ void AudioConfigScreen::Init(void)
 AudioConfigSettings::AudioConfigSettings() :
     GroupSetting()
 {
+    m_maxspeakers = 0;
     setLabel(tr("Audio System"));
 
     addChild((m_OutputDevice = new AudioDeviceComboBox(this)));
@@ -225,6 +226,10 @@ void AudioConfigSettings::Load()
 {
     StandardSetting::Load();
     AudioRescan();
+    // If this is the initial setup where there was nothing on the DB,
+    // set changed so that user can save.
+    if (gCoreContext->GetSetting(QString("AudioOutputDevice"),"").isEmpty())
+        setChanged(true);
 }
 
 void AudioConfigSettings::AudioRescan()
@@ -324,14 +329,14 @@ AudioOutputSettings AudioConfigSettings::UpdateCapabilities(
         //bDTS  = settingsdigital.canFeature(FEATURE_DTS)  &&
         //    m_DTSPassThrough->boolValue();
         bLPCM = settings.canFeature(FEATURE_LPCM) &&
-            !gCoreContext->GetNumSetting("StereoPCM", false);
+            !gCoreContext->GetBoolSetting("StereoPCM", false);
         bEAC3 = settingsdigital.canFeature(FEATURE_EAC3) &&
-            !gCoreContext->GetNumSetting("Audio48kOverride", false);
+            !gCoreContext->GetBoolSetting("Audio48kOverride", false);
         bTRUEHD = settingsdigital.canFeature(FEATURE_TRUEHD) &&
-            !gCoreContext->GetNumSetting("Audio48kOverride", false) &&
-            gCoreContext->GetNumSetting("HBRPassthru", true);
+            !gCoreContext->GetBoolSetting("Audio48kOverride", false) &&
+            gCoreContext->GetBoolSetting("HBRPassthru", true);
         bDTSHD = settingsdigital.canFeature(FEATURE_DTSHD) &&
-            !gCoreContext->GetNumSetting("Audio48kOverride", false);
+            !gCoreContext->GetBoolSetting("Audio48kOverride", false);
 
         if (max_speakers > 2 && !bLPCM)
             max_speakers = 2;
@@ -369,6 +374,7 @@ AudioOutputSettings AudioConfigSettings::UpdateCapabilities(
     }
 
     // Remove everything and re-add available channels
+    bool chansChanged = m_MaxAudioChannels->haveChanged();
     m_MaxAudioChannels->clearSelections();
     for (int i = 1; i <= max_speakers; i++)
     {
@@ -395,6 +401,7 @@ AudioOutputSettings AudioConfigSettings::UpdateCapabilities(
                                              i == cur_speakers);
         }
     }
+    m_MaxAudioChannels->setChanged(chansChanged);
 
     setMPCMEnabled(settings.canPassthrough() >= 0);
 

@@ -26,11 +26,11 @@ using namespace std;
 
 #define LOC QString("AOBase: ")
 
-#define WPOS audiobuffer + org_waud
-#define RPOS audiobuffer + raud
+#define WPOS (audiobuffer + org_waud)
+#define RPOS (audiobuffer + raud)
 #define ABUF audiobuffer
 #define STST soundtouch::SAMPLETYPE
-#define AOALIGN(x) (((long)&x + 15) & ~0xf);
+#define AOALIGN(x) (((long)&(x) + 15) & ~0xf);
 
 // 1,2,5 and 7 channels are currently valid for upmixing if required
 #define UPMIX_CHANNEL_MASK ((1<<1)|(1<<2)|(1<<5)|1<<7)
@@ -119,7 +119,7 @@ AudioOutputBase::AudioOutputBase(const AudioSettings &settings) :
     memset(audiobuffer,        0, sizeof(audiobuffer));
 
     // Handle override of SRC quality settings
-    if (gCoreContext->GetNumSetting("SRCQualityOverride", false))
+    if (gCoreContext->GetBoolSetting("SRCQualityOverride", false))
     {
         src_quality = gCoreContext->GetNumSetting("SRCQuality", QUALITY_MEDIUM);
         // Extra test to keep backward compatibility with earlier SRC setting
@@ -189,7 +189,7 @@ void AudioOutputBase::InitSettings(const AudioSettings &settings)
     configured_channels = max_channels;
 
     upmix_default = max_channels > 2 ?
-        gCoreContext->GetNumSetting("AudioDefaultUpmix", false) :
+        gCoreContext->GetBoolSetting("AudioDefaultUpmix", false) :
         false;
     if (settings.upmixer == 1) // music, upmixer off
         upmix_default = false;
@@ -297,7 +297,7 @@ bool AudioOutputBase::CanPassthrough(int samplerate, int channels,
     ret &= output_settingsdigital->IsSupportedRate(samplerate);
     // if we must resample to 48kHz ; we can't passthrough
     ret &= !((samplerate != 48000) &&
-             gCoreContext->GetNumSetting("Audio48kOverride", false));
+             gCoreContext->GetBoolSetting("Audio48kOverride", false));
     // Don't know any cards that support spdif clocked at < 44100
     // Some US cable transmissions have 2ch 32k AC-3 streams
     ret &= samplerate >= 44100;
@@ -340,7 +340,7 @@ void AudioOutputBase::SetStretchFactorLocked(float lstretchfactor)
         return;
 
     bool willstretch = stretchfactor < 0.99f || stretchfactor > 1.01f;
-    eff_stretchfactor = (int)(100000.0f * lstretchfactor + 0.5);
+    eff_stretchfactor = lroundf(100000.0f * lstretchfactor);
 
     if (pSoundStretch)
     {
@@ -707,7 +707,7 @@ void AudioOutputBase::Reconfigure(const AudioSettings &orig_settings)
     // Force resampling if we are encoding to AC3 and sr > 48k
     // or if 48k override was checked in settings
     if ((samplerate != 48000 &&
-         gCoreContext->GetNumSetting("Audio48kOverride", false)) ||
+         gCoreContext->GetBoolSetting("Audio48kOverride", false)) ||
          (enc && (samplerate > 48000)))
     {
         VBAUDIO("Forcing resample to 48 kHz");
@@ -1451,7 +1451,7 @@ bool AudioOutputBase::AddData(void *in_buffer, int in_len,
 
         // Check we have enough space to write the data
         if (need_resampler && src_ctx)
-            len = (int)ceilf(float(len) * src_data.src_ratio);
+            len = lround(ceil(static_cast<double>(len) * src_data.src_ratio));
 
         if (needs_upmix)
             len = (len * configured_channels ) / source_channels;
@@ -1772,7 +1772,7 @@ int AudioOutputBase::GetAudioData(uchar *buffer, int size, bool full_buffer,
                                   volatile uint *local_raud)
 {
 
-#define LRPOS audiobuffer + *local_raud
+#define LRPOS (audiobuffer + *local_raud)
     // re-check audioready() in case things changed.
     // for example, ClearAfterSeek() might have run
     int avail_size   = audioready();

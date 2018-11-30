@@ -19,56 +19,59 @@
 #include "cardutil.h"
 #include "mythlogging.h"
 
+#ifdef NEED_HDHOMERUN_DEVICE_SELECTOR_LOAD_FROM_STR
+static int hdhomerun_device_selector_load_from_str(struct hdhomerun_device_selector_t *hds, char *device_str);
+#endif
+
 #define LOC      QString("HDHRSH[%1](%2): ").arg(_inputid).arg(_device)
 
-QMap<QString,HDHRStreamHandler*> HDHRStreamHandler::_handlers;
-QMap<QString,uint>               HDHRStreamHandler::_handlers_refcnt;
+QMap<int,HDHRStreamHandler*>     HDHRStreamHandler::_handlers;
+QMap<int,uint>                   HDHRStreamHandler::_handlers_refcnt;
 QMutex                           HDHRStreamHandler::_handlers_lock;
 
 HDHRStreamHandler *HDHRStreamHandler::Get(const QString &devname,
-                                          int inputid)
+                                          int inputid, int majorid)
 {
     QMutexLocker locker(&_handlers_lock);
 
-    QString devkey = devname.toUpper();
-
-    QMap<QString,HDHRStreamHandler*>::iterator it = _handlers.find(devkey);
+    QMap<int,HDHRStreamHandler*>::iterator it = _handlers.find(majorid);
 
     if (it == _handlers.end())
     {
-        HDHRStreamHandler *newhandler = new HDHRStreamHandler(devkey, inputid);
+        HDHRStreamHandler *newhandler = new HDHRStreamHandler(devname, inputid,
+                                                              majorid);
         newhandler->Open();
-        _handlers[devkey] = newhandler;
-        _handlers_refcnt[devkey] = 1;
+        _handlers[majorid] = newhandler;
+        _handlers_refcnt[majorid] = 1;
 
         LOG(VB_RECORD, LOG_INFO,
             QString("HDHRSH[%1]: Creating new stream handler %2 for %3")
-            .arg(inputid).arg(devkey).arg(devname));
+            .arg(inputid).arg(majorid).arg(devname));
     }
     else
     {
-        _handlers_refcnt[devkey]++;
-        uint rcount = _handlers_refcnt[devkey];
+        _handlers_refcnt[majorid]++;
+        uint rcount = _handlers_refcnt[majorid];
         LOG(VB_RECORD, LOG_INFO,
             QString("HDHRSH[%1]: Using existing stream handler %2 for %3")
-            .arg(inputid).arg(devkey)
+            .arg(inputid).arg(majorid)
             .arg(devname) + QString(" (%1 in use)").arg(rcount));
     }
 
-    return _handlers[devkey];
+    return _handlers[majorid];
 }
 
 void HDHRStreamHandler::Return(HDHRStreamHandler * & ref, int inputid)
 {
     QMutexLocker locker(&_handlers_lock);
 
-    QString devname = ref->_device;
+    int majorid = ref->_majorid;
 
-    QMap<QString,uint>::iterator rit = _handlers_refcnt.find(devname);
+    QMap<int,uint>::iterator rit = _handlers_refcnt.find(majorid);
     if (rit == _handlers_refcnt.end())
         return;
 
-    QMap<QString,HDHRStreamHandler*>::iterator it = _handlers.find(devname);
+    QMap<int,HDHRStreamHandler*>::iterator it = _handlers.find(majorid);
     if (*rit > 1)
     {
         ref = nullptr;
@@ -79,7 +82,7 @@ void HDHRStreamHandler::Return(HDHRStreamHandler * & ref, int inputid)
     if ((it != _handlers.end()) && (*it == ref))
     {
         LOG(VB_RECORD, LOG_INFO, QString("HDHRSH[%1]: Closing handler for %2")
-            .arg(inputid).arg(devname));
+            .arg(inputid).arg(majorid));
         ref->Close();
         delete *it;
         _handlers.erase(it);
@@ -88,18 +91,20 @@ void HDHRStreamHandler::Return(HDHRStreamHandler * & ref, int inputid)
     {
         LOG(VB_GENERAL, LOG_ERR,
             QString("HDHRSH[%1] Error: Couldn't find handler for %2")
-            .arg(inputid).arg(devname));
+            .arg(inputid).arg(majorid));
     }
 
     _handlers_refcnt.erase(rit);
     ref = nullptr;
 }
 
-HDHRStreamHandler::HDHRStreamHandler(const QString &device, int inputid)
+HDHRStreamHandler::HDHRStreamHandler(const QString &device, int inputid,
+                                     int majorid)
     : StreamHandler(device, inputid)
     , _hdhomerun_device(nullptr)
     , _tuner(-1)
     , _tune_mode(hdhrTuneModeNone)
+    , _majorid(majorid)
     , _hdhr_lock(QMutex::Recursive)
 {
     setObjectName("HDHRStreamHandler");
@@ -110,20 +115,8 @@ HDHRStreamHandler::HDHRStreamHandler(const QString &device, int inputid)
  */
 void HDHRStreamHandler::run(void)
 {
-    int tunerLock = 0;
-    char *error = nullptr;
-
     RunProlog();
-    /* Get a tuner lock */
-    tunerLock = hdhomerun_device_tuner_lockkey_request(_hdhomerun_device, &error);
-    if(tunerLock < 1)
-    {
-        LOG(VB_GENERAL, LOG_ERR, LOC +
-            QString("Get tuner lock failed. Aborting. Error: %1").arg(error));
-        _error = true;
-        RunEpilog();
-        return;
-    }
+
     /* Create TS socket. */
     if (!hdhomerun_device_stream_start(_hdhomerun_device))
     {
@@ -221,13 +214,8 @@ void HDHRStreamHandler::run(void)
 
     LOG(VB_RECORD, LOG_INFO, LOC + "RunTS(): " + "end");
 
-    if(tunerLock == 1)
-    {
-        LOG(VB_RECORD, LOG_INFO, LOC + "Release tuner lock.");
-        hdhomerun_device_tuner_lockkey_release(_hdhomerun_device);
-    }
-
     SetRunning(false, false, false);
+
     RunEpilog();
 }
 
@@ -361,49 +349,53 @@ void HDHRStreamHandler::Close(void)
     if (_hdhomerun_device)
     {
         TuneChannel("none");
-        hdhomerun_device_destroy(_hdhomerun_device);
+        hdhomerun_device_tuner_lockkey_release(_hdhomerun_device);
         _hdhomerun_device = nullptr;
+    }
+    if (_device_selector)
+    {
+        hdhomerun_device_selector_destroy(_device_selector, true);
+        _device_selector = nullptr;
     }
 }
 
 bool HDHRStreamHandler::Connect(void)
 {
-    _hdhomerun_device = hdhomerun_device_create_from_str(
-        _device.toLocal8Bit().constData(), nullptr);
+    _device_selector = hdhomerun_device_selector_create(nullptr);
+    if (!_device_selector)
+    {
+        LOG(VB_GENERAL, LOG_ERR, LOC + "Unable to create device selector");
+        return false;
+    }
 
+    QStringList devices = _device.split(",");
+    for (int i = 0; i < devices.size(); ++i)
+    {
+        QByteArray ba = devices[i].toUtf8();
+        int n = hdhomerun_device_selector_load_from_str(
+            _device_selector, ba.data());
+        LOG(VB_GENERAL, LOG_INFO, LOC + QString("Added %1 devices from %3")
+            .arg(n).arg(devices[i]));
+    }
+
+    _hdhomerun_device = hdhomerun_device_selector_choose_and_lock(
+        _device_selector, nullptr);
     if (!_hdhomerun_device)
     {
-        LOG(VB_GENERAL, LOG_ERR, LOC + "Unable to create hdhomerun object");
+        LOG(VB_GENERAL, LOG_ERR, LOC +
+            QString("Unable to find a free device"));
+        hdhomerun_device_selector_destroy(_device_selector, true);
+        _device_selector = nullptr;
         return false;
     }
 
     _tuner = hdhomerun_device_get_tuner(_hdhomerun_device);
 
-    if (hdhomerun_device_get_local_machine_addr(_hdhomerun_device) == 0)
-    {
-        LOG(VB_GENERAL, LOG_ERR, LOC + "Unable to connect to device");
-        return false;
-    }
+    LOG(VB_GENERAL, LOG_INFO, LOC +
+        QString("Connected to device(%1)")
+        .arg(hdhomerun_device_get_name(_hdhomerun_device)));
 
-    LOG(VB_RECORD, LOG_INFO, LOC + "Successfully connected to device");
     return true;
-}
-
-bool HDHRStreamHandler::EnterPowerSavingMode(void)
-{
-    QMutexLocker locker(&_listener_lock);
-
-    if (!_stream_data_list.empty())
-    {
-        LOG(VB_RECORD, LOG_INFO, LOC +
-            "Ignoring request - video streaming active");
-        return false;
-    }
-    else
-    {
-        locker.unlock(); // _listener_lock
-        return TuneChannel("none");
-    }
 }
 
 QString HDHRStreamHandler::TunerGet(
@@ -546,3 +538,98 @@ bool HDHRStreamHandler::TuneVChannel(const QString &vchn)
     LOG(VB_RECORD, LOG_INFO, LOC + QString("Tuning vchannel %1").arg(vchn));
     return !TunerSet("vchannel", vchn).isEmpty();
 }
+
+#ifdef NEED_HDHOMERUN_DEVICE_SELECTOR_LOAD_FROM_STR
+
+// Provide functions we need that are not included in some versions of
+// libhdhomerun.  These were taken
+// from version 20180817 and modified as needed.
+
+struct hdhomerun_device_selector_t {
+        struct hdhomerun_device_t **hd_list;
+        size_t hd_count;
+        struct hdhomerun_debug_t *dbg;
+};
+
+static int hdhomerun_device_selector_load_from_str_discover(struct hdhomerun_device_selector_t *hds, uint32_t target_ip, uint32_t device_id)
+{
+	struct hdhomerun_discover_device_t result;
+	int discover_count = hdhomerun_discover_find_devices_custom(target_ip, HDHOMERUN_DEVICE_TYPE_TUNER, device_id, &result, 1);
+	if (discover_count != 1) {
+		return 0;
+	}
+
+	int count = 0;
+	unsigned int tuner_index;
+	for (tuner_index = 0; tuner_index < result.tuner_count; tuner_index++) {
+		struct hdhomerun_device_t *hd = hdhomerun_device_create(result.device_id, result.ip_addr, tuner_index, hds->dbg);
+		if (!hd) {
+			continue;
+		}
+
+		hdhomerun_device_selector_add_device(hds, hd);
+		count++;
+	}
+
+	return count;
+}
+
+static int hdhomerun_device_selector_load_from_str(struct hdhomerun_device_selector_t *hds, char *device_str)
+{
+	/*
+	 * IP address based device_str.
+	 */
+	unsigned int a[4];
+	if (sscanf(device_str, "%u.%u.%u.%u", &a[0], &a[1], &a[2], &a[3]) == 4) {
+		uint32_t ip_addr = (uint32_t)((a[0] << 24) | (a[1] << 16) | (a[2] << 8) | (a[3] << 0));
+
+		/*
+		 * IP address + tuner number.
+		 */
+		unsigned int tuner;
+		if (sscanf(device_str, "%u.%u.%u.%u-%u", &a[0], &a[1], &a[2], &a[3], &tuner) == 5) {
+			struct hdhomerun_device_t *hd = hdhomerun_device_create(HDHOMERUN_DEVICE_ID_WILDCARD, ip_addr, tuner, hds->dbg);
+			if (!hd) {
+				return 0;
+			}
+
+			hdhomerun_device_selector_add_device(hds, hd);
+			return 1;
+		}
+
+		/*
+		 * IP address only - discover and add tuners.
+		 */
+		return hdhomerun_device_selector_load_from_str_discover(hds, ip_addr, HDHOMERUN_DEVICE_ID_WILDCARD);
+	}
+
+	/*
+	 * Device ID based device_str.
+	 */
+	char *end;
+	uint32_t device_id = (uint32_t)strtoul(device_str, &end, 16);
+	if ((end == device_str + 8) && hdhomerun_discover_validate_device_id(device_id)) {
+		/*
+		 * IP address + tuner number.
+		 */
+		if (*end == '-') {
+			unsigned int tuner = (unsigned int)strtoul(end + 1, NULL, 10);
+			struct hdhomerun_device_t *hd = hdhomerun_device_create(device_id, 0, tuner, hds->dbg);
+			if (!hd) {
+				return 0;
+			}
+
+			hdhomerun_device_selector_add_device(hds, hd);
+			return 1;
+		}
+
+		/*
+		 * Device ID only - discover and add tuners.
+		 */
+		return hdhomerun_device_selector_load_from_str_discover(hds, 0, device_id);
+	}
+
+        return 0;
+}
+
+#endif

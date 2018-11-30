@@ -187,9 +187,9 @@ bool TVRec::Init(void)
         return false;
 
     transcodeFirst    =
-        gCoreContext->GetNumSetting("AutoTranscodeBeforeAutoCommflag", 0);
-    earlyCommFlag     = gCoreContext->GetNumSetting("AutoCommflagWhileRecording", 0);
-    runJobOnHostOnly  = gCoreContext->GetNumSetting("JobsRunOnRecordHost", 0);
+        gCoreContext->GetBoolSetting("AutoTranscodeBeforeAutoCommflag", false);
+    earlyCommFlag     = gCoreContext->GetBoolSetting("AutoCommflagWhileRecording", false);
+    runJobOnHostOnly  = gCoreContext->GetBoolSetting("JobsRunOnRecordHost", false);
     eitTransportTimeout =
         max(gCoreContext->GetNumSetting("EITTransportTimeout", 5) * 60, 6);
     eitCrawlIdleStart = gCoreContext->GetNumSetting("EITCrawIdleStart", 60);
@@ -1017,7 +1017,7 @@ void TVRec::FinishedRecording(RecordingInfo *curRec, RecordingQuality *recq)
 }
 
 #define TRANSITION(ASTATE,BSTATE) \
-   ((internalState == ASTATE) && (desiredNextState == BSTATE))
+   ((internalState == (ASTATE)) && (desiredNextState == (BSTATE)))
 #define SET_NEXT() do { nextState = desiredNextState; changed = true; } while(0)
 #define SET_LAST() do { nextState = internalState; changed = true; } while(0)
 
@@ -2448,7 +2448,7 @@ bool TVRec::CheckChannelPrefix(const QString &prefix,
         if (fchannum[i] == prefix)
         {
             is_complete_valid_channel_on_rec = finputid[i];
-            if (finputid[i] == (uint)inputid)
+            if (finputid[i] == inputid)
                 break;
         }
     }

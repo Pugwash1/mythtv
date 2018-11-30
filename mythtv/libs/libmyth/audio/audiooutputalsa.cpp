@@ -27,7 +27,7 @@ using namespace std;
 
 #define FILTER_FLAGS ~(SND_PCM_NO_AUTO_FORMAT)
 
-#define AERROR(str)   VBERROR(str + QString(": %1").arg(snd_strerror(err)))
+#define AERROR(str)   VBERROR((str) + QString(": %1").arg(snd_strerror(err)))
 #define CHECKERR(str) { if (err < 0) { AERROR(str); return err; } }
 
 AudioOutputALSA::AudioOutputALSA(const AudioSettings &settings) :
@@ -57,7 +57,7 @@ AudioOutputALSA::AudioOutputALSA(const AudioSettings &settings) :
              * AES2 = source and channel unspecified
              * AES3 = sample rate unspecified
              */
-        bool s48k = gCoreContext->GetNumSetting("SPDIFRateOverride", false);
+        bool s48k = gCoreContext->GetBoolSetting("SPDIFRateOverride", false);
         QString iecarg = QString("AES0=6,AES1=0x82,AES2=0x00") +
             (s48k ? QString() : QString(",AES3=0x01"));
         QString iecarg2 = QString("AES0=6 AES1=0x82 AES2=0x00") +
@@ -864,7 +864,7 @@ void AudioOutputALSA::SetVolumeChannel(int channel, int volume)
     if (!(internal_vol && m_mixer.elem))
         return;
 
-    long mixervol = long((int64_t(volume) * m_mixer.volrange) / 100) + m_mixer.volmin;
+    long mixervol = (int64_t(volume) * m_mixer.volrange) / 100 + m_mixer.volmin;
     mixervol = max(mixervol, m_mixer.volmin);
     mixervol = min(mixervol, m_mixer.volmax);
 
@@ -1000,7 +1000,7 @@ QMap<QString, QString> *AudioOutputALSA::GetDevices(const char *type)
     {
           char *name = snd_device_name_get_hint(*n, "NAME");
           char *desc = snd_device_name_get_hint(*n, "DESC");
-          if (name && desc && strcmp(name, "null"))
+          if (name && desc && (strcmp(name, "null") != 0))
               alsadevs->insert(name, desc);
           if (name)
               free(name);

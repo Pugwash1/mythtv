@@ -262,7 +262,7 @@ void CDRipperThread::run(void)
 
     QString textstatus;
     QString encodertype = gCoreContext->GetSetting("EncoderType");
-    bool mp3usevbr = gCoreContext->GetNumSetting("Mp3UseVBR", 0);
+    bool mp3usevbr = gCoreContext->GetBoolSetting("Mp3UseVBR", false);
 
     QApplication::postEvent(m_parent,
         new RipStatusEvent(RipStatusEvent::kOverallStartEvent, m_totalSectors));
@@ -475,8 +475,8 @@ int CDRipperThread::ripTrack(QString &cddevice, Encoder *encoder, int tracknum)
             every15 = 15;
 
             // updating the UITypes can be slow - only update if we need to:
-            int newOverallPct = (int) (100.0 /  (double) ((double) m_totalSectors /
-                    (double) (m_totalSectorsDone + curpos - start)));
+            int newOverallPct = (int) (100.0 /  ((double) m_totalSectors /
+                                                 (m_totalSectorsDone + curpos - start)));
             if (newOverallPct != m_lastOverallPct)
             {
                 m_lastOverallPct = newOverallPct;
@@ -490,8 +490,7 @@ int CDRipperThread::ripTrack(QString &cddevice, Encoder *encoder, int tracknum)
                                        m_totalSectorsDone + curpos - start));
             }
 
-            int newTrackPct = (int) (100.0 / (double) ((double) (end - start + 1) /
-                    (double) (curpos - start)));
+            int newTrackPct = (int) (100.0 / ((double) (end - start + 1) / (curpos - start)));
             if (newTrackPct != m_lastTrackPct)
             {
                 m_lastTrackPct = newTrackPct;
@@ -1170,7 +1169,7 @@ void Ripper::RipComplete(bool result)
 {
     if (result == true)
     {
-        bool EjectCD = gCoreContext->GetNumSetting("EjectCDAfterRipping", 1);
+        bool EjectCD = gCoreContext->GetBoolSetting("EjectCDAfterRipping", true);
         if (EjectCD)
             startEjectCD();
 
@@ -1210,7 +1209,7 @@ void Ripper::EjectFinished()
 void Ripper::ejectCD()
 {
     LOG(VB_MEDIA, LOG_INFO, __PRETTY_FUNCTION__);
-    bool bEjectCD = gCoreContext->GetNumSetting("EjectCDAfterRipping",1);
+    bool bEjectCD = gCoreContext->GetBoolSetting("EjectCDAfterRipping",true);
     if (bEjectCD)
     {
 #ifdef HAVE_CDIO
@@ -1243,7 +1242,7 @@ void Ripper::updateTrackList(void)
         m_trackList->Reset();
 
         int i;
-        for (i = 0; i < (int)m_tracks->size(); i++)
+        for (i = 0; i < m_tracks->size(); i++)
         {
             if (i >= m_tracks->size())
                 break;

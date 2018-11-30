@@ -115,7 +115,7 @@ bool VideoSelector::keyPressEvent(QKeyEvent *event)
 
         if (action == "MENU")
         {
-            showMenu();
+            ShowMenu();
         }
         else if (action == "1")
         {
@@ -143,7 +143,7 @@ bool VideoSelector::keyPressEvent(QKeyEvent *event)
     return handled;
 }
 
-void VideoSelector::showMenu()
+void VideoSelector::ShowMenu()
 {
     MythScreenStack *popupStack = GetMythMainWindow()->GetStack("popup stack");
 
@@ -361,7 +361,7 @@ void VideoSelector::updateVideoList(void)
                     MythUIButtonListItem* item = new MythUIButtonListItem(
                             m_videoButtonList, v->title);
                     item->setCheckable(true);
-                    if (m_selectedList.indexOf((VideoInfo *) v) != -1)
+                    if (m_selectedList.indexOf(v) != -1)
                     {
                         item->setChecked(MythUIButtonListItem::FullChecked);
                     }
