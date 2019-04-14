@@ -17,7 +17,9 @@ using namespace std;
 class ExternalChannel : public DTVChannel
 {
   public:
-    ExternalChannel(TVRec *parent, const QString & device);
+    ExternalChannel(TVRec *parent, const QString & device)
+        : DTVChannel(parent), m_device(device),
+          m_loc(ExternalChannel::GetDevice()) {}
     ~ExternalChannel(void);
 
     // Commands
@@ -41,6 +43,9 @@ class ExternalChannel : public DTVChannel
     bool IsPIDTuningSupported(void) const override // DTVChannel
         { return true; }
 
+    QString UpdateDescription(void);
+    QString GetDescription(void);
+
   protected:
     bool IsExternalChannelChangeSupported(void) override // ChannelBase
         { return true; }
@@ -48,7 +53,8 @@ class ExternalChannel : public DTVChannel
   private:
     QString                  m_device;
     QStringList              m_args;
-    ExternalStreamHandler   *m_stream_handler;
+    ExternalStreamHandler   *m_stream_handler {nullptr};
+    QString                  m_loc;
 };
 
 #endif // _EXTERNAL_CHANNEL_H_

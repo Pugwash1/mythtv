@@ -58,7 +58,7 @@ public:
                     tc1 = m_tcFirst;
             }
         }
-        return range_t(tc1, tc2);
+        return {tc1, tc2};
     }
 
     int Samples(const range_t &avail) const
@@ -208,8 +208,6 @@ private:
  * Audio graphic
  */
 AudioOutputGraph::AudioOutputGraph() :
-    m_painter(nullptr),
-    m_dBsilence(-72), m_dBquiet(-60), m_dBLoud(-12), m_dbMax(-6),
     m_buffer(new AudioOutputGraph::Buffer())
 { }
 

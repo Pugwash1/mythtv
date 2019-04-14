@@ -99,13 +99,6 @@ static quint8* convert_int(quint8 *p, quint8 s)
     return p;
 }
 
-PList::PList(const QByteArray &data)
-  : m_data(nullptr), m_offsetTable(nullptr), m_rootObj(0),
-    m_numObjs(0), m_offsetSize(0), m_parmSize(0)
-{
-    ParseBinaryPList(data);
-}
-
 QVariant PList::GetValue(const QString &key)
 {
     if (m_result.type() != QVariant::Map)
@@ -434,7 +427,7 @@ QVariant PList::ParseBinaryReal(quint8 *data)
     if (!count)
         return result;
 
-    count = 1ull << count;
+    count = 1ULL << count;
     if (count == sizeof(float))
     {
         convert_float(data, count);

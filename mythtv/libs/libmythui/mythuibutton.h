@@ -57,19 +57,19 @@ class MUI_PUBLIC MythUIButton : public MythUIType
     void Finalize(void) override; // MythUIType
 
     void SetInitialStates(void);
-    void SetState(QString state);
+    void SetState(const QString& state);
 
     QString m_Message;
     QString m_ValueText;
 
-    MythUIStateType *m_BackgroundState;
-    MythUIText *m_Text;
+    MythUIStateType *m_BackgroundState {nullptr};
+    MythUIText *m_Text                 {nullptr};
 
     QString m_state;
 
-    bool m_Pushed;
-    bool m_Lockable;
-    class QTimer *m_clickTimer;
+    bool m_Pushed                      {false};
+    bool m_Lockable                    {false};
+    class QTimer *m_clickTimer         {nullptr};
 };
 
 #endif

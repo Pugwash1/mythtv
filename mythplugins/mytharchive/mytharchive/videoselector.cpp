@@ -8,7 +8,6 @@
 
 // mythtv
 #include <mythcontext.h>
-#include <dialogbox.h>
 #include <mythdb.h>
 #include <mythuitext.h>
 #include <mythuibutton.h>
@@ -27,12 +26,7 @@ using namespace std;
 
 VideoSelector::VideoSelector(MythScreenStack *parent, QList<ArchiveItem *> *archiveList)
               :MythScreenType(parent, "VideoSelector"),
-               m_archiveList(archiveList), m_videoList(nullptr),
-               m_currentParentalLevel(ParentalLevel::plNone),
-               m_plText(nullptr), m_videoButtonList(nullptr), m_warningText(),
-               m_okButton(nullptr), m_cancelButton(nullptr), m_categorySelector(nullptr),
-               m_titleText(nullptr), m_filesizeText(nullptr), m_plotText(nullptr),
-               m_coverImage(nullptr)
+               m_archiveList(archiveList)
 {
     m_parentalLevelChecker = new ParentalLevelChangeChecker();
     connect(m_parentalLevelChecker, SIGNAL(SigResultReady(bool, ParentalLevel::Level)),
@@ -41,13 +35,10 @@ VideoSelector::VideoSelector(MythScreenStack *parent, QList<ArchiveItem *> *arch
 
 VideoSelector::~VideoSelector(void)
 {
-    if (m_videoList)
-        delete m_videoList;
-
+    delete m_videoList;
     while (!m_selectedList.isEmpty())
          delete m_selectedList.takeFirst();
     m_selectedList.clear();
-
     delete m_parentalLevelChecker;
 }
 
@@ -551,7 +542,7 @@ void VideoSelector::updateSelectedList()
     for (int x = 0; x < m_archiveList->size(); x++)
     {
         ArchiveItem *a = m_archiveList->at(x);
-        for (uint y = 0; y < m_videoList->size(); y++)
+        for (size_t y = 0; y < m_videoList->size(); y++)
         {
             VideoInfo *v = m_videoList->at(y);
             if (v->filename == a->filename)

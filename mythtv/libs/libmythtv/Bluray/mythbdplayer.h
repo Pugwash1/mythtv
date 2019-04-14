@@ -12,7 +12,8 @@ class MythBDPlayer : public MythPlayer
     Q_DECLARE_TR_FUNCTIONS(MythBDPlayer);
 
   public:
-    explicit MythBDPlayer(PlayerFlags flags = kNoFlags);
+    explicit MythBDPlayer(PlayerFlags flags = kNoFlags)
+        : MythPlayer(flags) {}
     bool    HasReachedEof(void) const override; // MythPlayer
     bool    GoToMenu(QString str) override; // MythPlayer
     int     GetNumChapters(void) override; // MythPlayer
@@ -64,11 +65,11 @@ class MythBDPlayer : public MythPlayer
     // Disable screen grabs for Bluray
     void SeekForScreenGrab(uint64_t &/*number*/, uint64_t /*frameNum*/,
                            bool /*absolute*/) override // MythPlayer
-        { return; }
+        {}
 
   private:
     void    DisplayMenu(void);
-    bool    m_stillFrameShowing;
+    bool    m_stillFrameShowing {false};
     QString m_initialBDState;
 };
 

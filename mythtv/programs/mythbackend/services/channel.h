@@ -118,12 +118,12 @@ class Channel : public ChannelServices
 
         bool                      RemoveVideoSource      ( uint SourceID ) override; // ChannelServices
 
-        DTC::LineupList*          GetDDLineupList        ( const QString &Source,
-                                                           const QString &UserId,
-                                                           const QString &Password ) override; // ChannelServices
+        DTC::LineupList*          GetDDLineupList        ( const QString &/*Source*/,
+                                                           const QString &/*UserId*/,
+                                                           const QString &/*Password*/ ) override; // ChannelServices
 
-        int                       FetchChannelsFromSource( const uint SourceId,
-                                                           const uint CardId,
+        int                       FetchChannelsFromSource( uint       SourceId,
+                                                           uint       CardId,
                                                            bool       WaitForFinish ) override; // ChannelServices
 
         /* Multiplex Methods */

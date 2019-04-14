@@ -50,7 +50,7 @@ class ScanMonitor :
     friend class QObject; // quiet OSX gcc warning
 
   public:
-    explicit ScanMonitor(ChannelScanner *cs) : channelScanner(cs) { }
+    explicit ScanMonitor(ChannelScanner *cs) : m_channelScanner(cs) { }
     virtual void deleteLater(void);
 
     void customEvent(QEvent*) override; // QObject
@@ -78,7 +78,7 @@ class ScanMonitor :
   private:
     ~ScanMonitor() = default;
 
-    ChannelScanner *channelScanner;
+    ChannelScanner *m_channelScanner {nullptr};
 };
 
 class Configurable;
@@ -89,18 +89,19 @@ class ScannerEvent : public QEvent
 
   public:
 
-    explicit ScannerEvent(QEvent::Type t) :
-        QEvent(t), str(""), intvalue(0), cfg_ptr(nullptr) { ; }
+    explicit ScannerEvent(QEvent::Type type) : QEvent(type) { }
 
-    QString strValue()              const { return str; }
-    void    strValue(const QString& _str) { str = _str; }
+    QString strValue()              const { return m_str; }
+    void    strValue(const QString& str)  { m_str = str; }
 
-    int     intValue()        const { return intvalue; }
-    void    intValue(int _intvalue) { intvalue = _intvalue; }
+    int     intValue()       const { return m_intvalue; }
+    void    intValue(int intvalue) { m_intvalue = intvalue; }
 
-    Configurable *ConfigurableValue() const { return cfg_ptr; }
-    void    ConfigurableValue(Configurable *_cfg_ptr)
-        { cfg_ptr = _cfg_ptr; }
+    int     boolValue()       const { return m_intvalue != 0; }
+
+    Configurable *ConfigurableValue() const { return m_cfg_ptr; }
+    void    ConfigurableValue(Configurable *cfg_ptr)
+        { m_cfg_ptr = cfg_ptr; }
 
     static Type ScanComplete;
     static Type ScanShutdown;
@@ -119,14 +120,14 @@ class ScannerEvent : public QEvent
     ~ScannerEvent() = default;
 
   private:
-    QString str;
-    int     intvalue;
-    Configurable *cfg_ptr;
+    QString       m_str;
+    int           m_intvalue {0};
+    Configurable *m_cfg_ptr  {nullptr};
 };
 
 void post_event(QObject *dest, QEvent::Type type, int val);
 void post_event(QObject *dest, QEvent::Type type, const QString &val);
 void post_event(QObject *dest, QEvent::Type type, int val,
-                Configurable *cfg);
+                Configurable *spp);
 
 #endif // _SCAN_MONITOR_H_

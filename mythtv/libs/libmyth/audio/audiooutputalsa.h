@@ -13,7 +13,7 @@ class AudioOutputALSA : public AudioOutputBase
 {
   public:
     explicit AudioOutputALSA(const AudioSettings &settings);
-    virtual ~AudioOutputALSA();
+    ~AudioOutputALSA() override;
 
     // Volume control
     int GetVolumeChannel(int channel) const override; // VolumeBase
@@ -29,7 +29,7 @@ class AudioOutputALSA : public AudioOutputBase
     AudioOutputSettings* GetOutputSettings(bool passthrough) override; // AudioOutputBase
 
   private:
-    int TryOpenDevice(int open_mode, int try_ac3);
+    int TryOpenDevice(int open_mode, bool try_ac3);
     int GetPCMInfo(int &card, int &device, int &subdevice);
     bool IncPreallocBufferSize(int requested, int buffer_time);
     inline int SetParameters(snd_pcm_t *handle, snd_pcm_format_t format,
@@ -40,10 +40,12 @@ class AudioOutputALSA : public AudioOutputBase
     bool OpenMixer(void);
 
   private:
-    snd_pcm_t   *pcm_handle;
-    int          m_pbufsize;
-    int          m_card, m_device, m_subdevice;
-    QMutex       killAudioLock;
+    snd_pcm_t   *m_pcm_handle {nullptr};
+    int          m_pbufsize   {-1};
+    int          m_card       {-1};
+    int          m_device     {-1};
+    int          m_subdevice  {-1};
+    QMutex       m_killAudioLock;
     QString      m_lastdevice;
 
     struct {

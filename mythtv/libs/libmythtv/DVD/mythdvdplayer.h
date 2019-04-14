@@ -10,7 +10,8 @@ class MythDVDPlayer : public MythPlayer
     Q_DECLARE_TR_FUNCTIONS(MythDVDPlayer);
 
   public:
-    explicit MythDVDPlayer(PlayerFlags flags = kNoFlags);
+    explicit MythDVDPlayer(PlayerFlags flags = kNoFlags)
+        : MythPlayer(flags) {}
 
     // Decoder stuff..
     void ReleaseNextVideoFrame(VideoFrame *buffer, int64_t timecode,
@@ -65,7 +66,7 @@ class MythDVDPlayer : public MythPlayer
     void ChangeSpeed(void) override; // MythPlayer
 
     // Playback
-    void AVSync(VideoFrame *buffer, bool limit_delay = false) override; // MythPlayer
+    void AVSync(VideoFrame *frame, bool limit_delay = false) override; // MythPlayer
     void DisplayPauseFrame(void) override; // MythPlayer
     void PreProcessNormalFrame(void) override; // MythPlayer
     void VideoStart(void) override; // MythPlayer
@@ -108,18 +109,18 @@ class MythDVDPlayer : public MythPlayer
 
     void DisplayLastFrame(void);
 
-    int  m_buttonVersion;
-    bool dvd_stillframe_showing;
+    int       m_buttonVersion          {0};
+    bool      m_dvd_stillframe_showing {false};
 
     // additional bookmark seeking information
-    int m_initial_title;
-    int m_initial_audio_track;
-    int m_initial_subtitle_track;
-    QString m_initial_dvdstate;
+    int       m_initial_title          {-1};
+    int       m_initial_audio_track    {-1};
+    int       m_initial_subtitle_track {-1};
+    QString   m_initial_dvdstate;
 
     // still frame timing
     MythTimer m_stillFrameTimer;
-    int       m_stillFrameLength;
+    int       m_stillFrameLength       {0};
     QMutex    m_stillFrameTimerLock;
 };
 

@@ -19,7 +19,7 @@ class AudioOutputJACK : public AudioOutputBase
 
   public:
     explicit AudioOutputJACK(const AudioSettings &settings);
-    virtual ~AudioOutputJACK();
+    ~AudioOutputJACK() override;
 
     // Volume control
     int GetVolumeChannel(int channel) const override; // VolumeBase
@@ -52,18 +52,19 @@ class AudioOutputJACK : public AudioOutputBase
 
     jack_client_t* _jack_client_open(void);
     const char** _jack_get_ports(void);
-    bool _jack_connect_ports(const char**);
+    bool _jack_connect_ports(const char** /*matching_ports*/);
     inline void _jack_client_close(jack_client_t **client);
 
-    void DeinterleaveAudio(float *aubuf, float **bufs,
-                           int nframes, int* channel_volumes);
+    void DeinterleaveAudio(const float *aubuf, float **bufs,
+                           int nframes, const int* channel_volumes);
 
-    jack_port_t *ports[JACK_CHANNELS_MAX];
-    int chan_volumes[JACK_CHANNELS_MAX];
-    jack_client_t *client, *stale_client;
-    int jack_latency;
-    int jack_xruns;
-    unsigned char *aubuf;
+    jack_port_t   *m_ports[JACK_CHANNELS_MAX];
+    int            m_chan_volumes[JACK_CHANNELS_MAX];
+    jack_client_t *m_client       {nullptr};
+    jack_client_t *m_stale_client {nullptr};
+    int            m_jack_latency {0};
+    int            m_jack_xruns   {0};
+    unsigned char *m_aubuf        {nullptr};
 
 
 };

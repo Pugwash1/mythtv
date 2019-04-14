@@ -73,6 +73,7 @@ using namespace std;
 #include "mythtranslation.h"
 #include "commandlineparser.h"
 #include "tvremoteutil.h"
+#include "channelutil.h"
 
 #include "myththemedmenu.h"
 #include "mediarenderer.h"
@@ -115,13 +116,19 @@ using namespace std;
 #include <QScopedPointer>
 #include "bonjourregister.h"
 #endif
+#if CONFIG_SYSTEMD_NOTIFY
+#include <systemd/sd-daemon.h>
+#define fe_sd_notify(x) \
+    (void)sd_notify(0, x);
+#else
+#define fe_sd_notify(x)
+#endif
 
-static ExitPrompter   *exitPopup = nullptr;
-static MythThemedMenu *menu;
+static ExitPrompter   *g_exitPopup = nullptr;
+static MythThemedMenu *g_menu;
 
-static QString         logfile;
 static MediaRenderer  *g_pUPnp   = nullptr;
-static MythPluginManager *pmanager = nullptr;
+static MythPluginManager *g_pmanager = nullptr;
 
 static void handleExit(bool prompt);
 static void resetAllKeys(void);
@@ -164,7 +171,7 @@ namespace
             }
         }
 
-        ~RunSettingsCompletion() = default;
+        ~RunSettingsCompletion() override = default;
 
       private slots:
         void OnPasswordResultReady(bool passwordValid,
@@ -261,7 +268,7 @@ namespace
         }
 
       private:
-        ProgramInfo* pgi;
+        ProgramInfo* pgi {nullptr};
     };
 
     void cleanup()
@@ -273,8 +280,8 @@ namespace
         MythAirplayServer::Cleanup();
 #endif
 
-        delete exitPopup;
-        exitPopup = nullptr;
+        delete g_exitPopup;
+        g_exitPopup = nullptr;
 
         AudioOutput::Cleanup();
 
@@ -286,10 +293,10 @@ namespace
             g_pUPnp = nullptr;
         }
 
-        if (pmanager)
+        if (g_pmanager)
         {
-            delete pmanager;
-            pmanager = nullptr;
+            delete g_pmanager;
+            g_pmanager = nullptr;
         }
 
         delete gContext;
@@ -524,7 +531,7 @@ static void startCustomPriority(void)
         delete custom;
 }
 
-static void startPlaybackWithGroup(QString recGroup = "")
+static void startPlaybackWithGroup(const QString& recGroup = "")
 {
     MythScreenStack *mainStack = GetMythMainWindow()->GetMainStack();
 
@@ -606,8 +613,30 @@ static bool isLiveTVAvailable(void)
 
 static void startTVNormal(void)
 {
-    if (isLiveTVAvailable())
-        TV::StartTV(nullptr, kStartTVNoFlags);
+    if (!isLiveTVAvailable())
+        return;
+
+    // Get the default channel keys (callsign(0) and channum(1)) and
+    // use them to generate the ordered list of channels.
+    QStringList keylist = gCoreContext->GetSettingOnHost(
+        "DefaultChanKeys", gCoreContext->GetHostName()).split("[]:[]");
+    while (keylist.size() < 2)
+        keylist << "";
+    uint dummy;
+    ChannelInfoList livetvchannels = ChannelUtil::LoadChannels(
+        0,                      // startIndex
+        0,                      // count
+        dummy,                  // totalAvailable
+        true,                   // ignoreHidden
+        ChannelUtil::kChanOrderByLiveTV, // orderBy
+        ChannelUtil::kChanGroupByChanid, // groupBy
+        0,                      // sourceID
+        0,                      // channelGroupID
+        true,                   // liveTVOnly
+        keylist[0],             // callsign
+        keylist[1]);            // channum
+
+    TV::StartTV(nullptr, kStartTVNoFlags, livetvchannels);
 }
 
 static void showStatus(void)
@@ -762,28 +791,26 @@ static void playDisc()
 
             return;
         }
-        else
+
+        if (command_string.contains("%d"))
         {
-            if (command_string.contains("%d"))
-            {
-                //
-                //  Need to do device substitution
-                //
-                command_string =
-                        command_string.replace(QRegExp("%d"), dvd_device);
-            }
-            gCoreContext->emitTVPlaybackStarted();
-            GetMythMainWindow()->PauseIdleTimer(true);
-            myth_system(command_string);
-            gCoreContext->emitTVPlaybackStopped();
-            GetMythMainWindow()->PauseIdleTimer(false);
-            if (GetMythMainWindow())
-            {
-                GetMythMainWindow()->raise();
-                GetMythMainWindow()->activateWindow();
-                if (GetMythMainWindow()->currentWidget())
-                    GetMythMainWindow()->currentWidget()->setFocus();
-            }
+            //
+            //  Need to do device substitution
+            //
+            command_string =
+                command_string.replace(QRegExp("%d"), dvd_device);
+        }
+        gCoreContext->emitTVPlaybackStarted();
+        GetMythMainWindow()->PauseIdleTimer(true);
+        myth_system(command_string);
+        gCoreContext->emitTVPlaybackStopped();
+        GetMythMainWindow()->PauseIdleTimer(false);
+        if (GetMythMainWindow())
+        {
+            GetMythMainWindow()->raise();
+            GetMythMainWindow()->activateWindow();
+            if (GetMythMainWindow()->currentWidget())
+                GetMythMainWindow()->currentWidget()->setFocus();
         }
         GetMythUI()->RemoveCurrentLocation();
     }
@@ -1107,7 +1134,7 @@ static void TVMenuCallback(void *data, QString &selection)
     else if (sel == "video_settings_general")
     {
         RunSettingsCompletion::Create(gCoreContext->
-                GetNumSetting("VideoAggressivePC", 0));
+                GetBoolSetting("VideoAggressivePC", false));
     }
     else if (sel == "video_settings_player")
     {
@@ -1185,34 +1212,34 @@ static void handleExit(bool prompt)
 {
     if (prompt)
     {
-        if (!exitPopup)
-            exitPopup = new ExitPrompter();
+        if (!g_exitPopup)
+            g_exitPopup = new ExitPrompter();
 
-        exitPopup->handleExit();
+        g_exitPopup->handleExit();
     }
     else
         qApp->quit();
 }
 
-static bool RunMenu(QString themedir, QString themename)
+static bool RunMenu(const QString& themedir, const QString& themename)
 {
     QByteArray tmp = themedir.toLocal8Bit();
-    menu = new MythThemedMenu(QString(tmp.constData()), "mainmenu.xml",
+    g_menu = new MythThemedMenu(QString(tmp.constData()), "mainmenu.xml",
                               GetMythMainWindow()->GetMainStack(), "mainmenu");
 
-    if (menu->foundTheme())
+    if (g_menu->foundTheme())
     {
         LOG(VB_GENERAL, LOG_NOTICE, QString("Found mainmenu.xml for theme '%1'")
                 .arg(themename));
-        menu->setCallback(TVMenuCallback, gContext);
-        GetMythMainWindow()->GetMainStack()->AddScreen(menu);
+        g_menu->setCallback(TVMenuCallback, gContext);
+        GetMythMainWindow()->GetMainStack()->AddScreen(g_menu);
         return true;
     }
 
     LOG(VB_GENERAL, LOG_ERR,
         QString("Couldn't find mainmenu.xml for theme '%1'") .arg(themename));
-    delete menu;
-    menu = nullptr;
+    delete g_menu;
+    g_menu = nullptr;
 
     return false;
 }
@@ -1275,9 +1302,9 @@ static int internal_play_media(const QString &mrl, const QString &plot,
     }
 
     ProgramInfo *pginfo = new ProgramInfo(
-        mrl, plot, title, subtitle, director, season, episode,
-        inetref, lenMins, (year.toUInt()) ? year.toUInt() : 1900,
-        id);
+        mrl, plot, title, QString(), subtitle, QString(),
+        director, season, episode, inetref, lenMins,
+        (year.toUInt()) ? year.toUInt() : 1900, id);
 
     pginfo->SetProgramInfoType(pginfo->DiscoverProgramInfoType());
 
@@ -1361,10 +1388,10 @@ static int internal_play_media(const QString &mrl, const QString &plot,
 static void gotoMainMenu(void)
 {
     // Reset the selected button to the first item.
-    MythThemedMenuState *menu = dynamic_cast<MythThemedMenuState *>
+    MythThemedMenuState *lmenu = dynamic_cast<MythThemedMenuState *>
         (GetMythMainWindow()->GetMainStack()->GetTopScreen());
-    if (menu)
-        menu->m_buttonList->SetItemCurrent(0);
+    if (lmenu)
+        lmenu->m_buttonList->SetItemCurrent(0);
 }
 
 // If the theme specified in the DB is somehow broken, try a standard one:
@@ -1467,9 +1494,9 @@ static int reloadTheme(void)
 
     GetMythUI()->LoadQtConfig();
 
-    if (menu)
+    if (g_menu)
     {
-        menu->Close();
+        g_menu->Close();
     }
 #if CONFIG_DARWIN
     GetMythMainWindow()->Init(gLoaded ? OPENGL2_PAINTER : QT_PAINTER);
@@ -1874,11 +1901,16 @@ int main(int argc, char **argv)
 #ifdef Q_OS_ANDROID
     //QApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
 #endif
-#if QT_VERSION >= QT_VERSION_CHECK(5,3,0)
-    QApplication::setSetuidAllowed(true);
+
+#if QT_VERSION >= QT_VERSION_CHECK(5, 6, 0)
+    // Ignore desktop scaling
+    QApplication::setAttribute(Qt::AA_DisableHighDpiScaling);
 #endif
+
+    QApplication::setSetuidAllowed(true);
     new QApplication(argc, argv);
     QCoreApplication::setApplicationName(MYTH_APPNAME_MYTHFRONTEND);
+
 
 #ifdef Q_OS_MAC
     QString path = QCoreApplication::applicationDirPath();
@@ -1926,6 +1958,7 @@ int main(int argc, char **argv)
         MythUIHelper::ParseGeometryOverride(cmdline.toString("geometry"));
     }
 
+    fe_sd_notify("STATUS=Connecting to database.");
     gContext = new MythContext(MYTH_BINARY_VERSION, true);
     gCoreContext->SetAsFrontend(true);
 
@@ -1950,6 +1983,7 @@ int main(int argc, char **argv)
 
     if (!cmdline.toBool("noupnp"))
     {
+        fe_sd_notify("STATUS=Creating UPnP media renderer");
         g_pUPnp  = new MediaRenderer();
         if (!g_pUPnp->isInitialized())
         {
@@ -1982,9 +2016,7 @@ int main(int argc, char **argv)
         return GENERIC_EXIT_OK;
     }
 
-#if QT_VERSION >= QT_VERSION_CHECK(5,3,0)
     qApp->setSetuidAllowed(true);
-#endif
 
     if (revokeRoot() != 0)
     {
@@ -1998,6 +2030,7 @@ int main(int argc, char **argv)
     QScopedPointer<BonjourRegister> bonjour(new BonjourRegister());
     if (bonjour.data())
     {
+        fe_sd_notify("STATUS=Registering frontend with bonjour");
         QByteArray dummy;
         int port = gCoreContext->GetNumSetting("UPnP/MythFrontend/ServicePort", 6547);
         QByteArray name("Mythfrontend on ");
@@ -2007,12 +2040,15 @@ int main(int argc, char **argv)
     }
 #endif
 
+    fe_sd_notify("STATUS=Initializing LCD");
     LCD::SetupLCD();
     if (LCD *lcd = LCD::Get())
         lcd->setupLEDs(RemoteGetRecordingMask);
 
+    fe_sd_notify("STATUS=Loading translation");
     MythTranslation::load("mythfrontend");
 
+    fe_sd_notify("STATUS=Loading themes");
     QString themename = gCoreContext->GetSetting("Theme", DEFAULT_UI_THEME);
 
     QString themedir = GetMythUI()->FindThemeDir(themename);
@@ -2047,6 +2083,7 @@ int main(int argc, char **argv)
 #ifdef USING_AIRPLAY
     if (gCoreContext->GetBoolSetting("AirPlayEnabled", true))
     {
+        fe_sd_notify("STATUS=Initializing AirPlay");
         MythRAOPDevice::Create();
         if (!gCoreContext->GetBoolSetting("AirPlayAudioOnly", false))
         {
@@ -2064,7 +2101,7 @@ int main(int argc, char **argv)
             return GENERIC_EXIT_NO_THEME;
     }
 
-    if (!UpgradeTVDatabaseSchema(false))
+    if (!UpgradeTVDatabaseSchema(false, false, true))
     {
         LOG(VB_GENERAL, LOG_ERR,
             "Couldn't upgrade database to new schema, exiting.");
@@ -2077,6 +2114,7 @@ int main(int argc, char **argv)
     // when they were written originally
     mainWindow->ReloadKeys();
 
+    fe_sd_notify("STATUS=Initializing jump points");
     InitJumpPoints();
     InitKeys();
     TV::InitKeys();
@@ -2088,9 +2126,11 @@ int main(int argc, char **argv)
 
     setHttpProxy();
 
-    pmanager = new MythPluginManager();
-    gCoreContext->SetPluginManager(pmanager);
+    fe_sd_notify("STATUS=Initializing plugins");
+    g_pmanager = new MythPluginManager();
+    gCoreContext->SetPluginManager(g_pmanager);
 
+    fe_sd_notify("STATUS=Initializing media monitor");
     MediaMonitor *mon = MediaMonitor::GetMediaMonitor();
     if (mon)
     {
@@ -2098,6 +2138,7 @@ int main(int argc, char **argv)
         mainWindow->installEventFilter(mon);
     }
 
+    fe_sd_notify("STATUS=Initializing network control");
     NetworkControl *networkControl = nullptr;
     if (gCoreContext->GetBoolSetting("NetworkControlEnabled", false))
     {
@@ -2120,6 +2161,7 @@ int main(int argc, char **argv)
     {
         return GENERIC_EXIT_NO_THEME;
     }
+    fe_sd_notify("STATUS=Loading theme updates");
     ThemeUpdateChecker *themeUpdateChecker = nullptr;
     if (gCoreContext->GetBoolSetting("ThemeUpdateNofications", true))
         themeUpdateChecker = new ThemeUpdateChecker();
@@ -2131,6 +2173,7 @@ int main(int argc, char **argv)
     PreviewGeneratorQueue::CreatePreviewGeneratorQueue(
         PreviewGenerator::kRemote, 50, 60);
 
+    fe_sd_notify("STATUS=Creating housekeeper");
     HouseKeeper *housekeeping = new HouseKeeper();
 #ifdef __linux__
  #ifdef CONFIG_BINDINGS_PYTHON
@@ -2142,12 +2185,12 @@ int main(int argc, char **argv)
 
     if (cmdline.toBool("runplugin"))
     {
-        QStringList plugins = pmanager->EnumeratePlugins();
+        QStringList plugins = g_pmanager->EnumeratePlugins();
 
         if (plugins.contains(cmdline.toString("runplugin")))
-            pmanager->run_plugin(cmdline.toString("runplugin"));
+            g_pmanager->run_plugin(cmdline.toString("runplugin"));
         else if (plugins.contains("myth" + cmdline.toString("runplugin")))
-            pmanager->run_plugin("myth" + cmdline.toString("runplugin"));
+            g_pmanager->run_plugin("myth" + cmdline.toString("runplugin"));
         else
         {
             LOG(VB_GENERAL, LOG_ERR,
@@ -2185,8 +2228,13 @@ int main(int argc, char **argv)
         standbyScreen();
     }
 
+    // Provide systemd ready notification (for type=notify units)
+    fe_sd_notify("STATUS=");
+    fe_sd_notify("READY=1");
+
     int ret = qApp->exec();
 
+    fe_sd_notify("STOPPING=1\nSTATUS=Exiting");
     if (ret==0)
         gContext-> saveSettingsCache();
 
@@ -2194,21 +2242,16 @@ int main(int argc, char **argv)
     PreviewGeneratorQueue::TeardownPreviewGeneratorQueue();
 
     delete housekeeping;
-
-    if (themeUpdateChecker)
-        delete themeUpdateChecker;
-
+    delete themeUpdateChecker;
     delete sysEventHandler;
 
-    pmanager->DestroyAllPlugins();
+    g_pmanager->DestroyAllPlugins();
 
     if (mon)
         mon->deleteLater();
 
     delete networkControl;
-
     return ret;
-
 }
 
 void handleSIGUSR1(void)

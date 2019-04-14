@@ -161,7 +161,7 @@ class MTV_PUBLIC MythPlayer
     void SetWatched(bool forceWatched = false);
     void SetKeyframeDistance(int keyframedistance);
     void SetVideoParams(int w, int h, double fps,
-           FrameScanType scan = kScan_Ignore, QString codecName = QString());
+           FrameScanType scan = kScan_Ignore, const QString& codecName = QString());
     void SetFileLength(int total, int frames);
     void SetDuration(int duration);
     void SetVideoResize(const QRect &videoRect);
@@ -220,7 +220,7 @@ class MTV_PUBLIC MythPlayer
     bool    GetLimitKeyRepeat(void) const     { return limitKeyRepeat; }
     EofState GetEof(void) const;
     bool    IsErrored(void) const;
-    bool    IsPlaying(uint wait_ms = 0, bool wait_for = true) const;
+    bool    IsPlaying(uint wait_in_msec = 0, bool wait_for = true) const;
     bool    AtNormalSpeed(void) const         { return next_normal_speed; }
     bool    IsReallyNearEnd(void) const;
     bool    IsNearEnd(void);
@@ -393,6 +393,10 @@ class MTV_PUBLIC MythPlayer
     FrameScanType GetScanType(void) const { return m_scan; }
     bool IsScanTypeLocked(void) const { return m_scan_locked; }
     void Zoom(ZoomDirection direction);
+    void ToggleMoveBottomLine(void);
+    void SaveBottomLine(void);
+    void FileChanged(void);
+
 
     // Windowing stuff
     void EmbedInWidget(QRect rect);
@@ -521,7 +525,7 @@ class MTV_PUBLIC MythPlayer
     // Closed caption and teletext stuff
     void ResetCaptions(void);
     bool ToggleCaptions(void);
-    bool ToggleCaptions(uint mode);
+    bool ToggleCaptions(uint type);
     bool HasTextSubtitles(void)        { return subReader.HasTextSubtitles(); }
     void SetCaptionsEnabled(bool, bool osd_msg=true);
     bool GetCaptionsEnabled(void);
@@ -619,8 +623,9 @@ class MTV_PUBLIC MythPlayer
     void AVSync2(VideoFrame *buffer);
     void  ResetAVSync(void);
     int64_t AVSyncGetAudiotime(void);
-    void  SetFrameInterval(FrameScanType scan, double speed);
+    void  SetFrameInterval(FrameScanType scan, double frame_period);
     void  FallbackDeint(void);
+    void WaitForTime(int64_t framedue);
 
     // Private LiveTV stuff
     void  SwitchToProgram(void);
@@ -707,6 +712,7 @@ class MTV_PUBLIC MythPlayer
     int64_t   totalDuration;
     long long rewindtime;
     int64_t   m_latestVideoTimecode;
+    QElapsedTimer m_avTimer;
 
     // -- end state stuff --
 
@@ -818,6 +824,7 @@ class MTV_PUBLIC MythPlayer
 
     int        ffrew_skip;
     int        ffrew_adjust;
+    bool       fileChanged;
 
     // Audio and video synchronization stuff
     VideoSync *videosync;
@@ -851,6 +858,9 @@ class MTV_PUBLIC MythPlayer
     int       maxtcframes;    // number of frames seen since max to date tc
     int64_t   avsync2adjustms; // number of milliseconds to adjust for av sync errors
     int       numdroppedframes; // number of consecutive dropped frames.
+    int64_t   prior_audiotimecode;    // time code from prior frame
+    int64_t   prior_videotimecode;    // time code from prior frame
+    int64_t   m_timeOffsetBase;
 
     // LiveTV
     TV *m_tv;

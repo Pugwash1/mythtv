@@ -37,7 +37,8 @@ extern "C" {
 class MTV_PUBLIC Vaapi2Context : public MythCodecContext
 {
   public:
-    Vaapi2Context(void);
+    Vaapi2Context(void) = default;
+    ~Vaapi2Context();
     static MythCodecID GetBestSupportedCodec(AVCodec **ppCodec,
                                              const QString &decoder,
                                              uint stream_type,
@@ -46,6 +47,10 @@ class MTV_PUBLIC Vaapi2Context : public MythCodecContext
     QString GetDeinterlaceFilter(void) override; // MythCodecContext
     bool isValidDeinterlacer(QString /*name*/ ) override; // MythCodecContext
     QStringList GetDeinterlacers(void) override; // MythCodecContext
+
+  protected:
+    int InitDeinterlaceFilter(AVCodecContext *ctx, AVFrame *frame) override; // MythCodecContext
+    void CloseFilters();
 
 };
 

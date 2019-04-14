@@ -1,7 +1,6 @@
 #include <cmath>
 #include <cstdlib>
 
-#include <QDesktopWidget>
 #include <QRunnable>
 
 #include "osd.h"
@@ -193,7 +192,7 @@ VideoOutput *VideoOutput::Create(
 
     VideoDisplayProfile *vprof = new VideoDisplayProfile();
 
-    if (renderers.size() > 0)
+    if (!renderers.empty())
     {
         vprof->SetInput(video_dim_disp, video_prate, codecName);
         QString tmp = vprof->GetVideoRenderer();
@@ -464,26 +463,21 @@ VideoOutput::~VideoOutput()
 {
     if (osd_image)
         osd_image->DecrRef();
-    if (osd_painter)
-        delete osd_painter;
-    if (invalid_osd_painter)
-        delete invalid_osd_painter;
+    delete osd_painter;
+    delete invalid_osd_painter;
     invalid_osd_painter = nullptr;
 
     ShutdownPipResize();
 
-    ShutdownVideoResize();
+    VideoOutput::ShutdownVideoResize();
 
-    if (m_deintFilter)
-        delete m_deintFilter;
-    if (m_deintFiltMan)
-        delete m_deintFiltMan;
-    if (db_vdisp_profile)
-        delete db_vdisp_profile;
+    delete m_deintFilter;
+    delete m_deintFiltMan;
+    delete db_vdisp_profile;
 
     ResizeForGui();
     if (display_res)
-        display_res->Unlock();
+        DisplayRes::Unlock();
 }
 
 /**
@@ -734,14 +728,7 @@ void VideoOutput::GetDeinterlacers(QStringList &deinterlacers)
     if (!db_vdisp_profile)
         return;
     QString rend = db_vdisp_profile->GetActualVideoRenderer();
-    deinterlacers = db_vdisp_profile->GetDeinterlacers(rend);
-}
-
-QString VideoOutput::GetDeinterlacer(void)
-{
-    QString res = m_deintfiltername;
-    res.detach();
-    return res;
+    deinterlacers = VideoDisplayProfile::GetDeinterlacers(rend);
 }
 
 /**
@@ -770,7 +757,7 @@ bool VideoOutput::InputChanged(const QSize &video_dim_buf,
     window.InputChanged(video_dim_buf, video_dim_disp,
                         aspect, myth_codec_id, codec_private);
 
-    AVCodecID avCodecId = (AVCodecID) myth2av_codecid(myth_codec_id);
+    AVCodecID avCodecId = myth2av_codecid(myth_codec_id);
     AVCodec *codec = avcodec_find_decoder(avCodecId);
     QString codecName;
     if (codec)
@@ -855,17 +842,17 @@ QRect VideoOutput::GetVisibleOSDBounds(
     QSize dvr2 = QSize(dvr.width()  & ~0x3,
                        dvr.height() & ~0x1);
 
-    float dispPixelAdj = 1.0f;
+    float dispPixelAdj = 1.0F;
     if (dvr2.height() && dvr2.width())
         dispPixelAdj = (GetDisplayAspect() * dvr2.height()) / dvr2.width();
 
     float ova = window.GetOverridenVideoAspect();
     QRect vr = window.GetVideoRect();
-    float vs = vr.height() ? (float)vr.width() / vr.height() : 1.f;
-    visible_aspect = themeaspect * (ova ? vs / ova : 1.f) * dispPixelAdj;
+    float vs = vr.height() ? (float)vr.width() / vr.height() : 1.F;
+    visible_aspect = themeaspect * (ova ? vs / ova : 1.F) * dispPixelAdj;
 
-    font_scaling   = 1.0f;
-    return QRect(QPoint(0,0), dvr2);
+    font_scaling   = 1.0F;
+    return {QPoint(0,0), dvr2};
 }
 
 /**
@@ -881,7 +868,7 @@ QRect VideoOutput::GetTotalOSDBounds(void) const
     QSize dvr2 = QSize(dvr.width()  & ~0x3,
                        dvr.height() & ~0x1);
 
-    return QRect(QPoint(0,0), dvr2);
+    return {QPoint(0,0), dvr2};
 }
 
 QRect VideoOutput::GetMHEGBounds(void)
@@ -890,8 +877,8 @@ QRect VideoOutput::GetMHEGBounds(void)
         return window.GetTotalOSDBounds();
 
     QRect dvr = window.GetDisplayVideoRect();
-    return QRect(QPoint(dvr.left() & ~0x1, dvr.top()  & ~0x1),
-                 QSize(dvr.width() & ~0x1, dvr.height() & ~0x1));
+    return {QPoint(dvr.left() & ~0x1, dvr.top()  & ~0x1),
+            QSize(dvr.width() & ~0x1, dvr.height() & ~0x1)};
 }
 
 bool VideoOutput::AllowPreviewEPG(void) const
@@ -923,6 +910,25 @@ void VideoOutput::MoveResize(void)
 void VideoOutput::Zoom(ZoomDirection direction)
 {
     window.Zoom(direction);
+}
+
+/**
+ * \fn VideoOutput::ToogleMoveBottomLine(void)
+ * \brief Toggle "zooming" the bottomline (sports tickers) off the screen.
+ *        Applied in MoveResize().
+ */
+void VideoOutput::ToggleMoveBottomLine(void)
+{
+    window.ToggleMoveBottomLine();
+}
+
+/**
+ * \fn VideoOutput::SaveBottomLine(void)
+ * \brief Save current Manual Zoom settings as BottomLine adjustment.
+ */
+void VideoOutput::SaveBottomLine(void)
+{
+    window.SaveBottomLine();
 }
 
 /**
@@ -1548,24 +1554,43 @@ bool VideoOutput::DisplayOSD(VideoFrame *frame, OSD *osd)
     // Split visible region for greater concurrency
     QRect r = osd_image->rect();
     QPoint c = r.center();
-    QVector<QRect> vis = visible.intersected(QRect(r.topLeft(),c)).rects();
+    QVector<QRect> vis;
+#if QT_VERSION < QT_VERSION_CHECK(5, 8, 0)
+    vis += visible.intersected(QRect(r.topLeft(),c)).rects();
     vis += visible.intersected(QRect(c,r.bottomRight())).rects();
     vis += visible.intersected(QRect(r.bottomLeft(),c).normalized()).rects();
     vis += visible.intersected(QRect(c,r.topRight()).normalized()).rects();
 #else
-    QVector<QRect> vis = visible.rects();
+    for (const QRect &tmp : visible.intersected(QRect(r.topLeft(),c)))
+        vis += tmp;
+    for (const QRect &tmp : visible.intersected(QRect(c,r.bottomRight())))
+        vis += tmp;
+    for (const QRect &tmp : visible.intersected(QRect(r.bottomLeft(),c).normalized()))
+        vis += tmp;
+    for (const QRect &tmp : visible.intersected(QRect(c,r.topRight()).normalized()))
+        vis += tmp;
 #endif
     for (int i = 0; i < vis.size(); i++)
     {
-#if THREADED_OSD_RENDER
         OsdRender *job = new OsdRender(frame, osd_image, video_dim, vis[i]);
         job->setAutoDelete(true);
         s_pool.start(job, "OsdRender");
+    }
+    s_pool.waitForDone();
 #else
-        int left   = min(vis[i].left(), osd_image->width());
-        int top    = min(vis[i].top(), osd_image->height());
-        int right  = min(left + vis[i].width(), osd_image->width());
-        int bottom = min(top + vis[i].height(), osd_image->height());
+#if QT_VERSION < QT_VERSION_CHECK(5, 8, 0)
+    QVector<QRect> vis = visible.rects();
+    for (int i = 0; i < vis.size(); i++)
+    {
+        const QRect& r2 = vis[i];
+#else
+    for (const QRect& r2 : visible)
+    {
+#endif
+        int left   = min(r2.left(), osd_image->width());
+        int top    = min(r2.top(), osd_image->height());
+        int right  = min(left + r2.width(), osd_image->width());
+        int bottom = min(top + r2.height(), osd_image->height());
 
         if (FMT_YV12 == frame->codec)
         {
@@ -1583,10 +1608,7 @@ bool VideoOutput::DisplayOSD(VideoFrame *frame, OSD *osd)
             yuv888_to_i44(frame->buf, osd_image, video_dim,
                           left, top, right, bottom, false);
         }
-#endif
     }
-#if THREADED_OSD_RENDER
-    s_pool.waitForDone();
 #endif
     return show;
 }
@@ -1682,7 +1704,7 @@ QRect VideoOutput::GetImageRect(const QRect &rect, QRect *display)
         QRect vid_rec = window.GetVideoRect();
 
         hscale = image_aspect / pixel_aspect;
-        if (hscale < 0.99f || hscale > 1.01f)
+        if (hscale < 0.99F || hscale > 1.01F)
         {
             vid_rec.setLeft(lroundf((float)vid_rec.left() * hscale));
             vid_rec.setWidth(lroundf((float)vid_rec.width() * hscale));
@@ -1706,7 +1728,7 @@ QRect VideoOutput::GetImageRect(const QRect &rect, QRect *display)
     }
 
     hscale = pixel_aspect / image_aspect;
-    if (hscale < 0.99f || hscale > 1.01f)
+    if (hscale < 0.99F || hscale > 1.01F)
     {
         result.setLeft(lroundf((float)rect1.left() * hscale));
         result.setWidth(lroundf((float)rect1.width() * hscale));
@@ -1724,13 +1746,13 @@ QRect VideoOutput::GetImageRect(const QRect &rect, QRect *display)
  */
 QRect VideoOutput::GetSafeRect(void)
 {
-    static const float safeMargin = 0.05f;
+    static const float safeMargin = 0.05F;
     float dummy;
-    QRect result = GetVisibleOSDBounds(dummy, dummy, 1.0f);
+    QRect result = GetVisibleOSDBounds(dummy, dummy, 1.0F);
     int safex = (int)((float)result.width()  * safeMargin);
     int safey = (int)((float)result.height() * safeMargin);
-    return QRect(result.left() + safex, result.top() + safey,
-                 result.width() - (2 * safex), result.height() - (2 * safey));
+    return {result.left() + safex, result.top() + safey,
+            result.width() - (2 * safex), result.height() - (2 * safey)};
 }
 
 void VideoOutput::SetPIPState(PIPState setting)
@@ -1804,7 +1826,7 @@ void VideoOutput::ResizeForVideo(uint width, uint height)
         height = 1080; // ATSC 1920x1080
 #endif
 
-    float rate = db_vdisp_profile ? db_vdisp_profile->GetOutput() : 0.0f;
+    float rate = db_vdisp_profile ? db_vdisp_profile->GetOutput() : 0.0F;
     if (display_res && display_res->SwitchToVideo(width, height, rate))
     {
         // Switching to custom display resolution succeeded
@@ -1848,7 +1870,7 @@ void VideoOutput::InitDisplayMeasurements(uint width, uint height, bool resize)
     // The very first Resize needs to be the maximum possible
     // desired res, because X will mask off anything outside
     // the initial dimensions
-    QSize sz1 = disp.res;
+    QSize sz1 = disp.m_res;
     QSize sz2 = window.GetScreenGeometry().size();
     QSize max_size = sz1.expandedTo(sz2);
 
@@ -1872,7 +1894,7 @@ void VideoOutput::InitDisplayMeasurements(uint width, uint height, bool resize)
     // DisplayRes, this will be overridden when we call ResizeForVideo
     if (db_display_dim.isEmpty())
     {
-        window.SetDisplayDim(disp.size);
+        window.SetDisplayDim(disp.m_size);
     }
     else
     {
@@ -1885,7 +1907,7 @@ void VideoOutput::InitDisplayMeasurements(uint width, uint height, bool resize)
         ResizeForVideo(width, height);
 
     // Determine window and screen dimensions in pixels
-    QSize screen_size = window.GetScreenGeometry().size();
+    QSize screen_size = disp.m_res;
     QSize window_size = window.GetDisplayVisibleRect().size();
 
     float pixel_aspect = (float)screen_size.width() /

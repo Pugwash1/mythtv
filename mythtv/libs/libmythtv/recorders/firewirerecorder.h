@@ -43,7 +43,7 @@ class FirewireRecorder :
     bool PauseAndWait(int timeout = 100) override; // RecorderBase
 
     // Implements TSDataListener
-    void AddData(const unsigned char *data, uint dataSize) override; // TSDataListener
+    void AddData(const unsigned char *data, uint len) override; // TSDataListener
 
     bool ProcessTSPacket(const TSPacket &tspacket) override; // DTVRecorder
 
@@ -58,9 +58,9 @@ class FirewireRecorder :
     explicit FirewireRecorder(TVRec *rec);
 
   private:
-    FirewireChannel       *channel;
-    bool                   isopen;
-    vector<unsigned char>  buffer;
+    FirewireChannel       *m_channel {nullptr};
+    bool                   m_isopen  {false};
+    vector<unsigned char>  m_buffer;
 };
 
 #endif //  _FIREWIRERECORDER_H_

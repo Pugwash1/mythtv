@@ -22,8 +22,7 @@ class AudioOutputNULL : public AudioOutputBase
 {
   public:
     explicit AudioOutputNULL(const AudioSettings &settings);
-
-    virtual ~AudioOutputNULL();
+    ~AudioOutputNULL() override;
 
     void Reset(void) override; // AudioOutputBase
 
@@ -32,7 +31,7 @@ class AudioOutputNULL : public AudioOutputBase
     int GetVolumeChannel(int /* channel */) const override // VolumeBase
         { return 100; }
     void SetVolumeChannel(int /* channel */, int /* volume */) override // VolumeBase
-        {return;}
+        {}
 
     int readOutputData(unsigned char *read_buffer, int max_length) override; // AudioOutputBase
 
@@ -45,9 +44,9 @@ class AudioOutputNULL : public AudioOutputBase
     AudioOutputSettings* GetOutputSettings(bool digital) override; // AudioOutputBase
 
   private:
-    QMutex        pcm_output_buffer_mutex;
-    unsigned char pcm_output_buffer[NULLAUDIO_OUTPUT_BUFFER_SIZE];
-    int           current_buffer_size;
+    QMutex        m_pcm_output_buffer_mutex {QMutex::NonRecursive};
+    unsigned char m_pcm_output_buffer[NULLAUDIO_OUTPUT_BUFFER_SIZE];
+    int           m_current_buffer_size     {0};
 };
 
 #endif

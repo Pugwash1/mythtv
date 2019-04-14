@@ -27,6 +27,7 @@ using namespace std;
 #include <mythscreentype.h>
 #include <mythuiimage.h>
 #include <mythuitext.h>
+#include <mythdialogbox.h>
 
 // mythzoneminder
 #include "zmdefines.h"
@@ -34,7 +35,7 @@ using namespace std;
 class Player
 {
   public:
-    Player(void);
+    Player(void) = default;
     ~Player(void);
 
     void updateFrame(const uchar* buffer);
@@ -48,11 +49,11 @@ class Player
     Monitor *getMonitor(void) { return &m_monitor; }
 
   private:
-    MythUIImage *m_frameImage;
-    MythUIText  *m_statusText;
-    MythUIText  *m_cameraText;
+    MythUIImage *m_frameImage {nullptr};
+    MythUIText  *m_statusText {nullptr};
+    MythUIText  *m_cameraText {nullptr};
 
-    uchar       *m_rgba;
+    uchar       *m_rgba       {nullptr};
 
     Monitor      m_monitor;
 };
@@ -67,6 +68,9 @@ class ZMLivePlayer : public MythScreenType
 
     bool Create(void) override; // MythScreenType
     bool keyPressEvent(QKeyEvent *) override; // MythScreenType
+    void customEvent(QEvent *event) override; // MythUIType
+
+    void ShowMenu() override; // MythScreenType
 
     void setMonitorLayout(int layout, bool restore = false);
 
@@ -79,16 +83,17 @@ class ZMLivePlayer : public MythScreenType
     bool hideAll();
     void stopPlayers(void);
     void changePlayerMonitor(int playerNo);
+    void changeView(void);
 
-    QTimer               *m_frameTimer;
-    bool                  m_paused;
-    int                   m_monitorLayout;
-    int                   m_monitorCount;
+    QTimer               *m_frameTimer    {nullptr};
+    bool                  m_paused        {false};
+    int                   m_monitorLayout {1};
+    int                   m_monitorCount  {0};
 
-    vector<Player *>     *m_players;
+    vector<Player *>     *m_players       {nullptr};
 
-    bool                  m_isMiniPlayer;
-    int                   m_alarmMonitor;
+    bool                  m_isMiniPlayer  {false};
+    int                   m_alarmMonitor  {-1};
 };
 
 #endif

@@ -39,12 +39,12 @@ class AudioInputOSS : public AudioInput
         bool Stop(void) override; // AudioInput
 
         int GetBlockSize(void) override; // AudioInput
-        int GetSamples(void *buffer, uint num_samples) override; // AudioInput
+        int GetSamples(void *buffer, uint num_bytes) override; // AudioInput
         int GetNumReadyBytes(void) override; // AudioInput
 
     private:
         QByteArray m_device_name;
-        int dsp_fd;
+    int dsp_fd {-1};
 };
 #endif /* _AUDIOINPUTOSS_H_ */
 

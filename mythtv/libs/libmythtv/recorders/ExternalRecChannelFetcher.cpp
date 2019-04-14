@@ -31,7 +31,6 @@ ExternalRecChannelFetcher::ExternalRecChannelFetcher(int cardid,
                                                      const QString & cmd)
     : m_cardid(cardid)
     , m_command(cmd)
-    , m_stream_handler(nullptr)
 {
     m_stream_handler = ExternalStreamHandler::Get(m_command, m_cardid, m_cardid);
 }
@@ -115,7 +114,7 @@ bool ExternalRecChannelFetcher::FetchChannel(const QString & cmd,
 int ExternalRecChannelFetcher::LoadChannels(void)
 {
     if (!Valid())
-        return false;
+        return 0;
 
     QString result;
     int     cnt = -1;

@@ -5,7 +5,7 @@
 
 MythAVTestCommandLineParser::MythAVTestCommandLineParser() :
     MythCommandLineParser(MYTH_APPNAME_MYTHAVTEST)
-{ LoadArguments(); }
+{ MythCommandLineParser::LoadArguments(); }
 
 QString MythAVTestCommandLineParser::GetHelpHeader(void) const
 {
@@ -35,6 +35,9 @@ void MythAVTestCommandLineParser::LoadArguments(void)
                     "decodeonly", false,
                     "Decode video frames but do not display them.",
                     "")
+                    ->SetGroup("Video Performance Testing")
+                    ->SetChildOf("test");
+    add(QStringList{"-gpu"}, "gpu", false, "Allow GPU video decoders", "")
                     ->SetGroup("Video Performance Testing")
                     ->SetChildOf("test");
     add(QStringList{"--deinterlace"},

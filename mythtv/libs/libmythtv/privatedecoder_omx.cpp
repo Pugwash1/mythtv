@@ -111,7 +111,9 @@ PrivateDecoderOMX::PrivateDecoderOMX() :
     for (unsigned port = 0; port < m_videc.Ports(); ++port)
     {
         m_videc.ShowPortDef(port, LOG_DEBUG);
-        if (0) m_videc.ShowFormats(port, LOG_DEBUG);
+#if 0
+        m_videc.ShowFormats(port, LOG_DEBUG);
+#endif
     }
 }
 
@@ -787,12 +789,10 @@ int PrivateDecoderOMX::GetFrame(
         *got_picture_ptr = 0;
         return -1;
     }
-    else 
-    {
-        // Submit a packet for decoding
-        lock.unlock();
-        return (pkt && pkt->size) ? ProcessPacket(stream, pkt) : 0;
-    }
+
+    // Submit a packet for decoding
+    lock.unlock();
+    return (pkt && pkt->size) ? ProcessPacket(stream, pkt) : 0;
 }
 
 // Submit a packet for decoding
@@ -854,7 +854,6 @@ int PrivateDecoderOMX::ProcessPacket(AVStream *stream, AVPacket *pkt)
         hdr->nFilledLen += cnt;
         buf += cnt;
         size -= cnt;
-        free -= cnt;
 
         hdr->nTimeStamp = Pts2Ticks(stream, pkt->pts);
         if (!m_bStartTime && (pkt->flags & AV_PKT_FLAG_KEY))
@@ -1233,7 +1232,7 @@ OMX_ERRORTYPE PrivateDecoderOMX::Event(OMXComponent &cmpnt, OMX_EVENTTYPE eEvent
 
 // virtual
 OMX_ERRORTYPE PrivateDecoderOMX::EmptyBufferDone(
-    OMXComponent&, OMX_BUFFERHEADERTYPE *hdr)
+    OMXComponent& /*cmpnt*/, OMX_BUFFERHEADERTYPE *hdr)
 {
     assert(hdr->nSize == sizeof(OMX_BUFFERHEADERTYPE));
     assert(hdr->nVersion.nVersion == OMX_VERSION);
@@ -1251,7 +1250,7 @@ OMX_ERRORTYPE PrivateDecoderOMX::EmptyBufferDone(
 
 // virtual
 OMX_ERRORTYPE PrivateDecoderOMX::FillBufferDone(
-    OMXComponent&, OMX_BUFFERHEADERTYPE *hdr)
+    OMXComponent& /*cmpnt*/, OMX_BUFFERHEADERTYPE *hdr)
 {
     assert(hdr->nSize == sizeof(OMX_BUFFERHEADERTYPE));
     assert(hdr->nVersion.nVersion == OMX_VERSION);
@@ -1267,7 +1266,7 @@ OMX_ERRORTYPE PrivateDecoderOMX::FillBufferDone(
 }
 
 // virtual
-void PrivateDecoderOMX::ReleaseBuffers(OMXComponent &)
+void PrivateDecoderOMX::ReleaseBuffers(OMXComponent & /*cmpnt*/)
 {
     // Free all output buffers
     FreeOutputBuffersCB();

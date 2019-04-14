@@ -6,6 +6,7 @@
 #include <thread> // for sleep_for
 
 #include <QSize>
+#include <utility>
 
 #include "mthread.h"
 #include "mythlogging.h"
@@ -113,13 +114,13 @@ class VDPAUColor
     void SetColor(uint color)
     {
         m_color = color;
-        m_vdp_color.red   = (float)((m_color & 0xFF000000) >> 24) / 255.0f;
-        m_vdp_color.green = (float)((m_color & 0xFF0000) >> 16) / 255.0f;
-        m_vdp_color.blue  = (float)((m_color & 0xFF00) >> 8)/ 255.0f;
-        m_vdp_color.alpha = (float)( m_color & 0xFF) / 255.0f;
+        m_vdp_color.red   = (float)((m_color & 0xFF000000) >> 24) / 255.0F;
+        m_vdp_color.green = (float)((m_color & 0xFF0000) >> 16) / 255.0F;
+        m_vdp_color.blue  = (float)((m_color & 0xFF00) >> 8)/ 255.0F;
+        m_vdp_color.alpha = (float)( m_color & 0xFF) / 255.0F;
     }
 
-    int      m_color;
+    int      m_color {0};
     VdpColor m_vdp_color;
 };
 
@@ -192,7 +193,7 @@ class VDPAUVideoSurface : public VDPAUResource
         memset(&m_render, 0, sizeof(struct vdpau_render_state));
     }
     VDPAUVideoSurface(uint id, QSize size, VdpChromaType type)
-      : VDPAUResource(id, size), m_type(type), m_needs_reset(false)
+      : VDPAUResource(id, size), m_type(type)
     {
         m_owner = QThread::currentThread();
         memset(&m_render, 0, sizeof(struct vdpau_render_state));
@@ -206,10 +207,10 @@ class VDPAUVideoSurface : public VDPAUResource
         m_render.surface = m_id;
     }
 
-    VdpChromaType      m_type {0};
+    VdpChromaType      m_type        {0};
     vdpau_render_state m_render;
     bool               m_needs_reset {false};
-    QThread*           m_owner {nullptr};
+    QThread*           m_owner       {nullptr};
 };
 
 class VDPAUBitmapSurface : public VDPAUResource
@@ -229,7 +230,7 @@ class VDPAUDecoder : public VDPAUResource
     VDPAUDecoder(uint id, QSize size, VdpDecoderProfile profile, uint refs)
       : VDPAUResource(id, size), m_profile(profile), m_max_refs(refs) { }
 
-    VdpDecoderProfile m_profile {0};
+    VdpDecoderProfile m_profile  {0};
     uint              m_max_refs {0};
 };
 
@@ -246,26 +247,22 @@ class VDPAUVideoMixer : public VDPAUResource
         memset(&m_csc, 0, sizeof(VdpCSCMatrix));
     }
 
-   ~VDPAUVideoMixer()
+   ~VDPAUVideoMixer() override
     {
-        if (m_noise_reduction)
-            delete m_noise_reduction;
-        if (m_sharpness)
-            delete m_sharpness;
-        if (m_skip_chroma)
-            delete m_skip_chroma;
-        if (m_background)
-            delete m_background;
+        delete m_noise_reduction;
+        delete m_sharpness;
+        delete m_skip_chroma;
+        delete m_background;
     }
 
-    uint            m_layers {0};
-    uint            m_features {0};
-    VdpChromaType   m_type {0};
+    uint            m_layers          {0};
+    uint            m_features        {0};
+    VdpChromaType   m_type            {0};
     VdpCSCMatrix    m_csc;
     float          *m_noise_reduction {nullptr};
-    float          *m_sharpness {nullptr};
-    uint8_t        *m_skip_chroma {nullptr};
-    VDPAUColor     *m_background {nullptr};
+    float          *m_sharpness       {nullptr};
+    uint8_t        *m_skip_chroma     {nullptr};
+    VDPAUColor     *m_background      {nullptr};
 };
 
 static void vdpau_preemption_callback(VdpDevice device, void *myth_render)
@@ -284,13 +281,7 @@ uint MythRenderVDPAU::gVDPAUBestScaling    = 0;
 bool MythRenderVDPAU::gVDPAUNVIDIA         = false;
 
 MythRenderVDPAU::MythRenderVDPAU()
-  : MythRender(kRenderVDPAU), m_preempted(false), m_recreating(false),
-    m_recreated(false), m_reset_video_surfaces(false),
-    m_render_lock(QMutex::Recursive), m_decode_lock(QMutex::Recursive),
-    m_display(nullptr), m_window(0), m_device(0), m_surface(0),
-    m_flipQueue(0),  m_flipTarget(0), m_flipReady(false), m_colorKey(0),
-    m_flipFrames(false),
-    vdp_get_proc_address(nullptr), vdp_get_error_string(nullptr)
+  : MythRender(kRenderVDPAU)
 {
     LOCK_ALL
     ResetProcs();
@@ -336,8 +327,8 @@ bool MythRenderVDPAU::H264DecoderSizeSupported(uint width, uint height)
 {
     int mbs = ceil((double)width / 16.0);
     // see Appendix H of the NVIDIA proprietary driver README
-    int check = (mbs == 49 ) || (mbs == 54 ) || (mbs == 59 ) || (mbs == 64) ||
-                (mbs == 113) || (mbs == 118) || (mbs == 123) || (mbs == 128);
+    bool check = (mbs == 49 ) || (mbs == 54 ) || (mbs == 59 ) || (mbs == 64) ||
+                 (mbs == 113) || (mbs == 118) || (mbs == 123) || (mbs == 128);
     if (!check)
         return true;
 
@@ -357,8 +348,7 @@ bool MythRenderVDPAU::H264DecoderSizeSupported(uint width, uint height)
     LOG(VB_GENERAL, (supported ? LOG_INFO : LOG_WARNING), LOC +
         QString("Hardware decoding of this H.264 video is %1supported "
                 "on this video card.").arg(supported ? "" : "NOT "));
-    if (dummy)
-        delete dummy;
+    delete dummy;
     return supported;
 }
 
@@ -581,7 +571,7 @@ bool MythRenderVDPAU::GetScreenShot(int width, int height, QString filename)
 
         img = img.scaled(width, height, Qt::KeepAspectRatio,
                          Qt::SmoothTransformation);
-        success = window->SaveScreenShot(img, filename);
+        success = window->SaveScreenShot(img, std::move(filename));
     }
     delete [] buffer;
     return success;
@@ -817,8 +807,8 @@ uint MythRenderVDPAU::CreateVideoMixer(const QSize &size, uint layers,
     VdpBool enable = VDP_TRUE;
     const VdpBool enables[6] = { enable, enable, enable, enable, enable, enable };
 
-    bool temporal = (features & kVDPFeatTemporal) ||
-                    (features & kVDPFeatSpatial);
+    bool temporal = ((features & kVDPFeatTemporal) != 0U) ||
+                    ((features & kVDPFeatSpatial) != 0U);
     if (temporal)
     {
         feat[count] = VDP_VIDEO_MIXER_FEATURE_DEINTERLACE_TEMPORAL;
@@ -1402,10 +1392,10 @@ bool MythRenderVDPAU::DrawBitmap(uint id, uint target,
     VdpColor color;
     if (!(red == 0 && green == 0 && blue == 0 && alpha == 0))
     {
-        color.red   = red   / 255.0f;
-        color.green = green / 255.0f;
-        color.blue  = blue  / 255.0f;
-        color.alpha = alpha / 255.0f;
+        color.red   = red   / 255.0F;
+        color.green = green / 255.0F;
+        color.blue  = blue  / 255.0F;
+        color.alpha = alpha / 255.0F;
     }
 
     INIT_ST
@@ -1430,7 +1420,7 @@ bool MythRenderVDPAU::DrawBitmap(uint id, uint target,
             CHECK_ST
             if (!ok)
             {
-                vdp_st = vdp_bitmap_surface_destroy(bitmap);
+                vdp_bitmap_surface_destroy(bitmap);
                 bitmap = VDP_INVALID_HANDLE;
             }
             else
@@ -1448,7 +1438,7 @@ bool MythRenderVDPAU::DrawBitmap(uint id, uint target,
 
     if (createdBitmap)
     {
-        vdp_st = vdp_bitmap_surface_destroy(bitmap);
+        vdp_bitmap_surface_destroy(bitmap);
     }
 
     return ok;
@@ -1692,16 +1682,8 @@ bool MythRenderVDPAU::GetProcs(void)
         vdp_bitmap_surface_put_bits_native);
     GET_PROC(VDP_FUNC_ID_PREEMPTION_CALLBACK_REGISTER,
         vdp_preemption_callback_register);
-
-    vdp_st = vdp_get_proc_address(
-        m_device, VDP_FUNC_ID_GET_API_VERSION,
-        (void **)&vdp_get_api_version
-    );
-
-    vdp_st = vdp_get_proc_address(
-        m_device, VDP_FUNC_ID_GET_INFORMATION_STRING,
-        (void **)&vdp_get_information_string
-    );
+    GET_PROC(VDP_FUNC_ID_GET_API_VERSION, vdp_get_api_version);
+    GET_PROC(VDP_FUNC_ID_GET_INFORMATION_STRING, vdp_get_information_string);
 
     return ok;
 }
@@ -1970,7 +1952,7 @@ void MythRenderVDPAU::DestroyOutputSurfaces(void)
     if (!vdp_output_surface_destroy)
         return;
 
-    if (m_outputSurfaces.size())
+    if (!m_outputSurfaces.empty())
         LOG(VB_GENERAL, LOG_WARNING, LOC + "Orphaned output surfaces.");
 
     INIT_ST
@@ -1988,7 +1970,7 @@ void MythRenderVDPAU::DestroyVideoSurfaces(void)
     if (!vdp_video_surface_destroy)
         return;
 
-    if (m_videoSurfaces.size())
+    if (!m_videoSurfaces.empty())
         LOG(VB_GENERAL, LOG_WARNING, LOC + "Orphaned video surfaces.");
 
     INIT_ST
@@ -2004,7 +1986,7 @@ void MythRenderVDPAU::DestroyVideoSurfaces(void)
 
 void MythRenderVDPAU::DestroyLayers(void)
 {
-    if (m_layers.size())
+    if (!m_layers.empty())
         LOG(VB_GENERAL, LOG_WARNING, LOC + "Orphaned layers.");
     m_layers.clear();
 }
@@ -2014,7 +1996,7 @@ void MythRenderVDPAU::DestroyBitmapSurfaces(void)
     if (!vdp_bitmap_surface_destroy)
         return;
 
-    if (m_bitmapSurfaces.size())
+    if (!m_bitmapSurfaces.empty())
         LOG(VB_GENERAL, LOG_WARNING, LOC + "Orphaned bitmap surfaces.");
 
     INIT_ST
@@ -2032,7 +2014,7 @@ void MythRenderVDPAU::DestroyDecoders(void)
     if (!vdp_decoder_destroy)
         return;
 
-    if (m_decoders.size())
+    if (!m_decoders.empty())
         LOG(VB_GENERAL, LOG_WARNING, LOC + "Orphaned decoders.");
 
     INIT_ST
@@ -2050,7 +2032,7 @@ void MythRenderVDPAU::DestroyVideoMixers(void)
     if (!vdp_video_mixer_destroy)
         return;
 
-    if (m_videoMixers.size())
+    if (!m_videoMixers.empty())
         LOG(VB_GENERAL, LOG_WARNING, LOC + "Orphaned video mixers.");
 
     INIT_ST
@@ -2094,7 +2076,7 @@ void MythRenderVDPAU::Preempted(void)
     if (ok && m_window) ok = SetColorKey(m_colorKey);
     if (ok) ok = RegisterCallback();
 
-    if (ok && m_outputSurfaces.size())
+    if (ok && !m_outputSurfaces.empty())
     {
         // also need to update output surfaces referenced in VdpLayer structs
         QHash<uint ,uint> old_surfaces;
@@ -2121,7 +2103,7 @@ void MythRenderVDPAU::Preempted(void)
             LOG(VB_GENERAL, LOG_INFO, LOC + "Re-created output surfaces.");
     }
 
-    if (ok && m_bitmapSurfaces.size())
+    if (ok && !m_bitmapSurfaces.empty())
     {
         QHash<uint, VDPAUBitmapSurface>::iterator it;
         for (it = m_bitmapSurfaces.begin(); it != m_bitmapSurfaces.end(); ++it)
@@ -2136,7 +2118,7 @@ void MythRenderVDPAU::Preempted(void)
 
     }
 
-    if (ok && m_decoders.size())
+    if (ok && !m_decoders.empty())
     {
         QHash<uint, VDPAUDecoder>::iterator it;
         for (it = m_decoders.begin(); it != m_decoders.end(); ++it)
@@ -2150,7 +2132,7 @@ void MythRenderVDPAU::Preempted(void)
             LOG(VB_GENERAL, LOG_INFO, LOC + "Re-created decoders.");
     }
 
-    if (ok && m_videoMixers.size())
+    if (ok && !m_videoMixers.empty())
     {
         QHash<uint, VDPAUVideoMixer>::iterator it;
         for (it = m_videoMixers.begin(); it != m_videoMixers.end(); ++it)

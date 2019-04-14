@@ -33,7 +33,7 @@ class DVBPIDInfo : public PIDInfo
 class DVBStreamHandler : public StreamHandler
 {
   public:
-    static DVBStreamHandler *Get(const QString &dvb_device, int inputid);
+    static DVBStreamHandler *Get(const QString &devname, int inputid);
     static void Return(DVBStreamHandler * & ref, int inputid);
 
     // DVB specific
@@ -60,8 +60,6 @@ class DVBStreamHandler : public StreamHandler
     PIDInfo *CreatePIDInfo(uint pid, uint stream_type, int pes_type) override // StreamHandler
         { return new DVBPIDInfo(pid, stream_type, pes_type); }
 
-    void SetRunningDesired(bool desired) override; // StreamHandler
-
   private:
     QString           _dvr_dev_path;
     volatile bool     _allow_retune;
@@ -71,13 +69,13 @@ class DVBStreamHandler : public StreamHandler
     DeviceReadBuffer *_drb;
 
     // for caching TS monitoring supported value.
-    static QMutex             _rec_supports_ts_monitoring_lock;
-    static QMap<QString,bool> _rec_supports_ts_monitoring;
+    static QMutex             s_rec_supports_ts_monitoring_lock;
+    static QMap<QString,bool> s_rec_supports_ts_monitoring;
 
     // for implementing Get & Return
-    static QMutex                          _handlers_lock;
-    static QMap<QString,DVBStreamHandler*> _handlers;
-    static QMap<QString,uint>              _handlers_refcnt;
+    static QMutex                          s_handlers_lock;
+    static QMap<QString,DVBStreamHandler*> s_handlers;
+    static QMap<QString,uint>              s_handlers_refcnt;
 };
 
 #endif // _DVBSTREAMHANDLER_H_

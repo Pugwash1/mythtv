@@ -107,7 +107,7 @@ static const unsigned char RTjpeg_chrom_quant_tbl[64] = {
 /* Block to Stream (encoding)                         */
 /*                                                    */
 
-int RTjpeg::b2s(int16_t *data, int8_t *strm, uint8_t /*bt8*/)
+int RTjpeg::b2s(const int16_t *data, int8_t *strm, uint8_t /*bt8*/)
 {
  int ci, co=1;
  int16_t ZZvalue;
@@ -278,7 +278,7 @@ fprintf(stdout, "\n\n");
 /* Stream to Block  (decoding)                        */
 /*                                                    */
 
-int RTjpeg::s2b(int16_t *data, int8_t *strm, uint8_t /*bt8*/, int32_t *qtbla)
+int RTjpeg::s2b(int16_t *data, const int8_t *strm, uint8_t /*bt8*/, int32_t *qtbla)
 {
  uint32_t *qtbl = (uint32_t *)qtbla;
  int ci;
@@ -423,7 +423,7 @@ fprintf(stdout, "\n\n");
 
 #else
 
-int RTjpeg::b2s(int16_t *data, int8_t *strm, uint8_t bt8)
+int RTjpeg::b2s(const int16_t *data, int8_t *strm, uint8_t bt8)
 {
  register int ci, co=1, tmp;
  register int16_t ZZvalue;
@@ -481,7 +481,7 @@ int RTjpeg::b2s(int16_t *data, int8_t *strm, uint8_t bt8)
  return (int)co;
 }
 
-int RTjpeg::s2b(int16_t *data, int8_t *strm, uint8_t bt8, uint32_t *qtbla)
+int RTjpeg::s2b(int16_t *data, const int8_t *strm, uint8_t bt8, uint32_t *qtbla)
 {
  uint32_t *qtbl = (uint32_t *)qtbla;
  int ci=1, co=1, tmp;
@@ -525,19 +525,20 @@ void RTjpeg::QuantInit(void)
  for (i = 0; i < 64; i++)
      qtbl.int16[i] = static_cast<int16_t>(lqt[i]);
 
+ // cppcheck-suppress unreadVariable
  qtbl.int32 = cqt;
  for (i = 0; i < 64; i++)
     qtbl.int16[i] = static_cast<int16_t>(cqt[i]);
 }
 
-void RTjpeg::Quant(int16_t *block, int32_t *qtbl)
+void RTjpeg::Quant(int16_t *_block, int32_t *qtbl)
 {
  int i;
  mmx_t *bl, *ql;
 
 
  ql=(mmx_t *)qtbl;
- bl=(mmx_t *)block;
+ bl=(mmx_t *)_block;
 
  movq_m2r(RTjpeg_ones, mm6);
  movq_m2r(RTjpeg_half, mm7);
@@ -571,12 +572,12 @@ void RTjpeg::QuantInit()
 {
 }
 
-void RTjpeg::Quant(int16_t *block, int32_t *qtbl)
+void RTjpeg::Quant(int16_t *_block, int32_t *qtbl)
 {
  int i;
 
  for(i=0; i<64; i++)
-   block[i]=(int16_t)((block[i]*qtbl[i]+32767)>>16);
+   _block[i]=(int16_t)((_block[i]*qtbl[i]+32767)>>16);
 }
 #endif
 
@@ -2704,13 +2705,13 @@ int RTjpeg::SetQuality(int *quality)
     return 0;
 }
 
-int RTjpeg::SetFormat(int *fmt)
+int RTjpeg::SetFormat(const int *fmt)
 {
     f = *fmt;
     return 0;
 }
 
-int RTjpeg::SetSize(int *w, int *h)
+int RTjpeg::SetSize(const int *w, const int *h)
 {
     if ((*w < 0) || (*w > 65535))
         return -1;
@@ -2820,8 +2821,7 @@ RTjpeg::RTjpeg(void)
 
 RTjpeg::~RTjpeg(void)
 {
-    if (old_start)
-        delete [] old_start;
+    delete [] old_start;
 }
 
 inline int RTjpeg::compressYUV420(int8_t *sp, uint8_t **planes)
@@ -3088,10 +3088,10 @@ inline void RTjpeg::decompress8(int8_t *sp, uint8_t **planes)
 
 #ifdef MMX
 
-int RTjpeg::bcomp(int16_t *rblock, int16_t *old, mmx_t *mask)
+int RTjpeg::bcomp(int16_t *rblock, int16_t *_old, mmx_t *mask)
 {
  int i;
- mmx_t *mold=(mmx_t *)old;
+ mmx_t *mold=(mmx_t *)_old;
  mmx_t *mblock=(mmx_t *)rblock;
  volatile mmx_t result;
  static mmx_t neg= { 0xffffffffffffffffULL };
@@ -3125,21 +3125,21 @@ int RTjpeg::bcomp(int16_t *rblock, int16_t *old, mmx_t *mask)
 
  if (result.q)
  {
-  for(i=0; i<16; i++)((uint64_t *)old)[i]=((uint64_t *)rblock)[i];
+  for(i=0; i<16; i++)((uint64_t *)_old)[i]=((uint64_t *)rblock)[i];
   return 0;
  }
  return 1;
 }
 
 #else
-int RTjpeg::bcomp(int16_t *rblock, int16_t *old, uint16_t *mask)
+int RTjpeg::bcomp(int16_t *rblock, int16_t *_old, uint16_t *mask)
 {
  int i;
 
  for(i=0; i<64; i++)
-  if (abs(old[i]-rblock[i])>*mask)
+  if (abs(_old[i]-rblock[i])>*mask)
   {
-   for(i=0; i<16; i++)((uint64_t *)old)[i]=((uint64_t *)rblock)[i];
+   for(i=0; i<16; i++)((uint64_t *)_old)[i]=((uint64_t *)rblock)[i];
    return 0;
   }
  return 1;
@@ -3205,7 +3205,8 @@ inline int RTjpeg::mcompressYUV420(int8_t *sp, uint8_t **planes)
    {
     *((uint8_t *)sp++)=255;
    }
-        else sp+=b2s(block, sp, cb8);
+   else
+    sp+=b2s(block, sp, cb8);
    lblock+=64;
 
    DctY(bp3+k, Cwidth);
@@ -3214,7 +3215,8 @@ inline int RTjpeg::mcompressYUV420(int8_t *sp, uint8_t **planes)
    {
     *((uint8_t *)sp++)=255;
    }
-        else sp+=b2s(block, sp, cb8);
+   else
+    sp+=b2s(block, sp, cb8);
    lblock+=64;
   }
   bp += width<<4;

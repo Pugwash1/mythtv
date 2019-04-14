@@ -42,10 +42,10 @@ class SwitchConfig : public DiseqcConfigBase
     void update(void);
 
   private:
-    DeviceDescrSetting *m_deviceDescr;
-    SwitchTypeSetting  *m_type;
-    SwitchPortsSetting *m_ports;
-    SwitchAddressSetting *m_address;
+    DeviceDescrSetting   *m_deviceDescr {nullptr};
+    SwitchTypeSetting    *m_type        {nullptr};
+    SwitchPortsSetting   *m_ports       {nullptr};
+    SwitchAddressSetting *m_address     {nullptr};
 };
 
 class RotorPosMap : public GroupSetting
@@ -53,7 +53,8 @@ class RotorPosMap : public GroupSetting
     Q_OBJECT
 
   public:
-    explicit RotorPosMap(DiSEqCDevRotor &rotor);
+    explicit RotorPosMap(DiSEqCDevRotor &rotor) :
+        m_rotor(rotor) { }
 
     void Load(void) override; // StandardSetting
     void Save(void) override; // StandardSetting
@@ -82,7 +83,7 @@ class RotorConfig : public DiseqcConfigBase
 
   private:
     DiSEqCDevRotor     &m_rotor;
-    RotorPosMap        *m_pos;
+    RotorPosMap        *m_pos {nullptr};
 };
 
 class SCRConfig : public DiseqcConfigBase
@@ -116,12 +117,12 @@ class LNBConfig : public DiseqcConfigBase
     void UpdateType(void);
 
   private:
-    LNBPresetSetting    *m_preset;
-    LNBTypeSetting      *m_type;
-    LNBLOFSwitchSetting *m_lof_switch;
-    LNBLOFLowSetting    *m_lof_lo;
-    LNBLOFHighSetting   *m_lof_hi;
-    LNBPolarityInvertedSetting *m_pol_inv;
+    LNBPresetSetting           *m_preset     {nullptr};
+    LNBTypeSetting             *m_type       {nullptr};
+    LNBLOFSwitchSetting        *m_lof_switch {nullptr};
+    LNBLOFLowSetting           *m_lof_lo     {nullptr};
+    LNBLOFHighSetting          *m_lof_hi     {nullptr};
+    LNBPolarityInvertedSetting *m_pol_inv    {nullptr};
 };
 
 class DeviceTypeSetting;
@@ -131,7 +132,8 @@ class DeviceTree : public GroupSetting
     Q_OBJECT
 
   public:
-    explicit DeviceTree(DiSEqCDevTree &tree);
+    explicit DeviceTree(DiSEqCDevTree &tree) :
+        m_tree(tree) { }
     void DeleteDevice(DeviceTypeSetting *devtype);
 
     void Load(void) override; // StandardSetting

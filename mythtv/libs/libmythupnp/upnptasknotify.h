@@ -58,9 +58,9 @@ class UPnpNotifyTask : public Task
 
         QString         m_sMasterIP;
         int             m_nServicePort;
-        int             m_nMaxAge;
+        int             m_nMaxAge       {3600};
 
-        UPnpNotifyNTS   m_eNTS;
+        UPnpNotifyNTS   m_eNTS          {NTS_alive};
 
     protected:
 
@@ -69,7 +69,7 @@ class UPnpNotifyTask : public Task
         virtual ~UPnpNotifyTask() = default;
 
         void     ProcessDevice( MSocketDevice *pSocket, UPnpDevice *pDevice );
-        void     SendNotifyMsg( MSocketDevice *pSocket, QString sNT, QString sUDN );
+        void     SendNotifyMsg( MSocketDevice *pSocket, const QString& sNT, const QString& sUDN );
 
     public:
 

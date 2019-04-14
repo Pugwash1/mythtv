@@ -11,17 +11,6 @@
 // myth
 #include "mythlogging.h"
 
-const int kDefaultMaxValue = 99;
-const int kDefaultPageStep = 10;
-
-MythUIScrollBar::MythUIScrollBar(MythUIType *parent, const QString &name)
-    : MythUIType(parent, name),
-      m_layout(LayoutVertical), m_pageStep(kDefaultPageStep),
-      m_sliderPosition(0), m_maximum(0),
-      m_hideDelay(0), m_timerId(0)
-{
-}
-
 void MythUIScrollBar::Reset()
 {
     m_pageStep = kDefaultPageStep;
@@ -173,7 +162,7 @@ void MythUIScrollBar::CreateCopy(MythUIType *parent)
     scrollbar->CopyFrom(this);
 }
 
-void MythUIScrollBar::timerEvent(QTimerEvent *)
+void MythUIScrollBar::timerEvent(QTimerEvent * /*event*/)
 {
     if (m_timerId)
         killTimer(m_timerId);

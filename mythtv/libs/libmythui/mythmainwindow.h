@@ -40,7 +40,7 @@ class MUI_PUBLIC MythMainWindow : public QWidget
   public:
     enum {drawRefresh = 70};
 
-    void Init(QString forcedpainter = QString(), bool mayReInit=true);
+    void Init(const QString& forcedpainter = QString(), bool mayReInit=true);
     void ReinitDone(void);
     void Show(void);
 
@@ -148,7 +148,7 @@ class MUI_PUBLIC MythMainWindow : public QWidget
 
   protected slots:
     void animate();
-    void doRemoteScreenShot(QString filename, int x, int y);
+    void doRemoteScreenShot(const QString& filename, int x, int y);
     void SetDrawEnabled(bool enable);
 
   signals:
@@ -177,7 +177,7 @@ class MUI_PUBLIC MythMainWindow : public QWidget
 
     void ShowMouseCursor(bool show);
 
-    MythMainWindowPrivate *d;
+    MythMainWindowPrivate *d {nullptr};
 
   private slots:
     void DelayedAction(void);

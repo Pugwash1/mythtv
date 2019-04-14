@@ -4,14 +4,17 @@
 #include <QList>
 #include "avformatdecoder.h"
 
+#define INVALID_LBA 0xbfffffff
+
 class MythDVDContext;
 
 class AvFormatDecoderDVD : public AvFormatDecoder
 {
   public:
     AvFormatDecoderDVD(MythPlayer *parent, const ProgramInfo &pginfo,
-                       PlayerFlags flags);
-    virtual ~AvFormatDecoderDVD();
+                       PlayerFlags flags)
+        : AvFormatDecoder(parent, pginfo, flags) {}
+    ~AvFormatDecoderDVD() override;
     void Reset(bool reset_video_data, bool seek_reset, bool reset_file) override; // AvFormatDecoder
     void UpdateFramesPlayed(void) override; // AvFormatDecoder
     bool GetFrame(DecodeType decodetype) override; // AvFormatDecoder
@@ -37,12 +40,12 @@ class AvFormatDecoderDVD : public AvFormatDecoder
 
     long long DVDFindPosition(long long desiredFrame);
 
-    MythDVDContext*        m_curContext;
+    MythDVDContext*        m_curContext      {nullptr};
     QList<MythDVDContext*> m_contextList;
-    AVPacket*              m_lastVideoPkt;
-    uint32_t               m_lbaLastVideoPkt;
-    int                    m_framesReq;
-    MythDVDContext*        m_returnContext;
+    AVPacket*              m_lastVideoPkt    {nullptr};
+    uint32_t               m_lbaLastVideoPkt {INVALID_LBA};
+    int                    m_framesReq       {0};
+    MythDVDContext*        m_returnContext   {nullptr};
 };
 
 #endif // AVFORMATDECODERDVD_H

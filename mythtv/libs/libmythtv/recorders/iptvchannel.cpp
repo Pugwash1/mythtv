@@ -22,8 +22,7 @@
 #define LOC QString("IPTVChan[%1]: ").arg(m_inputid)
 
 IPTVChannel::IPTVChannel(TVRec *rec, const QString &videodev) :
-    DTVChannel(rec), m_firsttune(true), m_stream_handler(nullptr),
-    m_stream_data(nullptr), m_videodev(videodev)
+    DTVChannel(rec), m_videodev(videodev)
 {
     LOG(VB_CHANNEL, LOG_INFO, LOC + "ctor");
 }
@@ -31,7 +30,7 @@ IPTVChannel::IPTVChannel(TVRec *rec, const QString &videodev) :
 IPTVChannel::~IPTVChannel()
 {
     LOG(VB_CHANNEL, LOG_INFO, LOC + "dtor");
-    Close();
+    IPTVChannel::Close();
 }
 
 bool IPTVChannel::Open(void)

@@ -13,20 +13,20 @@ public:
                             const QDateTime& recordingStartedAt_in,
                             const QDateTime& recordingStopsAt_in);
 
-    void GetCommercialBreakList(frm_dir_map_t &comms) override; // ClassicCommDetector
+    void GetCommercialBreakList(frm_dir_map_t &marks) override; // ClassicCommDetector
     virtual ~PrePostRollFlagger() = default;
     bool go() override; // ClassicCommDetector
 
 private:
-    long long myTotalFrames;
-    long long closestAfterPre;
-    long long closestBeforePre;
-    long long closestAfterPost;
-    long long closestBeforePost;
+    long long m_myTotalFrames     {0};
+    long long m_closestAfterPre   {0};
+    long long m_closestBeforePre  {0};
+    long long m_closestAfterPost  {0};
+    long long m_closestBeforePost {0};
 
     void Init();
 
-    long long findBreakInrange(long long start, long long end,
+    long long findBreakInrange(long long start, long long stopFrame,
                                long long totalFrames,
                                long long &framesProcessed,
                                QTime &flagTime, bool findLast);

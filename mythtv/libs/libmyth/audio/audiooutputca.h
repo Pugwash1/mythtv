@@ -16,7 +16,7 @@ public:
     explicit AudioOutputCA(const AudioSettings &settings);
     virtual ~AudioOutputCA();
     
-    AudioOutputSettings* GetOutputSettings(bool digital);
+    AudioOutputSettings* GetOutputSettings(bool digital) override; // AudioOutputBase
     static QMap<QString, QString> *GetDevices(const char *type = nullptr);
 
     int64_t GetAudiotime(void) override; // AudioOutputBase
@@ -30,13 +30,13 @@ public:
     void SetVolumeChannel(int channel, int volume) override; // VolumeBase
 
     // TODO: convert these to macros!
-    void Debug(QString msg)
+    void Debug(const QString& msg)
     {   LOG(VB_AUDIO, LOG_INFO,     "AudioOutputCA::" + msg);   }
 
-    void Error(QString msg)
+    void Error(const QString& msg)
     {   LOG(VB_GENERAL, LOG_ERR, "AudioOutputCA Error: " + msg);   }
 
-    void Warn(QString msg)
+    void Warn(const QString& msg)
     {   LOG(VB_GENERAL, LOG_WARNING, "AudioOutputCA Warning: " + msg);   }
 
 protected:
@@ -52,7 +52,7 @@ protected:
 
 private:
 
-    CoreAudioData * d;
+    CoreAudioData * d {nullptr};
     friend class    CoreAudioData;
 
     int             bufferedBytes;

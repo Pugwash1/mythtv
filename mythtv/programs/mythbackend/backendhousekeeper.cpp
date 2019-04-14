@@ -366,11 +366,8 @@ void CleanupTask::CleanupProgramListings(void)
 
 bool ThemeUpdateTask::DoCheckRun(QDateTime now)
 {
-    if (gCoreContext->GetBoolSetting("ThemeUpdateNofications", true) &&
-            PeriodicHouseKeeperTask::DoCheckRun(now))
-        return true;
-
-    return false;
+    return gCoreContext->GetBoolSetting("ThemeUpdateNofications", true) &&
+            PeriodicHouseKeeperTask::DoCheckRun(now);
 }
 
 bool ThemeUpdateTask::DoRun(void)
@@ -526,11 +523,8 @@ bool RadioStreamUpdateTask::DoCheckRun(QDateTime now)
     GetMythDB()->ClearSetting("MusicStreamListModified");
 
     // check we are not already running a radio stream update
-    if (gCoreContext->GetSetting("MusicStreamListModified") == "Updating" &&
-            PeriodicHouseKeeperTask::DoCheckRun(now))
-        return true;
-
-    return false;
+    return gCoreContext->GetSetting("MusicStreamListModified") == "Updating" &&
+            PeriodicHouseKeeperTask::DoCheckRun(now);
 }
 
 void RadioStreamUpdateTask::Terminate(void)
@@ -591,10 +585,8 @@ ArtworkTask::~ArtworkTask(void)
 
 bool ArtworkTask::DoCheckRun(QDateTime now)
 {
-    if (gCoreContext->GetBoolSetting("DailyArtworkUpdates", false) &&
-            PeriodicHouseKeeperTask::DoCheckRun(now))
-        return true;
-    return false;
+    return gCoreContext->GetBoolSetting("DailyArtworkUpdates", false) &&
+            PeriodicHouseKeeperTask::DoCheckRun(now);
 }
 
 void ArtworkTask::Terminate(void)
@@ -651,9 +643,7 @@ bool MythFillDatabaseTask::UseSuggestedTime(void)
 //         // TODO: this is really cludgy. there has to be a better way to test
 //         result.prepare("SELECT COUNT(*) FROM videosource"
 //                        " WHERE xmltvgrabber IN"
-//                        "        ( 'datadirect',"
-//                        "          'technovera',"
-//                        "          'schedulesdirect1' );");
+//                        "        ( 'technovera' );");
 //         if ((result.exec()) &&
 //             (result.next()) &&
 //             (result.value(0).toInt() > 0))
@@ -684,22 +674,16 @@ bool MythFillDatabaseTask::DoCheckRun(QDateTime now)
         LOG(VB_GENERAL, LOG_DEBUG,
                 QString("MythFillDatabase scheduled to run at %1.")
                     .arg(nextRun.toString()));
-        if (nextRun > now)
-            // not yet time
-            return false;
-
-        return true;
+        // is it yet time
+        return nextRun <= now;
     }
-    else if (InWindow(now))
+    if (InWindow(now))
         // we're inside our permitted window
         return true;
 
-    else
-    {
-        // just let DailyHouseKeeperTask handle things
-        LOG(VB_GENERAL, LOG_DEBUG, "Performing daily run check.");
-        return DailyHouseKeeperTask::DoCheckRun(now);
-    }
+    // just let DailyHouseKeeperTask handle things
+    LOG(VB_GENERAL, LOG_DEBUG, "Performing daily run check.");
+    return DailyHouseKeeperTask::DoCheckRun(now);
 }
 
 bool MythFillDatabaseTask::DoRun(void)

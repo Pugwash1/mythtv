@@ -8,17 +8,12 @@
 #include "ExternalChannel.h"
 #include "tv_rec.h"
 
-#define LOC  QString("ExternChan[%1](%2): ").arg(m_inputid).arg(GetDevice())
-
-ExternalChannel::ExternalChannel(TVRec *parent, const QString & device) :
-    DTVChannel(parent), m_device(device), m_stream_handler(nullptr)
-{
-}
+#define LOC  QString("ExternChan[%1](%2): ").arg(m_inputid).arg(m_loc)
 
 ExternalChannel::~ExternalChannel(void)
 {
-    if (IsOpen())
-        Close();
+    if (ExternalChannel::IsOpen())
+        ExternalChannel::Close();
 }
 
 bool ExternalChannel::Open(void)
@@ -46,13 +41,14 @@ bool ExternalChannel::Open(void)
         return false;
 
     m_stream_handler = ExternalStreamHandler::Get(m_device, GetInputID(),
-						  GetMajorID());
+                                                  GetMajorID());
     if (!m_stream_handler || m_stream_handler->HasError())
     {
         LOG(VB_GENERAL, LOG_ERR, LOC + "Open failed");
         return false;
     }
 
+    GetDescription();
     LOG(VB_RECORD, LOG_INFO, LOC + "Opened");
     return true;
 }
@@ -61,11 +57,31 @@ void ExternalChannel::Close()
 {
     LOG(VB_CHANNEL, LOG_INFO, LOC + "Close()");
 
-    if (IsOpen())
+    if (ExternalChannel::IsOpen())
     {
         ExternalStreamHandler::Return(m_stream_handler, GetInputID());
         m_stream_handler = nullptr;
     }
+}
+
+QString ExternalChannel::UpdateDescription(void)
+{
+    if (m_stream_handler)
+        m_loc = m_stream_handler->UpdateDescription();
+    else
+        m_loc = GetDevice();
+
+    return m_loc;
+}
+
+QString ExternalChannel::GetDescription(void)
+{
+    if (m_stream_handler)
+        m_loc = m_stream_handler->GetDescription();
+    else
+        m_loc = GetDevice();
+
+    return m_loc;
 }
 
 bool ExternalChannel::Tune(const QString &channum)
@@ -92,6 +108,8 @@ bool ExternalChannel::Tune(const QString &channum)
             ("Failed to Tune %1: %2").arg(channum).arg(result));
         return false;
     }
+
+    UpdateDescription();
 
     return true;
 }

@@ -13,7 +13,7 @@ class QPainter;
 class MythQtPainter : public MythPainter
 {
   public:
-    MythQtPainter();
+    MythQtPainter() : MythPainter() {}
    ~MythQtPainter();
 
     QString GetName(void) override // MythPainter
@@ -30,7 +30,7 @@ class MythQtPainter : public MythPainter
 
     void SetClipRect(const QRect &clipRect) override; // MythPainter
 
-    void DrawImage(const QRect &dest, MythImage *im, const QRect &src,
+    void DrawImage(const QRect &r, MythImage *im, const QRect &src,
                    int alpha) override; // MythPainter
 
   protected:
@@ -39,8 +39,8 @@ class MythQtPainter : public MythPainter
 
     void DeletePixmaps(void);
 
-    QPainter *painter;
-    QRegion clipRegion;
+    QPainter *m_painter    {nullptr};
+    QRegion   m_clipRegion;
 
     std::list<QPixmap *> m_imageDeleteList;
     QMutex               m_imageDeleteLock;

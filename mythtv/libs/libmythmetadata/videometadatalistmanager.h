@@ -32,7 +32,7 @@ class META_PUBLIC VideoMetadataListManager
     bool purgeByID(unsigned int db_id);
 
   private:
-    class VideoMetadataListManagerImp *m_imp;
+    class VideoMetadataListManagerImp *m_imp {nullptr};
 };
 
 class META_PUBLIC meta_node
@@ -49,7 +49,7 @@ class META_PUBLIC meta_node
     void setPathRoot(bool is_root = true);
 
   protected:
-    meta_node *m_parent;
+    meta_node *m_parent {nullptr};
 
   private:
     QString m_fq_path;
@@ -67,7 +67,7 @@ class META_PUBLIC meta_data_node : public meta_node
     VideoMetadata *getData();
 
   private:
-    VideoMetadata *m_data;
+    VideoMetadata *m_data {nullptr};
     static const QString m_meta_bug;
 };
 
@@ -95,6 +95,7 @@ class META_PUBLIC meta_dir_node : public meta_node
                   const QVariant &data = QVariant());
     meta_dir_node() : meta_node(nullptr) { }
 
+    void ensureSortFields();
     void setName(const QString &name);
     const QString &getName() const override; // meta_node
     void SetHost(const QString &host);
@@ -102,7 +103,8 @@ class META_PUBLIC meta_dir_node : public meta_node
     void SetPrefix(const QString &prefix);
     const QString &GetPrefix() const;
     const QString &getPath() const override; // meta_node
-    void setPath(const QString &path);
+    const QString &getSortPath() const;
+    void setPath(const QString &path, const QString &sortPath = nullptr);
     void SetData(const QVariant &data);
     const QVariant &GetData() const;
     bool DataIsValid(void) const;
@@ -146,6 +148,7 @@ class META_PUBLIC meta_dir_node : public meta_node
 
   private:
     QString m_path;
+    QString m_sortPath;
     QString m_name;
     QString m_host;
     QString m_prefix;

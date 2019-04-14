@@ -55,25 +55,25 @@ class FirewireSignalMonitor : public DTVSignalMonitor, public TSDataListener
 
     bool SupportsTSMonitoring(void);
 
-    void AddData(const unsigned char *data, uint dataSize) override; // TSDataListener
+    void AddData(const unsigned char *data, uint len) override; // TSDataListener
 
   public:
     static const uint kPowerTimeout;
     static const uint kBufferTimeout;
 
   protected:
-    volatile bool      dtvMonitorRunning;
-    FirewireTableMonitorThread *tableMonitorThread;
-    bool               stb_needs_retune;
-    bool               stb_needs_to_wait_for_pat;
-    bool               stb_needs_to_wait_for_power;
-    MythTimer          stb_wait_for_pat_timer;
-    MythTimer          stb_wait_for_power_timer;
+    volatile bool      m_dtvMonitorRunning           {false};
+    FirewireTableMonitorThread *m_tableMonitorThread {nullptr};
+    bool               m_stb_needs_retune            {true};
+    bool               m_stb_needs_to_wait_for_pat   {false};
+    bool               m_stb_needs_to_wait_for_power {false};
+    MythTimer          m_stb_wait_for_pat_timer;
+    MythTimer          m_stb_wait_for_power_timer;
 
-    vector<unsigned char> buffer;
+    vector<unsigned char> m_buffer;
 
-    static QMap<void*,uint> pat_keys;
-    static QMutex           pat_keys_lock;
+    static QMap<void*,uint> s_pat_keys;
+    static QMutex           s_pat_keys_lock;
 };
 
 #endif // _FIREWIRESIGNALMONITOR_H_

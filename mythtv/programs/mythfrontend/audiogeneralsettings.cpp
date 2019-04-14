@@ -10,8 +10,9 @@
 
 // Qt headers
 #include <QCoreApplication>
-#include <QEvent>
 #include <QDir>
+#include <QEvent>
+#include <utility>
 
 // MythTV headers
 #include "mythconfig.h"
@@ -73,14 +74,14 @@ void AudioDeviceComboBox::AudioRescan()
     addSelection(value, value, true);
     for (it = vect.begin(); it != vect.end(); ++it)
     {
-        if (value != it->name)
-            addSelection(it->name, it->name);
+        if (value != it->m_name)
+            addSelection(it->m_name, it->m_name);
     }
 }
 
 void AudioDeviceComboBox::AudioDescriptionHelp(StandardSetting * setting)
 {
-    QString desc = m_parent->AudioDeviceMap().value(setting->getValue()).desc;
+    QString desc = m_parent->AudioDeviceMap().value(setting->getValue()).m_desc;
     setHelpText(desc);
 }
 
@@ -105,10 +106,8 @@ void AudioConfigScreen::Init(void)
     settings->CheckConfiguration();
 }
 
-AudioConfigSettings::AudioConfigSettings() :
-    GroupSetting()
+AudioConfigSettings::AudioConfigSettings()
 {
-    m_maxspeakers = 0;
     setLabel(tr("Audio System"));
 
     addChild((m_OutputDevice = new AudioDeviceComboBox(this)));
@@ -196,7 +195,7 @@ void AudioConfigSettings::CheckConfiguration(void)
         AudioOutput::GetAudioDeviceConfig(name, name, true);
     if (adc)
     {
-        if (adc->settings.IsInvalid())
+        if (adc->m_settings.IsInvalid())
         {
             QString msg = tr("%1 is invalid or not useable.").arg(name);
 
@@ -210,15 +209,15 @@ void AudioConfigSettings::CheckConfiguration(void)
 
     if (!CheckPassthrough())
     {
-        QString name = m_PassThroughDeviceOverride->getValue();
-        QString msg = tr("Passthrough device is invalid or not useable. Check "
+        QString pt_name = m_PassThroughDeviceOverride->getValue();
+        QString pt_msg = tr("Passthrough device is invalid or not useable. Check "
                          "configuration in Advanced Settings:") +
-            name;
+            pt_name;
 
-        ShowOkPopup(msg);
+        ShowOkPopup(pt_msg);
 
         LOG(VB_GENERAL, LOG_ERR, QString("Audio device %1 isn't usable")
-            .arg(name));
+            .arg(pt_name));
     }
 }
 
@@ -242,7 +241,7 @@ void AudioConfigSettings::AudioRescan()
 
     audiodevs.clear();
     for (it = list->begin(); it != list->end(); ++it)
-        audiodevs.insert(it->name, *it);
+        audiodevs.insert(it->m_name, *it);
 
     devices = *list;
     delete list;
@@ -262,7 +261,7 @@ void AudioConfigSettings::AudioRescan()
     UpdateCapabilities();
 }
 
-void AudioConfigSettings::UpdateVisibility(StandardSetting *)
+void AudioConfigSettings::UpdateVisibility(StandardSetting * /*setting*/)
 {
     if (!m_MaxAudioChannels || !m_AudioUpmix || !m_AudioUpmixType)
         return;
@@ -317,10 +316,10 @@ AudioOutputSettings AudioConfigSettings::UpdateCapabilities(
     {
         bool bForceDigital = m_PassThroughOverride->boolValue();
 
-        settings = audiodevs.value(out).settings;
+        settings = audiodevs.value(out).m_settings;
         settingsdigital = bForceDigital ?
             audiodevs.value(m_PassThroughDeviceOverride->getValue())
-            .settings : settings;
+            .m_settings : settings;
 
         realmax_speakers = max_speakers = settings.BestSupportedChannels();
 
@@ -545,7 +544,7 @@ bool AudioConfigSettings::CheckPassthrough()
         QString name = m_PassThroughDeviceOverride->getValue();
         AudioOutput::AudioDeviceConfig *adc =
             AudioOutput::GetAudioDeviceConfig(name, name, true);
-        if (adc->settings.IsInvalid())
+        if (adc->m_settings.IsInvalid())
         {
             LOG(VB_GENERAL, LOG_ERR,
                 QString("Passthru device %1 isn't usable "
@@ -599,15 +598,15 @@ AudioTestThread::AudioTestThread(QObject *parent,
                                  AudioOutputSettings &settings,
                                  bool hd) :
     MThread("AudioTest"),
-    m_parent(parent), m_channels(channels), m_device(main),
-    m_passthrough(passthrough), m_interrupted(false), m_channel(-1), m_hd(hd)
+    m_parent(parent), m_channels(channels), m_device(std::move(main)),
+    m_passthrough(std::move(passthrough)), m_hd(hd)
 {
     m_format = hd ? settings.BestSupportedFormat() : FORMAT_S16;
     m_samplerate = hd ? settings.BestSupportedRate() : 48000;
 
     m_audioOutput = AudioOutput::OpenAudio(m_device, m_passthrough,
                                            m_format, m_channels,
-                                           0, m_samplerate,
+                                           AV_CODEC_ID_NONE, m_samplerate,
                                            AUDIOOUTPUT_VIDEO,
                                            true, false, 0, &settings);
     if (result().isEmpty())
@@ -623,8 +622,7 @@ AudioTestThread::~AudioTestThread()
 {
     cancel();
     wait();
-    if (m_audioOutput)
-        delete m_audioOutput;
+    delete m_audioOutput;
 }
 
 void AudioTestThread::cancel()
@@ -762,9 +760,6 @@ void AudioTestThread::run()
 }
 
 AudioTest::AudioTest()
-    : GroupSetting(),
-      m_at(nullptr),
-      m_quality(false)
 {
     int channels = 2;
 
@@ -971,9 +966,9 @@ bool AudioTest::event(QEvent *event)
         return QObject::event(event); //not handled
 
     ChannelChangedEvent *cce = (ChannelChangedEvent*)(event);
-    QString channel          = cce->channel;
+    QString channel          = cce->m_channel;
 
-    if (!cce->fulltest)
+    if (!cce->m_fulltest)
         return false;
 
     bool fl, fr, c, lfe, sl, sr, rl, rr;
@@ -1102,8 +1097,7 @@ HostComboBoxSetting *AudioConfigSettings::MixerControl()
 
     gc->setLabel(tr("Mixer controls"));
 
-    for (unsigned int i = 0; i < sizeof(MixerControlControls) / sizeof(char*);
-         ++i)
+    for (size_t i = 0; i < sizeof(MixerControlControls) / sizeof(char*); ++i)
     {
         gc->addSelection(tr(MixerControlControls[i]),
                          MixerControlControls[i]);

@@ -44,12 +44,6 @@ class ProgramInfoLoader : public QRunnable
     bool              m_updateUI;
 };
 
-ProgramInfoCache::ProgramInfoCache(QObject *o) :
-    m_next_cache(nullptr), m_listener(o),
-    m_load_is_queued(false), m_loads_in_progress(0)
-{
-}
-
 ProgramInfoCache::~ProgramInfoCache()
 {
     QMutexLocker locker(&m_lock);
@@ -100,7 +94,7 @@ void ProgramInfoCache::Load(const bool updateUI)
 bool ProgramInfoCache::IsLoadInProgress(void) const
 {
     QMutexLocker locker(&m_lock);
-    return m_loads_in_progress;
+    return m_loads_in_progress != 0U;
 }
 
 void ProgramInfoCache::WaitForLoadToComplete(void) const

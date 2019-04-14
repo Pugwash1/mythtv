@@ -19,6 +19,7 @@
 #include <mythuitext.h>
 #include <mythscreenstack.h>
 #include <mythmainwindow.h>
+#include <mythsorthelper.h>
 
 // mythnetvision
 #include "treeeditor.h"
@@ -45,9 +46,6 @@ namespace
 
 NetTree::NetTree(DialogType type, MythScreenStack *parent, const char *name)
     : NetBase(parent, name),
-      m_siteMap(nullptr),            m_siteButtonList(nullptr),
-      m_siteGeneric(nullptr),        m_currentNode(nullptr),
-      m_noSites(nullptr),
       m_gdt(new GrabberDownloadThread(this)), m_type(type)
 {
     connect(m_gdt, SIGNAL(finished()), SLOT(DoTreeRefresh()));
@@ -589,17 +587,18 @@ void NetTree::FillTree()
         m_siteGeneric->addNode(ret);
         SetSubfolderData(ret);
     }
+    m_siteGeneric->sortByString();
 }
 
 void NetTree::BuildGenericTree(MythGenericTree *dst, QStringList paths,
-                               QString dirthumb, QList<ResultItem*> videos)
+                               const QString& dirthumb, QList<ResultItem*> videos)
 {
     MythGenericTree *folder = nullptr;
 
     // A little loop to determine what path of the provided path might
     // already exist in the tree.
 
-    while (folder == nullptr && paths.size())
+    while (folder == nullptr && !paths.empty())
     {
         QString curPath = paths.takeFirst();
         curPath.replace("|", "/");
@@ -620,7 +619,7 @@ void NetTree::BuildGenericTree(MythGenericTree *dst, QStringList paths,
     if (m_type != DLG_TREE)
         folder->addNode(tr("Back"), kUpFolder, true, false);
 
-    if (paths.size())
+    if (!paths.empty())
         BuildGenericTree(folder, paths, dirthumb, videos);
     else
     {
@@ -713,7 +712,9 @@ void NetTree::UpdateResultItem(ResultItem *item)
 void NetTree::UpdateSiteItem(RSSSite *site)
 {
     ResultItem res =
-        ResultItem(site->GetTitle(), QString(), site->GetDescription(),
+        ResultItem(site->GetTitle(), site->GetSortTitle(),
+                   QString(), QString(), // no subtitle information
+                   site->GetDescription(),
                    site->GetURL(), site->GetImage(), QString(),
                    site->GetAuthor(), QDateTime(), nullptr, nullptr, -1, QString(),
                    QStringList(), QString(), QStringList(), 0, 0, QString(),
@@ -756,8 +757,12 @@ void NetTree::UpdateCurrentItem(void)
             thumb = node->GetData().toString();
     }
 
+    std::shared_ptr<MythSortHelper>sh = getMythSortHelper();
     ResultItem res =
-        ResultItem(title, QString(), QString(), QString(), thumb, QString(),
+        ResultItem(title, sh->doTitle(title), // title, sortTitle
+                   QString(), QString(), // no subtitle information
+                   QString(), // description
+                   QString(), thumb, QString(),
                    QString(), QDateTime(), nullptr, nullptr, -1, QString(),
                    QStringList(), QString(), QStringList(), 0, 0, QString(),
                    false, QStringList(), 0, 0, false);
@@ -785,7 +790,7 @@ void NetTree::UpdateCurrentItem(void)
         }
         else
         {
-            QString url = thumb;
+            const QString& url = thumb;
             QString title2;
             if (m_type == DLG_TREE)
                 title2 = m_siteMap->GetItemCurrent()->GetText();
@@ -919,15 +924,15 @@ void NetTree::UpdateTrees()
 void NetTree::ToggleRSSUpdates()
 {
     m_rssAutoUpdate = !m_rssAutoUpdate;
-    gCoreContext->SaveSetting("mythnetvision.rssBackgroundFetch",
-                              m_rssAutoUpdate);
+    gCoreContext->SaveBoolSetting("mythnetvision.rssBackgroundFetch",
+                                  m_rssAutoUpdate);
 }
 
 void NetTree::ToggleTreeUpdates()
 {
     m_treeAutoUpdate = !m_treeAutoUpdate;
-    gCoreContext->SaveSetting("mythnetvision.backgroundFetch",
-                              m_treeAutoUpdate);
+    gCoreContext->SaveBoolSetting("mythnetvision.backgroundFetch",
+                                  m_treeAutoUpdate);
 }
 
 void NetTree::customEvent(QEvent *event)
@@ -939,7 +944,7 @@ void NetTree::customEvent(QEvent *event)
         if (!tde)
             return;
 
-        ThumbnailData *data = tde->thumb;
+        ThumbnailData *data = tde->m_thumb;
 
         if (!data)
             return;

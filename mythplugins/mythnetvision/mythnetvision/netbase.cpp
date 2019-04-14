@@ -18,10 +18,7 @@
 
 NetBase::NetBase(MythScreenStack *parent, const char *name)
     : MythScreenType(parent, name),
-      m_thumbImage(nullptr),
-      m_downloadable(nullptr),
       m_popupStack(GetMythMainWindow()->GetStack("popup stack")),
-      m_progressDialog(nullptr),
       m_imageDownload(new MetadataImageDownload(this))
 {
     gCoreContext->addListener(this);
@@ -115,12 +112,12 @@ void NetBase::ShowWebVideo()
 
     if (!item->GetPlayer().isEmpty())
     {
-        QString cmd = item->GetPlayer();
+        const QString& cmd = item->GetPlayer();
         QStringList args = item->GetPlayerArguments();
-        if (!args.size())
+        if (args.empty())
         {
             args += item->GetMediaURL();
-            if (!args.size())
+            if (args.empty())
                 args += item->GetURL();
         }
         else
@@ -303,8 +300,7 @@ void NetBase::DoDownloadAndPlay()
         DoPlayVideo(finalFilename);
         return;
     }
-    else
-        DownloadVideo(item->GetMediaURL(), baseFilename);
+    DownloadVideo(item->GetMediaURL(), baseFilename);
 }
 
 void NetBase::DoPlayVideo(const QString &filename)

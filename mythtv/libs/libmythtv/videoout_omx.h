@@ -2,7 +2,9 @@
 #define VIDEOOUT_OMX_H
 
 #ifdef USING_OPENGLES
+#ifdef USING_BROADCOM
 #define OSD_EGL // OSD with EGL
+#endif
 #endif
 
 #include <OMX_Types.h>
@@ -74,7 +76,7 @@ class VideoOutputOMX : public VideoOutput, private OMXComponentCtx
     ComponentCB FreeBuffersCB, UseBuffersCB;
 
     void CreatePauseFrame(void);
-    bool SetVideoRect(const QRect &disp_rect, const QRect &vid_rect);
+    bool SetVideoRect(const QRect &d_rect, const QRect &vid_rect);
     bool CreateBuffers(const QSize&, const QSize&);
     void DeleteBuffers();
     bool Start();

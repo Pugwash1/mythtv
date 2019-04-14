@@ -32,7 +32,7 @@ class MUI_PUBLIC MythOpenGLPainter : public MythPainter
     void Begin(QPaintDevice *parent) override; // MythPainter
     void End() override; // MythPainter
 
-    void DrawImage(const QRect &dest, MythImage *im, const QRect &src,
+    void DrawImage(const QRect &r, MythImage *im, const QRect &src,
                    int alpha) override; // MythPainter
     void DrawRect(const QRect &area, const QBrush &fillBrush,
                   const QPen &linePen, int alpha) override; // MythPainter
@@ -52,10 +52,10 @@ class MUI_PUBLIC MythOpenGLPainter : public MythPainter
     void       ClearCache(void);
     int        GetTextureFromCache(MythImage *im);
 
-    QWidget          *realParent;
-    MythRenderOpenGL *realRender;
-    int               target;
-    bool              swapControl;
+    QWidget          *realParent  {nullptr};
+    MythRenderOpenGL *realRender  {nullptr};
+    int               target      {0};
+    bool              swapControl {true};
 
     QMap<MythImage *, uint>    m_ImageIntMap;
     std::list<MythImage *>     m_ImageExpireList;

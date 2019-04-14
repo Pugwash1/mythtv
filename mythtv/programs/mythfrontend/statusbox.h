@@ -53,24 +53,24 @@ class StatusBox : public MythScreenType
                      const QString & state = "",
                      const QString & data = "");
 
-    void getActualRecordedBPS(QString hostnames);
+    void getActualRecordedBPS(const QString& hostnames);
 
-    MythUIText *m_helpText;
-    MythUIText *m_justHelpText;
-    MythUIButtonList *m_categoryList;
-    MythUIButtonList *m_logList;
-    MythUIStateType *m_iconState;
+    MythUIText        *m_helpText        {nullptr};
+    MythUIText        *m_justHelpText    {nullptr};
+    MythUIButtonList  *m_categoryList    {nullptr};
+    MythUIButtonList  *m_logList         {nullptr};
+    MythUIStateType   *m_iconState       {nullptr};
 
     QMap<int, QString> contentData;
     recprof2bps_t      recordingProfilesBPS;
 
     vector<ProgramInfo *> m_expList;
 
-    MythScreenStack *m_popupStack;
+    MythScreenStack   *m_popupStack      {nullptr};
 
-    int m_minLevel;
+    int                m_minLevel        {5};
 
-    bool m_isBackendActive;
+    bool               m_isBackendActive {false};
 };
 
 #endif

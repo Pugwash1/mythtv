@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <chrono> // for milliseconds
 #include <thread> // for sleep_for
+#include <utility>
 
 #include "mythtimer.h"
 #include "bufferedsocketdevice.h"
@@ -37,13 +38,6 @@ BufferedSocketDevice::BufferedSocketDevice( int nSocket  )
                     sizeof(ling)) < 0) 
         LOG(VB_GENERAL, LOG_ERR, 
             "BufferedSocketDevice: setsockopt - SO_LINGER: " + ENO);
-
-    m_nDestPort          = 0;
-
-    m_nMaxReadBufferSize = 0; 
-    m_nWriteSize         = 0;
-    m_nWriteIndex        = 0;
-    m_bHandleSocketDelete= true;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -140,7 +134,7 @@ void BufferedSocketDevice::SetSocketDevice( MSocketDevice *pSocket )
 void BufferedSocketDevice::SetDestAddress(
     QHostAddress hostAddress, quint16 nPort)
 {
-    m_DestHostAddress = hostAddress;
+    m_DestHostAddress = std::move(hostAddress);
     m_nDestPort       = nPort;
 }
 
@@ -600,10 +594,7 @@ bool BufferedSocketDevice::CanReadLine()
 {
     ReadBytes();
 
-    if (( BytesAvailable() > 0 ) && m_bufRead.scanNewline( nullptr ) )
-        return true;
-
-    return false;
+    return ( BytesAvailable() > 0 ) && m_bufRead.scanNewline( nullptr );
 }
                                
 /////////////////////////////////////////////////////////////////////////////

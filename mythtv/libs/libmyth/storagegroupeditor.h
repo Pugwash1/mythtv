@@ -2,9 +2,7 @@
 #define _STORAGEGROUPEDITOR_H
 
 #include "storagegroup.h"
-#include "settings.h"
 #include "standardsettings.h"
-#include "mythwidgets.h"
 #include "mythexp.h"
 
 class MPUBLIC StorageGroupEditor :
@@ -39,7 +37,7 @@ class MPUBLIC StorageGroupListEditor :
 
 public slots:
     void ShowNewGroupDialog(void);
-    void CreateNewGroup(QString name);
+    void CreateNewGroup(const QString& name);
 };
 
 class StorageGroupDirStorage : public SimpleDBStorage

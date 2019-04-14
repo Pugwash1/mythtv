@@ -176,9 +176,6 @@ class VideoPlayMythSystem : public VideoPlayProc
 
 class VideoPlayerCommandPrivate
 {
-  private:
-    VideoPlayerCommandPrivate &operator=(const VideoPlayerCommandPrivate &rhs) = delete;
-
   public:
     VideoPlayerCommandPrivate() = default;
 
@@ -190,6 +187,8 @@ class VideoPlayerCommandPrivate
             m_player_procs.push_back((*p)->Clone());
         }
     }
+
+    VideoPlayerCommandPrivate &operator=(const VideoPlayerCommandPrivate &rhs) = delete;
 
     ~VideoPlayerCommandPrivate()
     {
@@ -378,7 +377,7 @@ VideoPlayerCommand VideoPlayerCommand::PlayerFor(const QString &filename)
     return ret;
 }
 
-VideoPlayerCommand::VideoPlayerCommand() : m_d(nullptr)
+VideoPlayerCommand::VideoPlayerCommand()
 {
     m_d = new VideoPlayerCommandPrivate;
 }

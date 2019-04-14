@@ -33,10 +33,14 @@ class HLSStreamHandler : public IPTVStreamHandler
 
     void run(void) override; // MThread
 
+  private:
+    HLSStreamHandler(const HLSStreamHandler &) = delete;            // not copyable
+    HLSStreamHandler &operator=(const HLSStreamHandler &) = delete; // not copyable
+
   protected:
-    HLSReader*     m_hls;
-    uint8_t*       m_readbuffer;
-    bool           m_throttle;
+    HLSReader*     m_hls        {nullptr};
+    uint8_t*       m_readbuffer {nullptr};
+    bool           m_throttle   {true};
 
     // for implementing Get & Return
     static QMutex                            s_hlshandlers_lock;

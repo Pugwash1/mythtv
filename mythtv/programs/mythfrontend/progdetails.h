@@ -14,7 +14,9 @@ class ProgDetails : public MythScreenType
 {
     Q_OBJECT
   public:
-     ProgDetails(MythScreenStack *parent, const ProgramInfo *progInfo);
+     ProgDetails(MythScreenStack *parent, const ProgramInfo *progInfo)
+         : MythScreenType (parent, "progdetails"),
+           m_progInfo(*progInfo), m_infoList(*this) {}
     ~ProgDetails();
 
     bool Create(void) override; // MythScreenType
@@ -22,7 +24,7 @@ class ProgDetails : public MythScreenType
     bool keyPressEvent(QKeyEvent *event) override; // MythScreenType
 
   private:
-    QString getRatings(bool recorded, uint chanid, QDateTime startts);
+    QString getRatings(bool recorded, uint chanid, const QDateTime& startts);
     void updatePage(void);
     void addItem(const QString &title, const QString &value,
                  ProgInfoList::VisibleLevel level);

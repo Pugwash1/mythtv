@@ -41,18 +41,18 @@ class ExternIO
 
     QFileInfo   m_app;
     QStringList m_args;
-    int     m_appin;
-    int     m_appout;
-    int     m_apperr;
-    pid_t   m_pid;
-    QString m_error;
+    int         m_appin   {-1};
+    int         m_appout  {-1};
+    int         m_apperr  {-1};
+    pid_t       m_pid     {-1};
+    QString     m_error;
 
-    int         m_bufsize;
-    char       *m_buffer;
+    int         m_bufsize {0};
+    char       *m_buffer  {nullptr};
 
     QString     m_status_buf;
     QTextStream m_status;
-    int         m_errcnt;
+    int         m_errcnt  {0};
 };
 
 // Note : This class always uses a TS reader.
@@ -60,22 +60,25 @@ class ExternIO
 class ExternalStreamHandler : public StreamHandler
 {
     enum constants { MAX_API_VERSION = 2,
-                     PACKET_SIZE = 188 * 32768,
-                     TOO_FAST_SIZE = 188 * 4196 };
+                     TS_PACKET_SIZE = 188,
+                     PACKET_SIZE = TS_PACKET_SIZE * 8192,
+                     TOO_FAST_SIZE = TS_PACKET_SIZE * 32768 };
 
   public:
-    static ExternalStreamHandler *Get(const QString &devicename,
+    static ExternalStreamHandler *Get(const QString &devname,
                                       int inputid, int majorid);
     static void Return(ExternalStreamHandler * & ref, int inputid);
 
   public:
     explicit ExternalStreamHandler(const QString & path, int inputid,
-				   int majorid);
+                                   int majorid);
     ~ExternalStreamHandler(void) { CloseApp(); }
 
     void run(void) override; // MThread
     void PriorityEvent(int fd) override; // DeviceReaderCB
 
+    QString GetDescription(void) { return m_loc; }
+    QString UpdateDescription(void);
     bool IsAppOpen(void);
     bool IsTSOpen(void);
     bool HasTuner(void) const { return m_hasTuner; }
@@ -95,10 +98,10 @@ class ExternalStreamHandler : public StreamHandler
     void PurgeBuffer(void);
 
     bool ProcessCommand(const QString & cmd, QString & result,
-                        int timeout = 2000 /* ms */,uint retry_cnt = 3);
+                        int timeout = 4000 /* ms */,uint retry_cnt = 3);
     bool ProcessVer1(const QString & cmd, QString & result,
                      int timeout /* ms */, uint retry_cnt);
-    bool ProcessVer2(const QString & cmd, QString & result,
+    bool ProcessVer2(const QString & command, QString & result,
                      int timeout /* ms */, uint retry_cnt);
 
   private:
@@ -107,28 +110,29 @@ class ExternalStreamHandler : public StreamHandler
     bool OpenApp(void);
     void CloseApp(void);
 
-    int            m_majorid;
-    QMutex         m_IO_lock;
-    ExternIO      *m_IO;
-    QStringList    m_args;
-    QString        m_app;
-    bool           m_tsopen;
-    int            m_io_errcnt;
-    bool           m_poll_mode;
-    bool           m_notify;
+    QString       m_loc;
+    int           m_majorid;
+    QMutex        m_io_lock;
+    ExternIO     *m_io                   {nullptr};
+    QStringList   m_args;
+    QString       m_app;
+    bool          m_tsopen               {false};
+    int           m_io_errcnt            {0};
+    bool          m_poll_mode            {false};
 
-    int            m_apiVersion;
-    uint           m_serialNo;
-    bool           m_hasTuner;
-    bool           m_hasPictureAttributes;
+    int           m_apiVersion           {1};
+    uint          m_serialNo             {0};
+    bool          m_hasTuner;
+    bool          m_hasPictureAttributes;
 
-    QByteArray     m_replay_buffer;
-    bool           m_replay;
+    QByteArray    m_replay_buffer;
+    bool          m_replay               {false};
+    bool          m_xon                  {false};
 
     // for implementing Get & Return
-    static QMutex                            m_handlers_lock;
-    static QMap<int, ExternalStreamHandler*> m_handlers;
-    static QMap<int, uint>                   m_handlers_refcnt;
+    static QMutex                            s_handlers_lock;
+    static QMap<int, ExternalStreamHandler*> s_handlers;
+    static QMap<int, uint>                   s_handlers_refcnt;
 
     QAtomicInt    m_streaming_cnt;
     QMutex        m_stream_lock;

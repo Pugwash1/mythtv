@@ -184,9 +184,9 @@ class LinkageDescriptor : public MPEGDescriptor
     //    target_event_id      16   9.0
     uint TargetEventID(void) const { return (_data[9]<<8) | _data[10]; }
     //    target_listed         1  11.0
-    bool IsTargetListed(void) const { return _data[11]&0x80; }
+    bool IsTargetListed(void) const { return ( _data[11]&0x80 ) != 0; }
     //    event_simulcast       1  11.1
-    bool IsEventSimulcast(void) const { return _data[11]&0x40; }
+    bool IsEventSimulcast(void) const { return ( _data[11]&0x40 ) != 0; }
     //    reserved              6  11.2
     // }
     //      for (i=0;i<N;i++)
@@ -819,7 +819,7 @@ class SatelliteDeliverySystemDescriptor : public MPEGDescriptor
     double OrbitalPositionFloat()  const
         { return ((double) OrbitalPosition()) / 10.0; }
     /// west_east_flag          1   8.0
-    bool IsEast(void)             const { return (_data[8]&0x80); }
+    bool IsEast(void)             const { return ( (_data[8]&0x80) ) != 0; }
     bool IsWest(void)             const { return !IsEast(); }
     // polarization             2   8.1
     uint Polarization(void)       const { return (_data[8]>>5)&0x3; }
@@ -931,7 +931,7 @@ class TerrestrialDeliverySystemDescriptor : public MPEGDescriptor
         return (Bandwidth() <= kBandwidth5Mhz) ? bs[Bandwidth()] : "auto";
     }
     // priority                 1   6.3
-    bool HighPriority(void) const { return _data[6] & 0x10; }
+    bool HighPriority(void) const { return ( _data[6] & 0x10 ) != 0; }
     // time_slicing_indicator   1   6.4
     bool IsTimeSlicingIndicatorUsed(void) const { return !(_data[6] & 0x08); }
     // MPE-FEC_indicator        1   6.5
@@ -972,7 +972,7 @@ class TerrestrialDeliverySystemDescriptor : public MPEGDescriptor
         static QString hs[] = { "n", "1", "2", "4", "a", "a", "a", "a" };
         return hs[Hierarchy()];
     }
-    bool NativeInterleaver(void) const { return _data[7] & 0x20; }
+    bool NativeInterleaver(void) const { return ( _data[7] & 0x20 ) != 0; }
     uint Alpha(void) const
     {
         uint i = (_data[7]>>3) & 0x3;
@@ -1987,13 +1987,13 @@ class AC3Descriptor : public MPEGDescriptor
     // descriptor_length        8   1.0
 
     // component_type_flag      1   2.0
-    bool HasComponentType(void) const { return _data[2] & 0x80; }
+    bool HasComponentType(void) const { return ( _data[2] & 0x80 ) != 0; }
     // bsid_flag                1   2.1
-    bool HasBSID(void) const { return _data[2] & 0x40; }
+    bool HasBSID(void) const { return ( _data[2] & 0x40 ) != 0; }
     // mainid_flag              1   2.2
-    bool HasMainID(void) const { return _data[2] & 0x20; }
+    bool HasMainID(void) const { return ( _data[2] & 0x20 ) != 0; }
     // asvc_flag                1   2.3
-    bool HasASVC(void) const { return _data[2] & 0x10; }
+    bool HasASVC(void) const { return ( _data[2] & 0x10 ) != 0; }
     // reserved_flags           4   2.4
     // if (component_type_flag == 1)
     //   { component_type       8 uimsbf }
@@ -2071,6 +2071,34 @@ class DVBLogicalChannelDescriptor : public MPEGDescriptor
     QString toString(void) const override; // MPEGDescriptor
 };
 
+/**
+ *  \brief DVB HD Simulcast Logical Channel Descriptor
+ *
+ * NIT descriptor ID 0x88 (Private Extension)
+ *
+ * Provides the Logical Channel Number (LCN) for each channel when the channel
+ * is simultaneously broadcast in SD and HD.
+ */
+class DVBSimulcastChannelDescriptor : public MPEGDescriptor
+{
+  public:
+    DVBSimulcastChannelDescriptor(const unsigned char *data, int len = 300) :
+        MPEGDescriptor(data, len, PrivateDescriptorID::dvb_simulcast_channel_descriptor) { }
+    //       Name             bits  loc  expected value
+    // descriptor_tag           8   0.0       0x88
+    // descriptor_length        8   1.0
+
+    uint ChannelCount(void) const { return DescriptorLength() >> 2; }
+
+    uint ServiceID(uint i) const
+        { return (_data[2 + (i<<2)] << 8) | _data[3 + (i<<2)]; }
+
+    uint ChannelNumber(uint i) const
+        { return ((_data[4 + (i<<2)] << 8) | _data[5 + (i<<2)]) & 0x3ff; }
+
+    QString toString(void) const override; // MPEGDescriptor
+};
+
 // ETSI TS 102 323 (TV Anytime)
 class DVBContentIdentifierDescriptor : public MPEGDescriptor
 {
@@ -2079,16 +2107,19 @@ class DVBContentIdentifierDescriptor : public MPEGDescriptor
         MPEGDescriptor(data, len, DescriptorID::dvb_content_identifier)
     {
         size_t count  = 0;
-        uint8_t position = 2; /// position points to the first byte of the "sub"descriptor
 
         memset ((void *) m_crid, 0, sizeof(m_crid));
 
-        while (_data[1] >= position)
+        if (IsValid())
         {
-           size_t length = _data[position+1];
-           m_crid[count] = &_data[position];
-           count++;
-           position+=length+2;
+            uint8_t position = 2; /// position points to the first byte of the "sub"descriptor
+            while (_data[1] >= position)
+            {
+                size_t length = _data[position+1];
+                m_crid[count] = &_data[position];
+                count++;
+                position+=length+2;
+            }
         }
         m_cridCount = count;
     }
