@@ -563,10 +563,37 @@ void TV::InitKeys(void)
             "Change Group View"), "");
     REG_KEY("TV Frontend", ACTION_LISTRECORDEDEPISODES, QT_TRANSLATE_NOOP("MythControls",
             "List recorded episodes"), "");
+    /*
+     * TODO DB update needs to perform the necessary conversion and delete
+     * the following upgrade code and replace bkmKeys and togBkmKeys  with "" in the
+     * REG_KEY for ACTION_SETBOOKMARK and ACTION_TOGGLEBOOKMARK.
+     */
+    // Bookmarks - Instead of SELECT to add or toggle,
+    // Use separate bookmark actions. This code is to convert users
+    // who may already be using SELECT. If they are not already using
+    // this frontend then nothing will be assigned to bookmark actions.
+    QString bkmKeys;
+    QString togBkmKeys;
+    // Check if this is a new frontend - if PAUSE returns
+    // "?" then frontend is new, never used before, so we will not assign
+    // any default bookmark keys
+    QString testKey = GetMythMainWindow()->GetKey("TV Playback", ACTION_PAUSE);
+    if (testKey != "?")
+    {
+        int alternate = gCoreContext->GetNumSetting("AltClearSavedPosition",0);
+        QString selectKeys = GetMythMainWindow()->GetKey("Global", ACTION_SELECT);
+        if (selectKeys != "?")
+        {
+            if (alternate)
+                togBkmKeys = selectKeys;
+            else
+                bkmKeys = selectKeys;
+        }
+    }
     REG_KEY("TV Playback", ACTION_SETBOOKMARK, QT_TRANSLATE_NOOP("MythControls",
-            "Add Bookmark"), "");
+            "Add Bookmark"), bkmKeys);
     REG_KEY("TV Playback", ACTION_TOGGLEBOOKMARK, QT_TRANSLATE_NOOP("MythControls",
-            "Toggle Bookmark"), "");
+            "Toggle Bookmark"), togBkmKeys);
     REG_KEY("TV Playback", "BACK", QT_TRANSLATE_NOOP("MythControls",
             "Exit or return to DVD menu"), "Esc");
     REG_KEY("TV Playback", ACTION_MENUCOMPACT, QT_TRANSLATE_NOOP("MythControls",
@@ -1002,6 +1029,11 @@ TV::TV(void)
     m_playerLock.unlock();
 
     InitFromDB();
+
+#ifdef Q_OS_ANDROID
+    connect(qApp, SIGNAL(applicationStateChanged(Qt::ApplicationState)),
+            this, SLOT(onApplicationStateChange(Qt::ApplicationState)));
+#endif
 
     LOG(VB_PLAYBACK, LOG_INFO, LOC + "Finished creating TV object");
 }
@@ -13411,6 +13443,38 @@ QString TV::GetLiveTVIndex(const PlayerContext *ctx) const
     (void)ctx;
     return QString();
 #endif
+}
+
+void TV::onApplicationStateChange(Qt::ApplicationState state)
+{
+    switch (state)
+    {
+        case Qt::ApplicationState::ApplicationActive:
+        {
+            LOG(VB_GENERAL, LOG_NOTICE, "Resuming playback");
+            PlayerContext *ctx = GetPlayerReadLock(-1, __FILE__, __LINE__);
+            SetBookmark(ctx, true);
+            DoSetPauseState(ctx, m_suspendedPause);
+            ReturnPlayerLock(ctx);
+            m_suspended = false;
+            break;
+        }
+        case Qt::ApplicationState::ApplicationSuspended:
+        {
+            LOG(VB_GENERAL, LOG_NOTICE, "Suspending playback");
+            m_suspended = true;
+            PlayerContext *ctx = GetPlayerReadLock(-1, __FILE__, __LINE__);
+            vector<bool> do_pause;
+            for (uint i = 0; i < m_player.size(); i++)
+                do_pause.push_back(true);
+            m_suspendedPause = DoSetPauseState(ctx, do_pause);
+            SetBookmark(ctx, false);
+            ReturnPlayerLock(ctx);
+            break;
+        }
+        default:
+            break;
+    }
 }
 
 /* vim: set expandtab tabstop=4 shiftwidth=4: */

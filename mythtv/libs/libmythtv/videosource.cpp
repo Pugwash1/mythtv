@@ -153,7 +153,7 @@ class SchedGroup : public MythUICheckBoxSetting
         MythUICheckBoxSetting(new CardInputDBStorage(this, parent, "schedgroup"))
     {
         setLabel(QObject::tr("Schedule as group"));
-        setValue(false);
+        setValue(true);
         setHelpText(
             QObject::tr(
                 "Schedule all virtual inputs on this device as a group.  "
@@ -1063,7 +1063,7 @@ class DVBNoSeqStart : public MythUICheckBoxSetting
         MythUICheckBoxSetting(
             new CaptureCardDBStorage(this, parent, "dvb_wait_for_seqstart"))
     {
-        setLabel(QObject::tr("Wait for SEQ start header."));
+        setLabel(QObject::tr("Wait for SEQ start header"));
         setValue(true);
         setHelpText(
             QObject::tr("If enabled, drop packets from the start of a DVB "
@@ -3090,9 +3090,6 @@ CardInput::CardInput(const QString & cardtype, const QString & device,
             this,       SLOT(  SetSourceID (const QString&)));
     connect(ingrpbtn,   SIGNAL(clicked()),
             this,       SLOT(  CreateNewInputGroup()));
-    if (m_schedGroup)
-        connect(m_instanceCount, SIGNAL(valueChanged(const QString &)),
-                this,            SLOT(UpdateSchedGroup(const QString &)));
 }
 
 CardInput::~CardInput()
@@ -3112,14 +3109,6 @@ void CardInput::SetSourceID(const QString &sourceid)
     m_scan->setEnabled(enable && !raw_card_type.isEmpty() &&
                      !CardUtil::IsUnscanable(raw_card_type));
     m_srcFetch->setEnabled(enable);
-}
-
-void CardInput::UpdateSchedGroup(const QString &val)
-{
-    int value = val.toInt();
-    if (value <= 1)
-        m_schedGroup->setValue(false);
-    m_schedGroup->setEnabled(value > 1);
 }
 
 QString CardInput::getSourceName(void) const
@@ -3744,18 +3733,21 @@ void DVBConfigurationGroup::probeCard(const QString &videodevice)
     // Create selection list of all delivery systems of this card
     {
         m_cardType->clearSelections();
-        QStringList delsys = CardUtil::ProbeDeliverySystems(videodevice);
-        QStringList::iterator it = delsys.begin();
-        if (it != delsys.end())
-        {
-            m_cardType->setValue(*it);
-        }
-        for (; it != delsys.end(); it++)
+        QStringList delsyslist = CardUtil::ProbeDeliverySystems(videodevice);
+        QStringList::iterator it = delsyslist.begin();
+        for (; it != delsyslist.end(); it++)
         {
             LOG(VB_GENERAL, LOG_DEBUG, QString("DVBCardType: add deliverysystem:%1")
                 .arg(*it));
 
             m_cardType->addSelection(*it, *it);
+        }
+
+        // Default value, used if not already defined in capturecard/inputname
+        QString delsys = CardUtil::ProbeDefaultDeliverySystem(videodevice);
+        if (!delsys.isEmpty())
+        {
+            m_cardType->setValue(delsys);
         }
     }
 #
