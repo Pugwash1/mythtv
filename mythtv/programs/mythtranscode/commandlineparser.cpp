@@ -43,6 +43,8 @@ void MythTranscodeCommandLineParser::LoadArguments(void)
         ->SetGroup("Encoding");
     add("--hls", "hls", false, "Generate HTTP Live Stream output.", "")
         ->SetGroup("Encoding");
+    add("--forcefps", "forcefps", false, "Force the use of media fps, not rbr or tbn", "")
+        ->SetGroup("Encoding");
 
     add(QStringList{"-f", "--fifodir"}, "fifodir", "",
             "Directory in which to write fifos to.", "")
