@@ -27,6 +27,7 @@ typedef enum {
     kOCTCancelAll = -1,
     kOCTCancel    = +0,
     kOCTOk        = +1,
+    kOCTOkAll     = +2,
 } OkCancelType;
 
 class ChannelImporterBasicStats
@@ -76,7 +77,7 @@ class MTV_PUBLIC ChannelImporter
   public:
     ChannelImporter(bool gui, bool interactive,
                     bool _delete, bool insert, bool save,
-                    bool fta_only, bool lcn_only,
+                    bool fta_only, bool lcn_only, bool complete_only,
                     ServiceRequirements service_requirements,
                     bool success = false) :
         m_use_gui(gui),
@@ -86,6 +87,7 @@ class MTV_PUBLIC ChannelImporter
         m_do_save(save),
         m_fta_only(fta_only),
         m_lcn_only(lcn_only),
+        m_complete_only(complete_only),
         m_success(success),
         m_service_requirements(service_requirements) { }
 
@@ -138,7 +140,6 @@ class MTV_PUBLIC ChannelImporter
 
     void CleanupDuplicates(ScanDTVTransportList &transports) const;
     void FilterServices(ScanDTVTransportList &transports) const;
-    void FilterChannelNumber(ScanDTVTransportList &transports) const;
     ScanDTVTransportList GetDBTransports(
         uint sourceid, ScanDTVTransportList&) const;
 
@@ -182,11 +183,13 @@ class MTV_PUBLIC ChannelImporter
         ChannelInsertInfo               &chan);
 
     static QString ComputeSuggestedChannelNum(
-        const ChannelImporterBasicStats &info,
-        const ScanDTVTransport          &transport,
         const ChannelInsertInfo         &chan);
 
     OkCancelType ShowManualChannelPopup(
+        MythMainWindow *parent, const QString& title,
+        const QString& message, QString &text);
+
+    OkCancelType ShowResolveChannelPopup(
         MythMainWindow *parent, const QString& title,
         const QString& message, QString &text);
 
@@ -226,6 +229,10 @@ class MTV_PUBLIC ChannelImporter
         const ChannelImporterBasicStats &info,
         ChannelType type, uint &new_chan, uint &old_chan);
 
+    static bool CheckChannelNumber(
+        const QString           &num,
+        const ChannelInsertInfo &chan);
+
   private:
     bool                m_use_gui;
     bool                m_is_interactive;
@@ -236,6 +243,10 @@ class MTV_PUBLIC ChannelImporter
     bool                m_fta_only;
     /// Only services with logical channel numbers desired post scan?
     bool                m_lcn_only;
+    /// Only services with complete scandata desired post scan?
+    bool                m_complete_only;
+    /// Keep existing channel numbers on channel update
+    bool                m_keep_channel_numbers      {true};
     /// To pass information IPTV channel scan succeeded
     bool                m_success {false};
     /// Services desired post scan
