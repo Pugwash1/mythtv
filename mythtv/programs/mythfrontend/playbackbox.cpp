@@ -247,9 +247,9 @@ static QString construct_sort_title(
 
         QString sortprefix;
         if (recpriority > 0)
-            sortprefix = QString("+%1").arg(1000 - recpriority, 3, QChar('0'));
+            sortprefix = QString("+%1").arg(1000 - recpriority, 3, 10, QChar('0'));
         else
-            sortprefix = QString("-%1").arg(-recpriority, 3, QChar('0'));
+            sortprefix = QString("-%1").arg(-recpriority, 3, 10, QChar('0'));
 
         sTitle = sortprefix + '-' + sTitle;
     }
@@ -808,7 +808,13 @@ void PlaybackBox::UpdateUIListItem(MythUIButtonListItem *item,
         QString tempSubTitle  = extract_subtitle(*pginfo, groupname);
 
         if (groupname == pginfo->GetTitle().toLower())
+        {
             item->SetText(tempSubTitle, "titlesubtitle");
+            // titlesubtitle will just have the subtitle, so put the full
+            // string in titlesubtitlefull, when a theme can then "depend" on.
+            item->SetText(pginfo->toString(ProgramInfo::kTitleSubtitle, " - "),
+                          "titlesubtitlefull");
+        }
     }
 
     // Recording and availability status
@@ -928,7 +934,13 @@ void PlaybackBox::ItemLoaded(MythUIButtonListItem *item)
         QString tempSubTitle  = extract_subtitle(*pginfo, groupname);
 
         if (groupname == pginfo->GetTitle().toLower())
+        {
             item->SetText(tempSubTitle, "titlesubtitle");
+            // titlesubtitle will just have the subtitle, so put the full
+            // string in titlesubtitlefull, when a theme can then "depend" on.
+            item->SetText(pginfo->toString(ProgramInfo::kTitleSubtitle, " - "),
+                          "titlesubtitlefull");
+        }
 
         item->DisplayState(state, "status");
 
@@ -5254,6 +5266,8 @@ bool RecMetadataEdit::Create()
     m_subtitleEdit = dynamic_cast<MythUITextEdit*>(GetChild("subtitle"));
     m_descriptionEdit = dynamic_cast<MythUITextEdit*>(GetChild("description"));
     m_inetrefEdit = dynamic_cast<MythUITextEdit*>(GetChild("inetref"));
+    MythUIButton *inetrefClear = dynamic_cast<MythUIButton*>
+                                 (GetChild("inetref_clear"));
     m_seasonSpin = dynamic_cast<MythUISpinBox*>(GetChild("season"));
     m_episodeSpin = dynamic_cast<MythUISpinBox*>(GetChild("episode"));
     MythUIButton *okButton = dynamic_cast<MythUIButton*>(GetChild("ok"));
@@ -5283,6 +5297,7 @@ bool RecMetadataEdit::Create()
     m_episodeSpin->SetRange(0,9999,1,10);
     m_episodeSpin->SetValue(m_progInfo->GetEpisode());
 
+    connect(inetrefClear, SIGNAL(Clicked()), SLOT(ClearInetref()));
     connect(okButton, SIGNAL(Clicked()), SLOT(SaveChanges()));
     if (m_queryButton)
     {
@@ -5292,6 +5307,11 @@ bool RecMetadataEdit::Create()
     BuildFocusList();
 
     return true;
+}
+
+void RecMetadataEdit::ClearInetref()
+{
+    m_inetrefEdit->SetText("");
 }
 
 void RecMetadataEdit::SaveChanges()
