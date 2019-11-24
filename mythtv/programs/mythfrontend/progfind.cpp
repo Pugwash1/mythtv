@@ -509,6 +509,7 @@ void ProgFinder::selectShowData(QString progTitle, int newCurShow)
     MSqlBindings bindings;
     QString querystr = "WHERE program.title = :TITLE "
                        "  AND program.endtime > :ENDTIME "
+                       "  AND channel.deleted IS NULL "
                        "  AND channel.visible = 1 ";
     bindings[":TITLE"] = progTitle;
     bindings[":ENDTIME"] = progStart.addSecs(50 - progStart.time().second());
@@ -546,7 +547,8 @@ void ProgFinder::whereClauseGetSearchData(QString &where, MSqlBindings &bindings
     {
         where = "SELECT DISTINCT title FROM program "
                 "LEFT JOIN channel ON program.chanid = channel.chanid "
-                "WHERE channel.visible = 1 AND "
+                "WHERE channel.deleted IS NULL AND "
+                "      channel.visible = 1 AND "
                 "( title NOT REGEXP '^[A-Z0-9]' AND "
                 "  title NOT REGEXP '^The [A-Z0-9]' AND "
                 "  title NOT REGEXP '^A [A-Z0-9]' AND "
@@ -572,7 +574,8 @@ void ProgFinder::whereClauseGetSearchData(QString &where, MSqlBindings &bindings
 
         where = "SELECT DISTINCT title FROM program "
                 "LEFT JOIN channel ON program.chanid = channel.chanid "
-                "WHERE channel.visible = 1 "
+                "WHERE channel.deleted IS NULL "
+                "AND   channel.visible = 1 "
                 "AND ( title LIKE :ONE OR title LIKE :TWO "
                 "      OR title LIKE :THREE "
                 "      OR title LIKE :FOUR ) "
@@ -652,13 +655,11 @@ bool ProgFinder::formatSelectedData(QString& data, int charNum)
 
     if (charNum == 29 || charNum == 10)
     {
-        if (data.startsWith("The T") && charNum == 29)
+        if ((data.startsWith("The T") && charNum == 29) ||
+            (data.startsWith("The A") && charNum == 10))
             data = data.mid(4) + ", The";
-        else if (data.startsWith("The A") && charNum == 10)
-            data = data.mid(4) + ", The";
-        else if (data.startsWith("A T") && charNum == 29)
-            data = data.mid(2) + ", A";
-        else if (data.startsWith("A A") && charNum == 10)
+        else if ((data.startsWith("A T") && charNum == 29) ||
+                 (data.startsWith("A A") && charNum == 10))
             data = data.mid(2) + ", A";
         else if (data.startsWith("An A") && charNum == 10)
              data = data.mid(3) + ", An";
@@ -736,7 +737,7 @@ void JaProgFinder::whereClauseGetSearchData(QString &where, MSqlBindings &bindin
 
     where = "SELECT DISTINCT title FROM program "
             "LEFT JOIN channel ON program.chanid = channel.chanid "
-            "WHERE channel.visible = 1 ";
+            "WHERE channel.deleted IS NULL AND channel.visible = 1 ";
 
     switch (charNum) {
     case 0:
@@ -858,7 +859,7 @@ void HeProgFinder::whereClauseGetSearchData(QString &where, MSqlBindings &bindin
 
     where = "SELECT DISTINCT title FROM program "
             "LEFT JOIN channel ON program.chanid = channel.chanid "
-            "WHERE channel.visible = 1 ";
+            "WHERE channel.deleted IS NULL AND channel.visible = 1 ";
 
     if (searchChar.contains('E'))
     {
@@ -974,7 +975,8 @@ void RuProgFinder::whereClauseGetSearchData(QString &where, MSqlBindings
    {
        where = "SELECT DISTINCT title FROM program "
                "LEFT JOIN channel ON program.chanid = channel.chanid "
-               "WHERE channel.visible = 1 AND "
+               "WHERE channel.deleted IS NULL AND "
+               "      channel.visible = 1 AND "
                "( "
                   "title NOT REGEXP '^[A-Z0-9]' AND "
                   "title NOT REGEXP '^The [A-Z0-9]' AND "
@@ -1002,7 +1004,8 @@ void RuProgFinder::whereClauseGetSearchData(QString &where, MSqlBindings
 
        where = "SELECT DISTINCT title FROM program "
                "LEFT JOIN channel ON program.chanid = channel.chanid "
-               "WHERE channel.visible = 1 "
+               "WHERE channel.deleted IS NULL "
+               "AND   channel.visible = 1 "
                "AND ( title LIKE :ONE OR title LIKE :TWO "
                "      OR title LIKE :THREE "
                "      OR title LIKE :FOUR  "

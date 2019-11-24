@@ -608,6 +608,54 @@ uint DBEvent::UpdateDB(
     return UpdateDB(q, chanid, p[match]);
 }
 
+// Update starttime in table record for single recordings
+// when the starttime of a program is changed.
+//
+// Return the number of rows affected:
+// 0    if program is not found in table record
+// 1    if program is found and updated
+//
+static int change_record(MSqlQuery &query, uint chanid,
+                          const QDateTime &old_starttime,
+                          const QDateTime &new_starttime)
+{
+    query.prepare("UPDATE record "
+                   "SET starttime = :NEWSTARTTIME, "
+                   "    startdate = :NEWSTARTDATE "
+                   "WHERE chanid  = :CHANID "
+                   "AND type      = :TYPE "
+                   "AND search    = :SEARCH "
+                   "AND starttime = :OLDSTARTTIME "
+                   "AND startdate = :OLDSTARTDATE ");
+    query.bindValue(":CHANID",       chanid);
+    query.bindValue(":TYPE",         kSingleRecord);
+    query.bindValue(":SEARCH",       kNoSearch);
+    query.bindValue(":OLDSTARTTIME", old_starttime.time());
+    query.bindValue(":OLDSTARTDATE", old_starttime.date());
+    query.bindValue(":NEWSTARTTIME", new_starttime.time());
+    query.bindValue(":NEWSTARTDATE", new_starttime.date());
+
+    int rows = 0;
+    if (!query.exec() || !query.isActive())
+    {
+        MythDB::DBError("Updating record", query);
+    }
+    else
+    {
+        rows = query.numRowsAffected();
+    }
+    if (rows > 0)
+    {
+        LOG(VB_EIT, LOG_DEBUG,
+            QString("EIT: Updated record: chanid:%1 old:%3 new:%4 rows:%5")
+            .arg(chanid)
+            .arg(old_starttime.toString(Qt::ISODate))
+            .arg(new_starttime.toString(Qt::ISODate))
+            .arg(rows));
+    }
+    return rows;
+}
+
 // Update matched item with current data.
 //
 uint DBEvent::UpdateDB(
@@ -622,6 +670,22 @@ uint DBEvent::UpdateDB(
     QString  lseriesId        = m_seriesId;
     QString  linetref         = m_inetref;
     QDate    loriginalairdate = m_originalairdate;
+
+    // Update starttime also in database table record so that
+    // tables program and record remain consistent.
+    if (m_starttime != match.m_starttime)
+    {
+        QDateTime const &old_starttime = match.m_starttime;
+        QDateTime const &new_starttime = m_starttime;
+        change_record(query, chanid, old_starttime, new_starttime);
+
+        LOG(VB_EIT, LOG_DEBUG,
+            QString("EIT: (U) change starttime from %1 to %2 for chanid:%3 program '%4' ")
+                    .arg(old_starttime.toString(Qt::ISODate))
+                    .arg(new_starttime.toString(Qt::ISODate))
+                    .arg(chanid)
+                    .arg(m_title.left(35)));
+    }
 
     if (ltitle.isEmpty() && !match.m_title.isEmpty())
         ltitle = match.m_title;
@@ -757,7 +821,7 @@ uint DBEvent::UpdateDB(
     {
         query.prepare(
             "INSERT IGNORE INTO programrating "
-            "       ( chanid, starttime, system, rating) "
+            "       ( chanid, starttime, `system`, rating) "
             "VALUES (:CHANID, :START,    :SYS,  :RATING)");
         query.bindValue(":CHANID", chanid);
         query.bindValue(":START",  m_starttime);
@@ -970,10 +1034,14 @@ bool DBEvent::MoveOutOfTheWayDB(
             return delete_program(query, chanid, prog.m_starttime);
         }
         LOG(VB_EIT, LOG_DEBUG,
-            QString("EIT: change '%1' starttime to %2")
-                    .arg(prog.m_title.left(35))
-                    .arg(m_endtime.toString(Qt::ISODate)));
+            QString("EIT: (M) change starttime from %1 to %2 for chanid:%3 program '%4' ")
+                    .arg(prog.m_starttime.toString(Qt::ISODate))
+                    .arg(m_endtime.toString(Qt::ISODate))
+                    .arg(chanid)
+                    .arg(prog.m_title.left(35)));
 
+        // Update starttime in tables record and program so they stay consistent.
+        change_record(query, chanid, prog.m_starttime, m_endtime);
         return change_program(query, chanid, prog.m_starttime,
                               m_endtime,        // New start time is our endtime
                               prog.m_endtime);  // Keep the end time
@@ -1056,7 +1124,7 @@ uint DBEvent::InsertDB(MSqlQuery &query, uint chanid) const
     {
         query.prepare(
             "INSERT IGNORE INTO programrating "
-            "       ( chanid, starttime, system, rating) "
+            "       ( chanid, starttime, `system`, rating) "
             "VALUES (:CHANID, :START,    :SYS,  :RATING)");
         query.bindValue(":CHANID", chanid);
         query.bindValue(":START",  m_starttime);
@@ -1225,7 +1293,7 @@ uint ProgInfo::InsertDB(MSqlQuery &query, uint chanid) const
     {
         query.prepare(
             "INSERT IGNORE INTO programrating "
-            "       ( chanid, starttime, system, rating) "
+            "       ( chanid, starttime, `system`, rating) "
             "VALUES (:CHANID, :START,    :SYS,  :RATING)");
         query.bindValue(":CHANID", chanid);
         query.bindValue(":START",  m_starttime);
@@ -1344,9 +1412,9 @@ void ProgramData::FixProgramList(QList<ProgInfo*> &fixlist)
             QList<ProgInfo*>::iterator tokeep, todelete;
 
             if ((*cur)->m_endtime <= (*cur)->m_starttime)
-                tokeep = it, todelete = cur;
+                tokeep = it, todelete = cur;    // NOLINT(bugprone-branch-clone)
             else if ((*it)->m_endtime <= (*it)->m_starttime)
-                tokeep = cur, todelete = it;
+                tokeep = cur, todelete = it;    // NOLINT(bugprone-branch-clone)
             else if (!(*cur)->m_subtitle.isEmpty() &&
                      (*it)->m_subtitle.isEmpty())
                 tokeep = cur, todelete = it;
@@ -1406,7 +1474,8 @@ void ProgramData::HandlePrograms(
         query.prepare(
             "SELECT chanid "
             "FROM channel "
-            "WHERE sourceid = :ID AND "
+            "WHERE deleted  IS NULL AND "
+            "      sourceid = :ID AND "
             "      xmltvid  = :XMLTVID");
         query.bindValue(":ID",      sourceid);
         query.bindValue(":XMLTVID", mapiter.key());
@@ -1570,6 +1639,9 @@ bool ProgramData::IsUnchanged(
         "      colorcode       = :COLORCODE  AND "
         "      syndicatedepisodenumber = :SYNDICATEDEPISODENUMBER AND "
         "      programid       = :PROGRAMID  AND "
+        "      season          = :SEASON     AND "
+        "      episode         = :EPISODE    AND "
+        "      totalepisodes   = :TOTALEPISODES AND "
         "      inetref         = :INETREF");
 
     QString cattype = myth_category_type_to_string(pi.m_categoryType);
@@ -1598,6 +1670,9 @@ bool ProgramData::IsUnchanged(
     query.bindValue(":SYNDICATEDEPISODENUMBER",
                     denullify(pi.m_syndicatedepisodenumber));
     query.bindValue(":PROGRAMID",  denullify(pi.m_programId));
+    query.bindValue(":SEASON",     pi.m_season);
+    query.bindValue(":EPISODE",    pi.m_episode);
+    query.bindValue(":TOTALEPISODES", pi.m_totalepisodes);
     query.bindValue(":INETREF",    pi.m_inetref);
 
     if (query.exec() && query.next())

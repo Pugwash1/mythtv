@@ -42,7 +42,6 @@
 #include "mythcorecontext.h"
 #include "mythevent.h"
 #include "mythlogging.h"
-#include "exitcodes.h"
 
 #if CONFIG_CYGWIN || defined(_WIN32)
 #include "mythsystemwindows.h"
@@ -303,8 +302,9 @@ void MythSystemLegacy::Signal(MythSignal sig)
     int posix_signal = SIGTRAP;
     switch (sig)
     {
-        case kSignalNone: break;
-        case kSignalUnknown: break;
+        case kSignalNone:
+        case kSignalUnknown:
+            break;
         case kSignalHangup: posix_signal = SIGHUP; break;
         case kSignalInterrupt: posix_signal = SIGINT; break;
         case kSignalContinue: posix_signal = SIGCONT; break;

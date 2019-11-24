@@ -89,15 +89,15 @@ int sup2dast(const char *supfile, const char *ifofile, int delay_ms);
 
 struct exc__state 
 {
-    struct exc__state * prev;
-    jmp_buf env; 
+    struct exc__state *m_prev;
+    jmp_buf            m_env;
 };
 
 struct 
 {
-    struct exc__state * last;
-    char msgbuf[1024];
-    int  buflen;
+    struct exc__state *m_last;
+    char               m_msgbuf[1024];
+    int                m_buflen;
 } EXC /* = { 0 }*/ ;
 
 // These macros now all take a parameter 'x' to specify a recursion
@@ -105,29 +105,28 @@ struct
 // level of recursion, preventing the compiler from complaining about
 // shadowed variables.
 #define exc_try(x) do { struct exc__state exc_s##x; int exc_type##x GCCATTR_UNUSED; \
-    exc_s##x.prev = EXC.last; EXC.last = &exc_s##x; if ((exc_type##x = setjmp(exc_s##x.env)) == 0)
+    exc_s##x.m_prev = EXC.m_last; EXC.m_last = &exc_s##x; if ((exc_type##x = setjmp(exc_s##x.m_env)) == 0)
 
-#define exc_ftry(x) do { struct exc__state exc_s##x, *exc_p##x = EXC.last;    \
-    int exc_type##x GCCATTR_UNUSED; exc_s##x.prev = EXC.last; \
-    EXC.last = &exc_s##x; if ((exc_type##x = setjmp(exc_s##x.env)) == 0)
+#define exc_ftry(x) do { struct exc__state exc_s##x, *exc_p##x = EXC.m_last;    \
+    int exc_type##x GCCATTR_UNUSED; exc_s##x.prev = EXC.m_last; \
+    EXC.m_last = &exc_s##x; if ((exc_type##x = setjmp(exc_s##x.env)) == 0)
 
 #define exc_catch(x,t) else if ((t) == exc_type##x)
 
-#define exc_end(x) else __exc_throw(exc_type##x); EXC.last = exc_s##x.prev; } while (0)
+#define exc_end(x) else __exc_throw(exc_type##x); EXC.m_last = exc_s##x.m_prev; } while (0)
 
-#define exc_return(x) for (EXC.last = exc_p##x;) return
+#define exc_return(x) for (EXC.m_last = exc_p##x;) return
 
-#define exc_fthrow(x) for (EXC.last = exc_p##x;) ex_throw
+#define exc_fthrow(x) for (EXC.m_last = exc_p##x;) ex_throw
 
 #define exc_catchall else
-#define exc_endall(x) EXC.last = exc_s##x.prev; } while (0)
+#define exc_endall(x) EXC.m_last = exc_s##x.m_prev; } while (0)
 
 static void __exc_throw(int type) /* protoadd GCCATTR_NORETURN */ 
 {
-    struct exc__state * exc_s;
-    exc_s = EXC.last;
-    EXC.last = EXC.last->prev;
-    longjmp(exc_s->env, type);
+    struct exc__state * exc_s = EXC.m_last;
+    EXC.m_last = EXC.m_last->m_prev;
+    longjmp(exc_s->m_env, type);
 }
 
 static void exc_throw(int type, const char * format, ...)
@@ -136,39 +135,38 @@ static void exc_throw(int type, const char * format, ...)
     if (format != NULL) 
     {
         va_list ap;
-        unsigned int len;
         int err = errno;
 
         va_start(ap, format);
-        len = vsnprintf(EXC.msgbuf, sizeof EXC.msgbuf, format, ap);
+        unsigned int len = vsnprintf(EXC.m_msgbuf, sizeof EXC.m_msgbuf, format, ap);
         va_end(ap);
 
-        if (len >= sizeof EXC.msgbuf) 
+        if (len >= sizeof EXC.m_msgbuf)
         {
-            len = sizeof EXC.msgbuf - 1;
-            EXC.msgbuf[len] = '\0'; 
+            len = sizeof EXC.m_msgbuf - 1;
+            EXC.m_msgbuf[len] = '\0';
         }
         else 
         {
             if (format[strlen(format) - 1] == ':') 
             {
-                int l = snprintf(&EXC.msgbuf[len], sizeof EXC.msgbuf - len,
+                int l = snprintf(&EXC.m_msgbuf[len], sizeof EXC.m_msgbuf - len,
                       " %s.", strerror(err));
-                if (l + len >= sizeof EXC.msgbuf) 
+                if (l + len >= sizeof EXC.m_msgbuf)
                 {
-                    len = sizeof EXC.msgbuf - 1;
-                    EXC.msgbuf[len] = '\0'; 
+                    len = sizeof EXC.m_msgbuf - 1;
+                    EXC.m_msgbuf[len] = '\0';
                 }
                 else
                     len += l; 
             }
         }
-        EXC.buflen = len; 
+        EXC.m_buflen = len;
     }
     else 
     {
-        EXC.msgbuf[0] = '\0';
-        EXC.buflen = 0; 
+        EXC.m_msgbuf[0] = '\0';
+        EXC.m_buflen = 0;
     }
 
     __exc_throw(type); 
@@ -204,12 +202,10 @@ static void xxfwrite(FILE * stream, const eu8 * ptr, size_t size)
 static void yuv2rgb(int y,   int cr,  int cb,
             eu8 * r, eu8 * g, eu8 * b)  
 {
-    int lr, lg, lb;
-
     /* from dvdauthor... */
-    lr = (500 + 1164 * (y - 16) + 1596 * (cr - 128)              ) /1000;
-    lg = (500 + 1164 * (y - 16) -  813 * (cr - 128) - 391 * (cb - 128)) / 1000;
-    lb = (500 + 1164 * (y - 16)                    + 2018 * (cb - 128)) / 1000;
+    int lr = (500 + 1164 * (y - 16) + 1596 * (cr - 128)              ) /1000;
+    int lg = (500 + 1164 * (y - 16) -  813 * (cr - 128) - 391 * (cb - 128)) / 1000;
+    int lb = (500 + 1164 * (y - 16)                    + 2018 * (cb - 128)) / 1000;
 
     *r = (lr < 0)? 0: (lr > 255)? 255: (eu8)lr;
     *g = (lg < 0)? 0: (lg > 255)? 255: (eu8)lg;
@@ -333,26 +329,24 @@ static void xxfwrite_uint32_be(FILE * fh, eu32 value)
 static void ifopalette(const char * filename,
              eu8 yuvpalette[16][3], eu8 rgbpalette[16][3])  
 {
-    eu8 buf[1024], r, g, b;
-    fu32 offset, pgc;
-    int i;
-    FILE * fh;
+    eu8 buf[1024];
 
-    fh = xfopen(filename, "rb");
+    FILE *fh = xfopen(filename, "rb");
         if (memcmp(xxfread(fh, buf, 12), "DVDVIDEO-VTS", 12) != 0)
             exc_throw(MiscError,
                     "(IFO) file %s not of type DVDVIDEO-VTS.", filename);
 
     xfseek0(fh, 0xcc);
-    offset = get_uint32_be(xxfread(fh, buf, 4));
+    fu32 offset = get_uint32_be(xxfread(fh, buf, 4));
     xfseek0(fh, offset * 0x800 + 12);
-    pgc = offset * 0x800 + get_uint32_be(xxfread(fh, buf, 4));
+    fu32 pgc = offset * 0x800 + get_uint32_be(xxfread(fh, buf, 4));
     /* seek to palette */
     xfseek0(fh, pgc + 0xa4);
     xxfread(fh, buf, 16 * 4);
     fclose(fh);
-    for (i = 0; i < 16; i++) 
+    for (int i = 0; i < 16; i++)
     {
+        eu8 r = 0, g = 0, b = 0;
         eu8 * p = buf + i * 4 + 1;
         yuvpalette[i][0] =p[0]; yuvpalette[i][1] =p[1]; yuvpalette[i][2] =p[2];
         yuv2rgb(p[0], p[1], p[2], &r, &g, &b);
@@ -363,9 +357,11 @@ static void ifopalette(const char * filename,
 
 static void set2palettes(int value, eu8 * yuvpalpart, eu8 * rgbpalpart) 
 {
-    eu8 r, g, b, y, cr, cb;
+    eu8 y = 0, cr = 0, cb = 0;
 
-    r = value >> 16; g = value >> 8; b = value;
+    eu8 r = value >> 16;
+    eu8 g = value >> 8;
+    eu8 b = value;
     rgbpalpart[0] = r, rgbpalpart[1] = g,  rgbpalpart[2] = b;
     rgb2yuv(r, g, b, &y, &cr, &cb);
     yuvpalpart[0] = y, yuvpalpart[1] = cr, yuvpalpart[2] = cb; 
@@ -375,7 +371,7 @@ static void set2palettes(int value, eu8 * yuvpalpart, eu8 * rgbpalpart)
 static void argpalette(const char * arg,
                eu8 yuvpalette[16][3], eu8 rgbpalette[16][3])  
 {
-    unsigned int i;
+    unsigned int i = 0;
 
     if (strlen(arg) != 20 || arg[6] != ',' || arg[13] != ',')
         exc_throw(MiscError, "Palette arg %s invalid.\n", arg);
@@ -395,121 +391,120 @@ static void argpalette(const char * arg,
 /* typedef struct _Png4File Png4File; */
 struct _Png4File 
 {
-    FILE * fh;
-    int width;
-    int hleft;
-    int nibble;
-    int bufpos;
-    int chunklen;
-    eu32 crc;
-    eu32 adler;
-    eu8 palettechunk[24];
-    eu8 buffer[65536]; 
+    FILE *m_fh;
+    int   m_width;
+    int   m_hleft;
+    int   m_nibble;
+    int   m_bufPos;
+    int   m_chunkLen;
+    eu32  m_crc;
+    eu32  m_adler;
+    eu8   m_paletteChunk[24];
+    eu8   m_buffer[65536];
 };
 
 static void png4file_init(Png4File * self, eu8 palette[4][3])
 {
-    memcpy(self->palettechunk, "\0\0\0\x0c" "PLTE", 8);
-    memcpy(self->palettechunk + 8, palette, 12);
-    self->crc = 0 /*crc32(0, Z_NULL, 0)*/;
-    self->crc = crc32(self->crc, self->palettechunk + 4, 16);
-    set_uint32_be(self->palettechunk + 20, self->crc); 
+    memcpy(self->m_paletteChunk, "\0\0\0\x0c" "PLTE", 8);
+    memcpy(self->m_paletteChunk + 8, palette, 12);
+    self->m_crc = 0 /*crc32(0, Z_NULL, 0)*/;
+    self->m_crc = crc32(self->m_crc, self->m_paletteChunk + 4, 16);
+    set_uint32_be(self->m_paletteChunk + 20, self->m_crc);
 }
 
 static void png4file_open(Png4File * self,
                     const char * filename, int height, int width) 
 {
-    eu32 crc;
-    self->fh = xfopen(filename, "wb");
-    self->width = width;
-    self->hleft = height;
-    self->nibble = -1;
+    self->m_fh = xfopen(filename, "wb");
+    self->m_width = width;
+    self->m_hleft = height;
+    self->m_nibble = -1;
 
-    xxfwrite(self->fh, CUS "\x89PNG\r\n\x1a\n" "\0\0\0\x0d", 12);
+    xxfwrite(self->m_fh, CUS "\x89PNG\r\n\x1a\n" "\0\0\0\x0d", 12);
 
-    memcpy(self->buffer, "IHDR", 4);
-    set_uint32_be(self->buffer + 4, width);
-    set_uint32_be(self->buffer + 8, height);
-    memcpy(self->buffer + 12, "\004\003\0\0\0", 5);
+    memcpy(self->m_buffer, "IHDR", 4);
+    set_uint32_be(self->m_buffer + 4, width);
+    set_uint32_be(self->m_buffer + 8, height);
+    memcpy(self->m_buffer + 12, "\004\003\0\0\0", 5);
 
-    crc = crc32(0, self->buffer, 17);
-    set_uint32_be(self->buffer + 17, crc);
-    xxfwrite(self->fh, self->buffer, 21);
+    eu32 crc = crc32(0, self->m_buffer, 17);
+    set_uint32_be(self->m_buffer + 17, crc);
+    xxfwrite(self->m_fh, self->m_buffer, 21);
 
-    xxfwrite(self->fh, self->palettechunk, sizeof self->palettechunk);
+    xxfwrite(self->m_fh, self->m_paletteChunk, sizeof self->m_paletteChunk);
 
     /* XXX quick hack, first color transparent. */
-    xxfwriteCS(self->fh, "\0\0\0\001" "tRNS" "\0" "\x40\xe6\xd8\x66");
+    xxfwriteCS(self->m_fh, "\0\0\0\001" "tRNS" "\0" "\x40\xe6\xd8\x66");
 
-    xxfwrite(self->fh, CUS "\0\0\0\0IDAT" "\x78\001", 10);
-    self->buffer[0] = '\0';
-    self->buffer[5] = '\0';
-    self->bufpos = 6;
-    self->chunklen = 2; /* 78 01, zlib header */
-    self->crc = crc32(0, CUS "IDAT" "\x78\001", 6);
-    self->adler = 1 /* adler32(0, Z_NULL, 0) */; 
+    xxfwrite(self->m_fh, CUS "\0\0\0\0IDAT" "\x78\001", 10);
+    self->m_buffer[0] = '\0';
+    self->m_buffer[5] = '\0';
+    self->m_bufPos = 6;
+    self->m_chunkLen = 2; /* 78 01, zlib header */
+    self->m_crc = crc32(0, CUS "IDAT" "\x78\001", 6);
+    self->m_adler = 1 /* adler32(0, Z_NULL, 0) */; 
 }
 
 static void png4file_flush(Png4File * self) 
 {
-    int l = self->bufpos - 5;
-    self->chunklen += self->bufpos;
-    set_uint16_le(self->buffer + 1, l);
-    set_uint16_le(self->buffer + 3, l ^ 0xffff);
-    xxfwrite(self->fh, self->buffer, self->bufpos);
-    self->crc = crc32(self->crc, self->buffer, self->bufpos);
-    self->adler = adler32(self->adler, self->buffer + 5, self->bufpos - 5);
-    self->buffer[0] = '\0';
-    self->bufpos = 5; 
+    int l = self->m_bufPos - 5;
+    self->m_chunkLen += self->m_bufPos;
+    set_uint16_le(self->m_buffer + 1, l);
+    set_uint16_le(self->m_buffer + 3, l ^ 0xffff);
+    xxfwrite(self->m_fh, self->m_buffer, self->m_bufPos);
+    self->m_crc = crc32(self->m_crc, self->m_buffer, self->m_bufPos);
+    self->m_adler = adler32(self->m_adler, self->m_buffer + 5, self->m_bufPos - 5);
+    self->m_buffer[0] = '\0';
+    self->m_bufPos = 5;
 }
 
 static void png4file_addpixel(Png4File * self, eu8 pixel) 
 {
-    if (self->nibble < 0)
-        self->nibble = (pixel << 4);
+    if (self->m_nibble < 0)
+        self->m_nibble = (pixel << 4);
     else 
     {
-        self->buffer[self->bufpos++] = self->nibble | pixel;
-        self->nibble = -1;
-        if (self->bufpos == sizeof self->buffer - 4)
+        self->m_buffer[self->m_bufPos++] = self->m_nibble | pixel;
+        self->m_nibble = -1;
+        if (self->m_bufPos == sizeof self->m_buffer - 4)
             png4file_flush(self); 
     }
 }
 
 static void png4file_endrow(Png4File * self) 
 {
-    if (self->nibble >= 0) 
+    if (self->m_nibble >= 0)
     {
-        self->buffer[self->bufpos++] = self->nibble;
-        self->nibble = -1; 
+        self->m_buffer[self->m_bufPos++] = self->m_nibble;
+        self->m_nibble = -1;
     }
 
-    self->hleft--;
-    if (self->hleft)
-        self->buffer[self->bufpos++] = '\0'; 
+    self->m_hleft--;
+    if (self->m_hleft)
+        self->m_buffer[self->m_bufPos++] = '\0';
 }
 
 static void png4file_close(Png4File * self) 
 {
     eu8 adlerbuf[4];
-    self->buffer[0] = 0x01;
-    if (self->bufpos)
+    self->m_buffer[0] = 0x01;
+    if (self->m_bufPos)
         png4file_flush(self);
     else 
     {
-        self->bufpos = 5;
+        self->m_bufPos = 5;
         png4file_flush(self); 
     }
 
-    set_uint32_be(adlerbuf, self->adler);
-    xxfwrite(self->fh, adlerbuf, 4);
-    self->crc = crc32(self->crc, adlerbuf, 4);
-    xxfwrite_uint32_be(self->fh, self->crc);
-    xxfwriteCS(self->fh, "\0\0\0\0" "IEND" "\xae\x42\x60\x82");
-    xfseek0(self->fh, 70);
-    xxfwrite_uint32_be(self->fh, self->chunklen + 4 /* adler*/);
-    fclose(self->fh);
-    self->fh = NULL; 
+    set_uint32_be(adlerbuf, self->m_adler);
+    xxfwrite(self->m_fh, adlerbuf, 4);
+    self->m_crc = crc32(self->m_crc, adlerbuf, 4);
+    xxfwrite_uint32_be(self->m_fh, self->m_crc);
+    xxfwriteCS(self->m_fh, "\0\0\0\0" "IEND" "\xae\x42\x60\x82");
+    xfseek0(self->m_fh, 70);
+    xxfwrite_uint32_be(self->m_fh, self->m_chunkLen + 4 /* adler*/);
+    fclose(self->m_fh);
+    self->m_fh = NULL;
 }
 
 static eu8 getnibble(eu8 ** data, int * nibble) 
@@ -530,7 +525,7 @@ static void getpixelline(eu8 ** data, int width, Png4File * picfile)
 {
     int nibble = -1;
     int col = 0;
-    int number, cindex;
+    int number = 0, cindex = 0;
     /* Originally from gtkspu - this from the python implementation of this */
 
     while (1) 
@@ -589,12 +584,11 @@ static void makebitmap(eu8 * data, int w, int h, int top, int bot,
 {
     eu8 * top_ibuf = data + top;
     eu8 * bot_ibuf = data + bot;
-    int i;
     Png4File picfile;
 
     png4file_init(&picfile, palette); /* not bottleneck even re-doing this every time */
     png4file_open(&picfile, filename, h, w);
-    for (i = 0; i < h / 2; i++) 
+    for (int i = 0; i < h / 2; i++)
     {
         getpixelline(&top_ibuf, w, &picfile);
         getpixelline(&bot_ibuf, w, &picfile);
@@ -623,24 +617,23 @@ static char * pts2ts(fu32 pts, char * rvbuf, bool is_png_filename)
 
 struct _BoundStr 
 {
-    eu8 * p;
-    int l; 
+    eu8 *m_p;
+    int  m_l;
 };
 
 static void boundstr_init(BoundStr * bs, eu8 * p, int l) 
 {
-    bs->p = p;
-    bs->l = l; 
+    bs->m_p = p;
+    bs->m_l = l;
 }
 
 static eu8 * boundstr_read(BoundStr * bs, int l) 
 {
-    eu8 * rp;
-    if (l > bs->l)
+    if (l > bs->m_l)
         exc_throw(IndexError, "XXX IndexError %p.", bs);
-    rp = bs->p;
-    bs->p += l;
-    bs->l -= l;
+    eu8 * rp = bs->m_p;
+    bs->m_p += l;
+    bs->m_l -= l;
     return rp; 
 }
 
@@ -654,7 +647,6 @@ static void pxsubtitle(const char * supfile, FILE * ofh, eu8 palette[16][3],
     char  junk[32];
     char  sptsstr[32];
     eu8   data[65536];
-    eu8 * ctrl;
     time_t volatile pt = 0;
     bool volatile last = false;
     /*char  transparent[8]; */
@@ -681,9 +673,8 @@ static void pxsubtitle(const char * supfile, FILE * ofh, eu8 palette[16][3],
             eu32 volatile pts = get_uint32_le(xxfread(sfh, data, 8));
             eu16 size = get_uint16_be(xxfread(sfh, data, 2));
             eu16 pack = get_uint16_be(xxfread(sfh, data, 2));
-            eu32 endpts;
             xxfread(sfh, data, pack - 4);
-            ctrl = data + pack - 4;
+            eu8 * ctrl = data + pack - 4;
             xxfread(sfh, ctrl, size - pack);
 
             exc_try(2)
@@ -696,17 +687,14 @@ static void pxsubtitle(const char * supfile, FILE * ofh, eu8 palette[16][3],
             last = true;
             exc_end(2);
             {
-                time_t ct;
                 BoundStr bs;
-                int  prev;
                 int x1 = -1, x2 = -1, y1 = -1, y2 = -1;
                 int top_field = -1, bot_field = -1;
                 int end = 0;
-                int colcon_length;
                 eu8 this_palette[4][3];
                 boundstr_init(&bs, ctrl, size - pack);
 
-                prev = 0;
+                int prev = 0;
                 while (1) 
                 {
                     int date = get_uint16_be(boundstr_read(&bs, 2));
@@ -714,9 +702,10 @@ static void pxsubtitle(const char * supfile, FILE * ofh, eu8 palette[16][3],
 
                     while (1) 
                     {
-                        eu8 * p;
+                        eu8 * p = 0;
                         eu8 cmd = boundstr_read(&bs, 1)[0];
-                        int xpalette, i, n;
+                        int xpalette = 0;
+                        int colcon_length = 0;
                         switch (cmd) 
                         {
                             case 0x00:      /* force display: */
@@ -728,8 +717,8 @@ static void pxsubtitle(const char * supfile, FILE * ofh, eu8 palette[16][3],
                                 continue;
                             case 0x03:                /* palette */
                                 xpalette = get_uint16_be(boundstr_read(&bs, 2));
-                                for (n = 0; n < 4; n++) {
-                                    i = (xpalette >> (n * 4) & 0x0f);
+                                for (int n = 0; n < 4; n++) {
+                                    int i = (xpalette >> (n * 4) & 0x0f);
                                     this_palette[n][0] = palette[i][0];
                                     this_palette[n][1] = palette[i][1];
                                     this_palette[n][2] = palette[i][2];
@@ -773,7 +762,7 @@ static void pxsubtitle(const char * supfile, FILE * ofh, eu8 palette[16][3],
                 if (end > 500)
                     end = 500;
 
-                endpts = tmppts + end * 1000; /* ProjectX ! (other: 900, 1024) */
+                eu32 endpts = tmppts + end * 1000; /* ProjectX ! (other: 900, 1024) */
 
                 if (tmppts <= lastendpts)
                 {
@@ -797,6 +786,7 @@ static void pxsubtitle(const char * supfile, FILE * ofh, eu8 palette[16][3],
                 pts2ts(pts, fnbuf_fp, true);
                 pts2ts(tmppts, sptsstr + 1, false);
 
+                time_t ct = 0;
                 if (pt != time(&ct)) 
                 {
                     pt = ct;
@@ -858,16 +848,13 @@ static void usage(const char * pn) /* protoadd GCCATTR_NORETURN */
 
 static bool samepalette(char * filename, eu8 palette[16][3])
 {
-    FILE * fh;
-    int i;
-    unsigned int r,g,b;
-
     if (!fexists(filename))
         return false;
 
-    fh = xfopen(filename, "rb");
-    for (i = 0; i < 16; i++)
+    FILE *fh = xfopen(filename, "rb");
+    for (int i = 0; i < 16; i++)
     {
+        unsigned int r=0,g=0,b=0;
         if (fscanf(fh, "%02x%02x%02x\n", &r, &g, &b) != 3 ||
                r != palette[i][0] || g != palette[i][1] || b != palette[i][2]) 
         {
@@ -883,13 +870,12 @@ int sup2dast(const char *supfile, const char *ifofile ,int delay_ms)
 {
     exc_try(1)
     {
-        int i;
+        int i = 0;
         eu8 yuvpalette[16][3], rgbpalette[16][3];
         char fnbuf[1024];
-        char * p;
+        char * p = NULL;
 
-        bool createpics;
-        FILE * fh;
+        bool createpics = false;
 
         memset(yuvpalette, 0, sizeof(yuvpalette));
         memset(rgbpalette, 0, sizeof(rgbpalette));
@@ -934,7 +920,7 @@ int sup2dast(const char *supfile, const char *ifofile ,int delay_ms)
         }
 
         strcpy(p, "spumux.tmp");
-        fh = xfopen(fnbuf, "wb");
+        FILE *fh = xfopen(fnbuf, "wb");
 
         xxfwriteCS(fh, "<subpictures>\n <stream>\n");
         pxsubtitle(supfile, fh, rgbpalette, createpics, delay_ms, fnbuf, p);
@@ -947,12 +933,11 @@ int sup2dast(const char *supfile, const char *ifofile ,int delay_ms)
 
         if (createpics) 
         {
-            FILE * yuvfh, *rgbfh;
             printf("Writing palette.ycrcb and palette.rgb.\n");
             strcpy(p, "palette.ycrcb");
-            yuvfh = xfopen(fnbuf, "wb");
+            FILE *yuvfh = xfopen(fnbuf, "wb");
             strcpy(p, "palette.rgb");
-            rgbfh = xfopen(fnbuf, "wb");
+            FILE *rgbfh = xfopen(fnbuf, "wb");
             for (i = 0; i < 16; i++) 
             {
                 fprintf(yuvfh, "%02x%02x%02x\n",
@@ -981,7 +966,7 @@ int sup2dast(const char *supfile, const char *ifofile ,int delay_ms)
 
     exc_catchall 
     {
-        if (write(2, EXC.msgbuf, EXC.buflen) != EXC.buflen)
+        if (write(2, EXC.m_msgbuf, EXC.m_buflen) != EXC.m_buflen)
             printf("ERROR: write failed");
 
         if (write(2, "\n", 1) != 1)

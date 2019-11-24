@@ -122,11 +122,9 @@ int mythfile_check(int id)
     int result = 0;
 
     m_fileWrapperLock.lockForWrite();
-    if (m_localfiles.contains(id))
-        result = 1;
-    else if (m_remotefiles.contains(id))
-        result = 1;
-    else if (m_ringbuffers.contains(id))
+    if ((m_localfiles.contains(id))  ||
+        (m_remotefiles.contains(id)) ||
+        (m_ringbuffers.contains(id)))
         result = 1;
     m_fileWrapperLock.unlock();
 
@@ -138,7 +136,7 @@ int mythfile_open(const char *pathname, int flags)
     LOG(VB_FILE, LOG_DEBUG, QString("mythfile_open('%1', %2)")
             .arg(pathname).arg(flags));
 
-    struct stat fileinfo;
+    struct stat fileinfo {};
     if (mythfile_stat(pathname, &fileinfo))
         return -1;
 
@@ -413,9 +411,8 @@ int mythdir_check(int id)
     int result = 0;
 
     m_dirWrapperLock.lockForWrite();
-    if (m_localdirs.contains(id))
-        result = 1;
-    else if (m_remotedirs.contains(id))
+    if ((m_localdirs.contains(id)) ||
+        (m_remotedirs.contains(id)))
         result = 1;
     m_dirWrapperLock.unlock();
 

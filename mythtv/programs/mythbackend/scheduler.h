@@ -98,8 +98,8 @@ class Scheduler : public MThread, public MythScheduler
 
     void PrintList(bool onlyFutureRecordings = false)
         { PrintList(m_reclist, onlyFutureRecordings); };
-    void PrintList(RecList &list, bool onlyFutureRecordings = false);
-    void PrintRec(const RecordingInfo *p, const QString &prefix = "");
+    static void PrintList(RecList &list, bool onlyFutureRecordings = false);
+    static void PrintRec(const RecordingInfo *p, const QString &prefix = "");
 
     void SetMainServer(MainServer *ms);
 
@@ -111,13 +111,14 @@ class Scheduler : public MThread, public MythScheduler
     void GetNextLiveTVDir(uint cardid);
     void ResetIdleTime(void);
 
-    bool WasStartedAutomatically();
+    static bool WasStartedAutomatically();
 
     RecStatus::Type GetRecStatus(const ProgramInfo &pginfo);
 
     int GetError(void) const { return m_error; }
 
     void AddChildInput(uint parentid, uint inputid);
+    void DelayShutdown();
 
   protected:
     void run(void) override; // MThread
@@ -132,7 +133,7 @@ class Scheduler : public MThread, public MythScheduler
     QString m_recordTable;
     QString m_priorityTable;
 
-    bool VerifyCards(void);
+    static bool VerifyCards(void);
 
     bool InitInputInfoMap(void);
     void CreateTempTables(void);
@@ -182,7 +183,7 @@ class Scheduler : public MThread, public MythScheduler
 
     bool ChangeRecordingEnd(RecordingInfo *oldp, RecordingInfo *newp);
 
-    bool CheckShutdownServer(int prerollseconds, QDateTime &idleSince,
+    static bool CheckShutdownServer(int prerollseconds, QDateTime &idleSince,
                              bool &blockShutdown, uint logmask);
     void ShutdownServer(int prerollseconds, QDateTime &idleSince);
     void PutInactiveSlavesToSleep(void);
@@ -279,6 +280,8 @@ class Scheduler : public MThread, public MythScheduler
     QDateTime m_livetvTime;
 
     QDateTime m_lastPrepareTime;
+    // Delay shutdown util this time (ms since epoch);
+    int64_t m_delayShutdownTime        {0};
 
     OpenEndType m_openEnd;
 

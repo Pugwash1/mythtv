@@ -38,8 +38,8 @@ bool          PulseHandler::g_pulseHandlerActive = false;
 bool PulseHandler::Suspend(enum PulseAction action)
 {
     // global lock around all access to our global singleton
-    static QMutex global_lock;
-    QMutexLocker locker(&global_lock);
+    static QMutex s_globalLock;
+    QMutexLocker locker(&s_globalLock);
 
     // cleanup the PulseAudio server connection if requested
     if (kPulseCleanup == action)
@@ -107,10 +107,9 @@ bool PulseHandler::Suspend(enum PulseAction action)
         }
     }
 
-    bool result;
     // enable processing of incoming callbacks
     g_pulseHandlerActive = true;
-    result = g_pulseHandler->SuspendInternal(kPulseSuspend == action);
+    bool result = g_pulseHandler->SuspendInternal(kPulseSuspend == action);
     // disable processing of incoming callbacks in case we delete/recreate our
     // instance due to a termination or other failure
     g_pulseHandlerActive = false;

@@ -73,8 +73,8 @@ bool TestDatabase(const QString& dbHostName,
     return ret;
 }
 
-MSqlDatabase::MSqlDatabase(const QString &name)
-    : m_name(name)
+MSqlDatabase::MSqlDatabase(QString name)
+    : m_name(std::move(name))
 {
     if (!QSqlDatabase::isDriverAvailable("QMYSQL"))
     {
@@ -299,7 +299,7 @@ MSqlDatabase *MDBManager::popConnection(bool reuse)
 
     m_lock.lock();
 
-    MSqlDatabase *db;
+    MSqlDatabase *db = nullptr;
 
 #if REUSE_CONNECTION
     if (reuse)
@@ -913,15 +913,15 @@ void MSqlAddMoreBindings(MSqlBindings &output, MSqlBindings &addfrom)
 }
 
 struct Holder {
-    Holder( const QString& hldr = QString(), int pos = -1 )
-        : holderName( hldr ), holderPos( pos ) {}
+    explicit Holder( QString hldr = QString(), int pos = -1 )
+        : m_holderName(std::move( hldr )), m_holderPos( pos ) {}
 
     bool operator==( const Holder& h ) const
-        { return h.holderPos == holderPos && h.holderName == holderName; }
+        { return h.m_holderPos == m_holderPos && h.m_holderName == m_holderName; }
     bool operator!=( const Holder& h ) const
-        { return h.holderPos != holderPos || h.holderName != holderName; }
-    QString holderName;
-    int     holderPos;
+        { return h.m_holderPos != m_holderPos || h.m_holderName != m_holderName; }
+    QString m_holderName;
+    int     m_holderPos;
 };
 
 void MSqlEscapeAsAQuery(QString &query, MSqlBindings &bindings)
@@ -946,7 +946,7 @@ void MSqlEscapeAsAQuery(QString &query, MSqlBindings &bindings)
 
     for (i = holders.count() - 1; i >= 0; --i)
     {
-        holder = holders[(uint)i].holderName;
+        holder = holders[(uint)i].m_holderName;
         val = bindings[holder];
         QSqlField f("", val.type());
         if (val.isNull())
@@ -954,7 +954,7 @@ void MSqlEscapeAsAQuery(QString &query, MSqlBindings &bindings)
         else
             f.setValue(val);
 
-        query = query.replace((uint)holders[(uint)i].holderPos, holder.length(),
+        query = query.replace((uint)holders[(uint)i].m_holderPos, holder.length(),
                               result.driver()->formatValue(f));
     }
 }

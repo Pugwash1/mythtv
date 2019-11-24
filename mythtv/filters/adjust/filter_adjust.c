@@ -33,23 +33,23 @@ static const mmx_t mm_cpool[] = {
 
 typedef struct ThisFilter
 {
-    VideoFilter vf;
+    VideoFilter m_vf;
 
 #if HAVE_MMX
-    int yfilt;
-    int cfilt;
+    int         m_yFilt;
+    int         m_cFilt;
 
-    mmx_t yscale;
-    mmx_t yshift;
-    mmx_t ymin;
+    mmx_t       m_yScale;
+    mmx_t       m_yShift;
+    mmx_t       m_yMin;
 
-    mmx_t cscale;
-    mmx_t cshift;
-    mmx_t cmin;
+    mmx_t       m_cScale;
+    mmx_t       m_cShift;
+    mmx_t       m_cMin;
 #endif /* HAVE_MMX */
 
-    uint8_t ytable[256];
-    uint8_t ctable[256];
+    uint8_t     m_yTable[256];
+    uint8_t     m_cTable[256];
 
     TF_STRUCT;
 } ThisFilter;
@@ -154,35 +154,35 @@ static int adjustFilter (VideoFilter *vf, VideoFrame *frame, int field)
         unsigned char *vend = ubeg + (frame->pitches[2] * cheight);
 
 #if HAVE_MMX
-        if (filter->yfilt)
-            adjustRegionMMX(ybeg, yend, filter->ytable,
-                            &(filter->yshift), &(filter->yscale),
-                            &(filter->ymin), mm_cpool + 1, mm_cpool + 2);
+        if (filter->m_yFilt)
+            adjustRegionMMX(ybeg, yend, filter->m_yTable,
+                            &(filter->m_yShift), &(filter->m_yScale),
+                            &(filter->m_yMin), mm_cpool + 1, mm_cpool + 2);
         else
-            adjustRegion(ybeg, yend, filter->ytable);
+            adjustRegion(ybeg, yend, filter->m_yTable);
 
-        if (filter->cfilt)
+        if (filter->m_cFilt)
         {
-            adjustRegionMMX(ubeg, uend, filter->ctable,
-                            &(filter->cshift), &(filter->cscale),
-                            &(filter->cmin), mm_cpool + 3, mm_cpool + 4);
-            adjustRegionMMX(vbeg, vend, filter->ctable,
-                            &(filter->cshift), &(filter->cscale),
-                            &(filter->cmin), mm_cpool + 3, mm_cpool + 4);
+            adjustRegionMMX(ubeg, uend, filter->m_cTable,
+                            &(filter->m_cShift), &(filter->m_cScale),
+                            &(filter->m_cMin), mm_cpool + 3, mm_cpool + 4);
+            adjustRegionMMX(vbeg, vend, filter->m_cTable,
+                            &(filter->m_cShift), &(filter->m_cScale),
+                            &(filter->m_cMin), mm_cpool + 3, mm_cpool + 4);
         }
         else
         {
-            adjustRegion(ubeg, uend, filter->ctable);
-            adjustRegion(vbeg, vend, filter->ctable);
+            adjustRegion(ubeg, uend, filter->m_cTable);
+            adjustRegion(vbeg, vend, filter->m_cTable);
         }
 
-        if (filter->yfilt || filter->cfilt)
+        if (filter->m_yFilt || filter->m_cFilt)
             emms();
 
 #else /* HAVE_MMX */
-        adjustRegion(ybeg, yend, filter->ytable);
-        adjustRegion(ubeg, uend, filter->ctable);
-        adjustRegion(vbeg, vend, filter->ctable);
+        adjustRegion(ybeg, yend, filter->m_yTable);
+        adjustRegion(ubeg, uend, filter->m_cTable);
+        adjustRegion(vbeg, vend, filter->m_cTable);
 #endif /* HAVE_MMX */
     }
     TF_END(filter, "Adjust: ");
@@ -197,7 +197,7 @@ static void fillTable(uint8_t *table, int in_min, int in_max, int out_min,
         float f = ((float)i - in_min) / (in_max - in_min);
         f = f < 0.0F ? 0.0F : f;
         f = f > 1.0F ? 1.0F : f;
-        table[i] = lround(powf (f, gamma) * (out_max - out_min) + out_min);
+        table[i] = lroundf(powf (f, gamma) * (out_max - out_min) + out_min);
     }
 }
 
@@ -206,14 +206,12 @@ static int fillTableMMX(uint8_t *table, mmx_t *shift, mmx_t *scale, mmx_t *min,
                    int in_min, int in_max, int out_min, int out_max,
                    float gamma)
 {
-    int shiftc, scalec, i;
-
     fillTable(table, in_min, in_max, out_min, out_max, gamma);
-    scalec = ((out_max - out_min) << 15)/(in_max - in_min);
+    int scalec = ((out_max - out_min) << 15)/(in_max - in_min);
     if ((av_get_cpu_flags() & AV_CPU_FLAG_MMX) == 0 || gamma < 0.9999F ||
         gamma > 1.00001F || scalec > 32767 << 7)
         return 0;
-    shiftc = 2;
+    int shiftc = 2;
     while (scalec > 32767)
     {
         shiftc++;
@@ -221,11 +219,11 @@ static int fillTableMMX(uint8_t *table, mmx_t *shift, mmx_t *scale, mmx_t *min,
     }
     if (shiftc > 7)
         return 0;
-    for (i = 0; i < 4; i++)
+    for (int i = 0; i < 4; i++)
     {
         scale->w[i] = scalec;
     }
-    for (i = 0; i < 8; i++)
+    for (int i = 0; i < 8; i++)
         min->b[i] = in_min;
     shift->q = shiftc;
     return 1;
@@ -236,7 +234,6 @@ static VideoFilter *
 newAdjustFilter (VideoFrameType inpixfmt, VideoFrameType outpixfmt, 
                  const int *width, const int *height, const char *options, int threads)
 {
-    ThisFilter *filter;
     int numopts = 0, ymin = 16, ymax = 253, cmin = 16, cmax = 240;
     float ygamma = 1.0F, cgamma = 1.0F;
     (void) width;
@@ -268,8 +265,7 @@ newAdjustFilter (VideoFrameType inpixfmt, VideoFrameType outpixfmt,
         cgamma = 1.0F;
     }
 
-    filter = malloc (sizeof (ThisFilter));
-
+    ThisFilter *filter = malloc (sizeof (ThisFilter));
     if (filter == NULL)
     {
         fprintf (stderr, "adjust: failed to allocate memory for filter\n");
@@ -278,25 +274,25 @@ newAdjustFilter (VideoFrameType inpixfmt, VideoFrameType outpixfmt,
 
     if (ymin == -1)
     {
-        filter->vf.filter = NULL;
-        filter->vf.cleanup = NULL;
+        filter->m_vf.filter = NULL;
+        filter->m_vf.cleanup = NULL;
         return (VideoFilter *) filter;
     }
 
 #if HAVE_MMX
-    filter->yfilt = fillTableMMX (filter->ytable, &(filter->yshift),
-                                    &(filter->yscale), &(filter->ymin),
+    filter->m_yFilt = fillTableMMX (filter->m_yTable, &(filter->m_yShift),
+                                    &(filter->m_yScale), &(filter->m_yMin),
                                     ymin, ymax, 16, 235, ygamma);
-    filter->cfilt = fillTableMMX (filter->ctable, &(filter->cshift),
-                                    &(filter->cscale), &(filter->cmin),
+    filter->m_cFilt = fillTableMMX (filter->m_cTable, &(filter->m_cShift),
+                                    &(filter->m_cScale), &(filter->m_cMin),
                                     cmin, cmax, 16, 240, cgamma);
 #else
-    fillTable (filter->ytable, ymin, ymax, 16, 235, ygamma);
-    fillTable (filter->ctable, cmin, cmax, 16, 240, cgamma);
+    fillTable (filter->m_yTable, ymin, ymax, 16, 235, ygamma);
+    fillTable (filter->m_cTable, cmin, cmax, 16, 240, cgamma);
 #endif
 
-    filter->vf.filter = &adjustFilter;
-    filter->vf.cleanup = NULL;
+    filter->m_vf.filter = &adjustFilter;
+    filter->m_vf.cleanup = NULL;
     
     TF_INIT(filter);
     return (VideoFilter *) filter;

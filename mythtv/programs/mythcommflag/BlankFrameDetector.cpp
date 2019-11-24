@@ -63,15 +63,11 @@ computeBlankMap(FrameAnalyzer::FrameMap *blankMap, long long nframes,
     const float             MEDIANPCTILE = 0.95;
     const float             STDDEVPCTILE = 0.85;
 
-    long long       frameno, segb, sege, nblanks;
-    long long       blankno, blankno1, blankno2;
-    long long       stddevno, stddevno1, stddevno2;
-    unsigned char   *blankmedian, maxmedian;
-    float           *blankstddev, maxstddev;
+    long long       frameno = 1, segb = 0, sege = 0;
 
     /* Count and select for monochromatic frames. */
 
-    nblanks = 0;
+    long long nblanks = 0;
     for (frameno = 0; frameno < nframes; frameno++)
     {
         if (monochromatic[frameno] && pickmedian(median[frameno],
@@ -89,9 +85,9 @@ computeBlankMap(FrameAnalyzer::FrameMap *blankMap, long long nframes,
 
     /* Select percentile values from monochromatic frames. */
 
-    blankmedian = new unsigned char[nblanks];
-    blankstddev = new float[nblanks];
-    blankno = 0;
+    uchar *blankmedian = new unsigned char[nblanks];
+    float *blankstddev = new float[nblanks];
+    long long blankno = 0;
     for (frameno = 0; frameno < nframes; frameno++)
     {
         if (monochromatic[frameno] && pickmedian(median[frameno],
@@ -105,16 +101,16 @@ computeBlankMap(FrameAnalyzer::FrameMap *blankMap, long long nframes,
 
     qsort(blankmedian, nblanks, sizeof(*blankmedian), sort_ascending_uchar);
     blankno = min(nblanks - 1, (long long)roundf(nblanks * MEDIANPCTILE));
-    maxmedian = blankmedian[blankno];
+    uchar maxmedian = blankmedian[blankno];
 
     qsort(blankstddev, nblanks, sizeof(*blankstddev), sort_ascending_float);
-    stddevno = min(nblanks - 1, (long long)roundf(nblanks * STDDEVPCTILE));
-    maxstddev = blankstddev[stddevno];
+    long long stddevno = min(nblanks - 1, (long long)roundf(nblanks * STDDEVPCTILE));
+    float maxstddev = blankstddev[stddevno];
 
     /* Determine effective percentile ranges (for debugging). */
 
-    blankno1 = blankno;
-    blankno2 = blankno;
+    long long blankno1 = blankno;
+    long long blankno2 = blankno;
     while (blankno1 > 0 && blankmedian[blankno1] == maxmedian)
         blankno1--;
     if (blankmedian[blankno1] != maxmedian)
@@ -124,8 +120,8 @@ computeBlankMap(FrameAnalyzer::FrameMap *blankMap, long long nframes,
     if (blankno2 == nblanks)
         blankno2--;
 
-    stddevno1 = stddevno;
-    stddevno2 = stddevno;
+    long long stddevno1 = stddevno;
+    long long stddevno2 = stddevno;
     while (stddevno1 > 0 && blankstddev[stddevno1] == maxstddev)
         stddevno1--;
     if (blankstddev[stddevno1] != maxstddev)
@@ -212,18 +208,18 @@ computeBreakMap(FrameAnalyzer::FrameMap *breakMap,
      *
      * Common commercial-break lengths.
      */
-    static const struct {
-        int     len;    /* seconds */
-        int     delta;  /* seconds */
-    } breaktype[] = {
+    static constexpr struct {
+        int     m_len;    /* seconds */
+        int     m_delta;  /* seconds */
+    } kBreakType[] = {
         /* Sort by "len". */
         { 15,   2 },
         { 20,   2 },
         { 30,   5 },
         { 60,   5 },
     };
-    static const unsigned int   nbreaktypes =
-        sizeof(breaktype)/sizeof(*breaktype);
+    static constexpr unsigned int kNBreakTypes =
+        sizeof(kBreakType)/sizeof(*kBreakType);
 
     /*
      * TUNABLE:
@@ -231,7 +227,7 @@ computeBreakMap(FrameAnalyzer::FrameMap *breakMap,
      * Shortest non-commercial length, used to coalesce consecutive commercial
      * breaks that are usually identified due to in-commercial cuts.
      */
-    static const int MINCONTENTLEN = (int)roundf(10 * fps);
+    static const int kMinContentLen = (int)roundf(10 * fps);
 
     breakMap->clear();
     for (FrameAnalyzer::FrameMap::const_iterator iiblank = blankMap->begin();
@@ -242,7 +238,7 @@ computeBreakMap(FrameAnalyzer::FrameMap *breakMap,
         long long iilen = *iiblank;
         long long start = brkb + iilen / 2;
 
-        for (unsigned int ii = 0; ii < nbreaktypes; ii++)
+        for (unsigned int ii = 0; ii < kNBreakTypes; ii++)
         {
             /* Look for next blank frame that is an acceptable distance away. */
             FrameAnalyzer::FrameMap::const_iterator jjblank = iiblank;
@@ -253,14 +249,14 @@ computeBreakMap(FrameAnalyzer::FrameMap *breakMap,
                 long long end = brke + jjlen / 2;
 
                 long long testlen = (long long)roundf((end - start) / fps);
-                if (testlen > breaktype[ii].len + breaktype[ii].delta)
+                if (testlen > kBreakType[ii].m_len + kBreakType[ii].m_delta)
                     break;      /* Too far ahead; break to next break length. */
 
-                long long delta = testlen - breaktype[ii].len;
+                long long delta = testlen - kBreakType[ii].m_len;
                 if (delta < 0)
                     delta = 0 - delta;
 
-                if (delta > breaktype[ii].delta)
+                if (delta > kBreakType[ii].m_delta)
                     continue;   /* Outside delta range; try next end-blank. */
 
                 /* Mark this commercial break. */
@@ -323,7 +319,7 @@ computeBreakMap(FrameAnalyzer::FrameMap *breakMap,
                 continue;
             }
 
-            if (iie + MINCONTENTLEN < jjb)
+            if (iie + kMinContentLen < jjb)
             {
                 /* (jjb,jje) is too far ahead. */
                 ++iibreak;
@@ -374,7 +370,7 @@ computeBreakMap(FrameAnalyzer::FrameMap *breakMap,
 
 };  /* namespace */
 
-BlankFrameDetector::BlankFrameDetector(HistogramAnalyzer *ha, QString debugdir)
+BlankFrameDetector::BlankFrameDetector(HistogramAnalyzer *ha, const QString &debugdir)
     : m_histogramAnalyzer(ha)
 {
     /*
@@ -385,7 +381,7 @@ BlankFrameDetector::BlankFrameDetector(HistogramAnalyzer *ha, QString debugdir)
     m_debugLevel = gCoreContext->GetNumSetting("BlankFrameDetectorDebugLevel", 0);
 
     if (m_debugLevel >= 1)
-        createDebugDirectory(std::move(debugdir),
+        createDebugDirectory(debugdir,
             QString("BlankFrameDetector debugLevel %1").arg(m_debugLevel));
 }
 

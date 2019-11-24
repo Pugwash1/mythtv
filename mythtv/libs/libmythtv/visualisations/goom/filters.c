@@ -221,6 +221,7 @@ calculatePXandPY (int x, int y, int *px, int *py)
 		*px = (x << 4) + firedec[yy] + (wave / 10);
 		*py = (y << 4) + 132 - ((vitesse < 131) ? vitesse : 130);
 
+		// NOLINTNEXTLINE(misc-redundant-expression)
 		wavesp += RAND () % 3 - RAND () % 3;
 		if (wave < -10)
 			wavesp += 2;
@@ -237,7 +238,9 @@ calculatePXandPY (int x, int y, int *px, int *py)
 		int     fvitesse = vitesse << 4;
 
 		if (noisify) {
+                        // NOLINTNEXTLINE(misc-redundant-expression)
 			x += RAND () % noisify - RAND () % noisify;
+                        // NOLINTNEXTLINE(misc-redundant-expression)
 			y += RAND () % noisify - RAND () % noisify;
 		}
 		vx = (x - middleX) << 9;
@@ -602,7 +605,11 @@ zoomFilterFastRGB (Uint * pix1, Uint * pix2, ZoomFilterData * zf, Uint resx, Uin
 			}
 
 			for (us = 0; us < 0xffff; us++) {
-				sintable[us] = (int) (1024 * sin ((double) us * 360 / (sizeof (sintable) / sizeof (sintable[0]) - 1) * 3.141592 / 180) + .5);
+                                sintable[us] =
+                                    roundf(1024 * sin ((double) us * 360
+                                                       / ((float)sizeof (sintable)
+                                                          / sizeof (sintable[0]) - 1)
+                                                       * 3.141592 / 180));
 			}
 
 			{
@@ -617,6 +624,7 @@ zoomFilterFastRGB (Uint * pix1, Uint * pix2, ZoomFilterData * zf, Uint resx, Uin
 					loopv--;
 					firedec[loopv] = decc;
 					decc += spdc / 10;
+                                        // NOLINTNEXTLINE(misc-redundant-expression)
 					spdc += RAND () % 3 - RAND () % 3;
 
 					if (decc > 4)
@@ -638,6 +646,7 @@ zoomFilterFastRGB (Uint * pix1, Uint * pix2, ZoomFilterData * zf, Uint resx, Uin
 					if (decc > 8 || decc < -8)
 						decc = decc * 8 / 9;
 
+                                        // NOLINTNEXTLINE(misc-redundant-expression)
 					accel += RAND () % 2 - RAND () % 2;
 					if (accel > 20)
 						accel -= 2;

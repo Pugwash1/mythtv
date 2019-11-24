@@ -33,17 +33,16 @@ class SingleValueImp
     typedef std::map<int, QString> entry_map;
 
   public:
-    SingleValueImp(const QString &table_name, const QString &id_name,
-                   const QString &value_name) : m_table_name(table_name),
-        m_id_name(id_name), m_value_name(value_name),
-        m_clean_stub(this)
+    SingleValueImp(QString table_name, QString id_name, QString value_name)
+        : m_tableName(std::move(table_name)), m_idName(std::move(id_name)),
+          m_valueName(std::move(value_name)), m_cleanStub(this)
     {
-        m_insert_sql = QString("INSERT INTO %1 (%2) VALUES (:NAME)")
-                .arg(m_table_name).arg(m_value_name);
-        m_fill_sql = QString("SELECT %1, %2 FROM %3").arg(m_id_name)
-                .arg(m_value_name).arg(m_table_name);
-        m_delete_sql = QString("DELETE FROM %1 WHERE %2 = :ID")
-                .arg(m_table_name).arg(m_id_name);
+        m_insertSql = QString("INSERT INTO %1 (%2) VALUES (:NAME)")
+                .arg(m_tableName).arg(m_valueName);
+        m_fillSql = QString("SELECT %1, %2 FROM %3").arg(m_idName)
+                .arg(m_valueName).arg(m_tableName);
+        m_deleteSql = QString("DELETE FROM %1 WHERE %2 = :ID")
+                .arg(m_tableName).arg(m_idName);
     }
 
     virtual ~SingleValueImp() = default;
@@ -67,7 +66,7 @@ class SingleValueImp
         if (!exists(name, &id))
         {
             MSqlQuery query(MSqlQuery::InitCon());
-            query.prepare(m_insert_sql);
+            query.prepare(m_insertSql);
             query.bindValue(":NAME", name);
             if (query.exec())
             {
@@ -102,7 +101,7 @@ class SingleValueImp
         if (p != m_entries.end())
         {
             MSqlQuery query(MSqlQuery::InitCon());
-            query.prepare(m_delete_sql);
+            query.prepare(m_deleteSql);
             query.bindValue(":ID", p->first);
             if (query.exec())
             {
@@ -134,19 +133,19 @@ class SingleValueImp
         if (m_dirty)
         {
             m_dirty = false;
-            m_ret_entries.clear();
+            m_retEntries.clear();
 
             for (entry_map::const_iterator p = m_entries.begin();
                     p != m_entries.end(); ++p)
             {
-                m_ret_entries.push_back(entry_list::value_type(p->first,
+                m_retEntries.push_back(entry_list::value_type(p->first,
                                         p->second));
             }
-            std::sort(m_ret_entries.begin(), m_ret_entries.end(),
+            std::sort(m_retEntries.begin(), m_retEntries.end(),
                       call_sort<SingleValueImp, entry>(*this));
         }
 
-        return m_ret_entries;
+        return m_retEntries;
     }
 
     virtual bool sort(const entry &lhs, const entry &rhs)
@@ -158,7 +157,7 @@ class SingleValueImp
     {
         m_ready = false;
         m_dirty = true;
-        m_ret_entries.clear();
+        m_retEntries.clear();
         m_entries.clear();
     }
 
@@ -180,7 +179,7 @@ class SingleValueImp
 
         MSqlQuery query(MSqlQuery::InitCon());
 
-        if (query.exec(m_fill_sql))
+        if (query.exec(m_fillSql))
         {
             while (query.next())
             {
@@ -192,19 +191,19 @@ class SingleValueImp
     }
 
   private:
-    QString m_table_name;
-    QString m_id_name;
-    QString m_value_name;
+    QString m_tableName;
+    QString m_idName;
+    QString m_valueName;
 
-    QString m_insert_sql;
-    QString m_fill_sql;
-    QString m_delete_sql;
+    QString m_insertSql;
+    QString m_fillSql;
+    QString m_deleteSql;
 
     bool m_ready {false};
     bool m_dirty {true};
-    entry_list m_ret_entries;
+    entry_list m_retEntries;
     entry_map m_entries;
-    SimpleCleanup<SingleValueImp> m_clean_stub;
+    SimpleCleanup<SingleValueImp> m_cleanStub;
 };
 
 ////////////////////////////////////////////
@@ -260,15 +259,15 @@ class MultiValueImp
     typedef std::map<int, entry> id_map;
 
   public:
-    MultiValueImp(const QString &table_name, const QString &id_name,
-                  const QString &value_name) : m_table_name(table_name),
-        m_id_name(id_name), m_value_name(value_name),
-        m_clean_stub(this)
+    MultiValueImp(QString table_name, QString id_name,
+                  QString value_name) : m_tableName(std::move(table_name)),
+        m_idName(std::move(id_name)), m_valueName(std::move(value_name)),
+        m_cleanStub(this)
     {
-        m_insert_sql = QString("INSERT INTO %1 (%2, %3) VALUES (:ID, :VALUE)")
-                .arg(m_table_name).arg(m_id_name).arg(m_value_name);
-        m_fill_sql = QString("SELECT %1, %2 FROM %3 ORDER BY %4").arg(m_id_name)
-                .arg(m_value_name).arg(m_table_name).arg(m_id_name);
+        m_insertSql = QString("INSERT INTO %1 (%2, %3) VALUES (:ID, :VALUE)")
+                .arg(m_tableName).arg(m_idName).arg(m_valueName);
+        m_fillSql = QString("SELECT %1, %2 FROM %3 ORDER BY %4").arg(m_idName)
+                .arg(m_valueName).arg(m_tableName).arg(m_idName);
     }
 
     mutable QMutex m_mutex;
@@ -286,14 +285,14 @@ class MultiValueImp
     void cleanup()
     {
         m_ready = false;
-        m_val_map.clear();
+        m_valMap.clear();
     }
 
     int add(int id, int value)
     {
         bool db_insert = false;
-        id_map::iterator p = m_val_map.find(id);
-        if (p != m_val_map.end())
+        id_map::iterator p = m_valMap.find(id);
+        if (p != m_valMap.end())
         {
             entry::values_type &va = p->second.values;
             entry::values_type::iterator v =
@@ -309,14 +308,14 @@ class MultiValueImp
             entry e;
             e.id = id;
             e.values.push_back(value);
-            m_val_map.insert(id_map::value_type(id, e));
+            m_valMap.insert(id_map::value_type(id, e));
             db_insert = true;
         }
 
         if (db_insert)
         {
             MSqlQuery query(MSqlQuery::InitCon());
-            query.prepare(m_insert_sql);
+            query.prepare(m_insertSql);
             query.bindValue(":ID", id);
             query.bindValue(":VALUE", value);
             if (!query.exec())
@@ -328,8 +327,8 @@ class MultiValueImp
 
     bool get(int id, entry &values)
     {
-        id_map::iterator p = m_val_map.find(id);
-        if (p != m_val_map.end())
+        id_map::iterator p = m_valMap.find(id);
+        if (p != m_valMap.end())
         {
             values = p->second;
             return true;
@@ -339,8 +338,8 @@ class MultiValueImp
 
     void remove(int id, int value)
     {
-        id_map::iterator p = m_val_map.find(id);
-        if (p != m_val_map.end())
+        id_map::iterator p = m_valMap.find(id);
+        if (p != m_valMap.end())
         {
             entry::values_type::iterator vp =
                     std::find(p->second.values.begin(), p->second.values.end(),
@@ -350,7 +349,7 @@ class MultiValueImp
                 MSqlQuery query(MSqlQuery::InitCon());
                 QString del_query = QString("DELETE FROM %1 WHERE %2 = :ID AND "
                                             "%3 = :VALUE")
-                        .arg(m_table_name).arg(m_id_name).arg(m_value_name);
+                        .arg(m_tableName).arg(m_idName).arg(m_valueName);
                 query.prepare(del_query);
                 query.bindValue(":ID", p->first);
                 query.bindValue(":VALUE", int(*vp));
@@ -365,26 +364,26 @@ class MultiValueImp
 
     void remove(int id)
     {
-        id_map::iterator p = m_val_map.find(id);
-        if (p != m_val_map.end())
+        id_map::iterator p = m_valMap.find(id);
+        if (p != m_valMap.end())
         {
             MSqlQuery query(MSqlQuery::InitCon());
             QString del_query = QString("DELETE FROM %1 WHERE %2 = :ID")
-                    .arg(m_table_name).arg(m_id_name);
+                    .arg(m_tableName).arg(m_idName);
             query.prepare(del_query);
             query.bindValue(":ID", p->first);
             if (!query.exec() || !query.isActive())
             {
                 MythDB::DBError("multivalue remove", query);
             }
-            m_val_map.erase(p);
+            m_valMap.erase(p);
         }
     }
 
     bool exists(int id, int value)
     {
-        id_map::iterator p = m_val_map.find(id);
-        if (p != m_val_map.end())
+        id_map::iterator p = m_valMap.find(id);
+        if (p != m_valMap.end())
         {
             entry::values_type::iterator vp =
                     std::find(p->second.values.begin(), p->second.values.end(),
@@ -396,33 +395,33 @@ class MultiValueImp
 
     bool exists(int id)
     {
-        return m_val_map.find(id) != m_val_map.end();
+        return m_valMap.find(id) != m_valMap.end();
     }
 
   private:
     void fill_from_db()
     {
-        m_val_map.clear();
+        m_valMap.clear();
 
         MSqlQuery query(MSqlQuery::InitCon());
 
-        if (query.exec(m_fill_sql) && query.size() > 0)
+        if (query.exec(m_fillSql) && query.size() > 0)
         {
-            id_map::iterator p = m_val_map.end();
+            id_map::iterator p = m_valMap.end();
             while (query.next())
             {
                 int id = query.value(0).toInt();
                 int val = query.value(1).toInt();
 
-                if (p == m_val_map.end() ||
-                        (p != m_val_map.end() && p->first != id))
+                if (p == m_valMap.end() ||
+                        (p != m_valMap.end() && p->first != id))
                 {
-                    p = m_val_map.find(id);
-                    if (p == m_val_map.end())
+                    p = m_valMap.find(id);
+                    if (p == m_valMap.end())
                     {
                         entry e;
                         e.id = id;
-                        p = m_val_map.insert(id_map::value_type(id, e)).first;
+                        p = m_valMap.insert(id_map::value_type(id, e)).first;
                     }
                 }
                 p->second.values.push_back(val);
@@ -431,18 +430,18 @@ class MultiValueImp
     }
 
   private:
-    id_map m_val_map;
+    id_map m_valMap;
 
-    QString m_table_name;
-    QString m_id_name;
-    QString m_value_name;
+    QString m_tableName;
+    QString m_idName;
+    QString m_valueName;
 
-    QString m_insert_sql;
-    QString m_fill_sql;
-    QString m_id_sql;
+    QString m_insertSql;
+    QString m_fillSql;
+    QString m_idSql;
 
     bool m_ready {false};
-    SimpleCleanup<MultiValueImp> m_clean_stub;
+    SimpleCleanup<MultiValueImp> m_cleanStub;
 };
 
 ////////////////////////////////////////////
@@ -491,9 +490,9 @@ VideoCategory::VideoCategory() :
 
 VideoCategory &VideoCategory::GetCategory()
 {
-    static VideoCategory vc;
-    vc.load_data();
-    return vc;
+    static VideoCategory s_vc;
+    s_vc.load_data();
+    return s_vc;
 }
 
 ////////////////////////////////////////////
@@ -505,9 +504,9 @@ VideoCountry::VideoCountry() :
 
 VideoCountry &VideoCountry::getCountry()
 {
-    static VideoCountry vc;
-    vc.load_data();
-    return vc;
+    static VideoCountry s_vc;
+    s_vc.load_data();
+    return s_vc;
 }
 
 ////////////////////////////////////////////
@@ -519,9 +518,9 @@ VideoGenre::VideoGenre() :
 
 VideoGenre &VideoGenre::getGenre()
 {
-    static VideoGenre vg;
-    vg.load_data();
-    return vg;
+    static VideoGenre s_vg;
+    s_vg.load_data();
+    return s_vg;
 }
 
 ////////////////////////////////////////////
@@ -533,9 +532,9 @@ VideoCast::VideoCast() :
 
 VideoCast &VideoCast::GetCast()
 {
-    static VideoCast vc;
-    vc.load_data();
-    return vc;
+    static VideoCast s_vc;
+    s_vc.load_data();
+    return s_vc;
 }
 
 ////////////////////////////////////////////
@@ -547,9 +546,9 @@ VideoGenreMap::VideoGenreMap() :
 
 VideoGenreMap &VideoGenreMap::getGenreMap()
 {
-    static VideoGenreMap vgm;
-    vgm.load_data();
-    return vgm;
+    static VideoGenreMap s_vgm;
+    s_vgm.load_data();
+    return s_vgm;
 }
 
 ////////////////////////////////////////////
@@ -562,9 +561,9 @@ VideoCountryMap::VideoCountryMap() :
 
 VideoCountryMap &VideoCountryMap::getCountryMap()
 {
-    static VideoCountryMap vcm;
-    vcm.load_data();
-    return vcm;
+    static VideoCountryMap s_vcm;
+    s_vcm.load_data();
+    return s_vcm;
 }
 
 ////////////////////////////////////////////
@@ -577,9 +576,9 @@ VideoCastMap::VideoCastMap() :
 
 VideoCastMap &VideoCastMap::getCastMap()
 {
-    static VideoCastMap vcm;
-    vcm.load_data();
-    return vcm;
+    static VideoCastMap s_vcm;
+    s_vcm.load_data();
+    return s_vcm;
 }
 
 ////////////////////////////////////////////
@@ -602,7 +601,7 @@ class FileAssociationsImp
         MSqlQuery query(MSqlQuery::InitCon());
 
         association_list::iterator p = find(ret_fa.extension);
-        if (p != m_file_associations.end())
+        if (p != m_fileAssociations.end())
         {
             ret_fa.id = p->id;
             existing_fa = &(*p);
@@ -629,7 +628,7 @@ class FileAssociationsImp
                 if (query.exec("SELECT LAST_INSERT_ID()") && query.next())
                 {
                     ret_fa.id = query.value(0).toUInt();
-                    m_file_associations.push_back(ret_fa);
+                    m_fileAssociations.push_back(ret_fa);
                 }
                 else
                     return false;
@@ -647,7 +646,7 @@ class FileAssociationsImp
     bool get(unsigned int id, file_association &val) const
     {
         association_list::const_iterator p = find(id);
-        if (p != m_file_associations.end())
+        if (p != m_fileAssociations.end())
         {
             val = *p;
             return true;
@@ -658,7 +657,7 @@ class FileAssociationsImp
     bool get(const QString &ext, file_association &val) const
     {
         association_list::const_iterator p = find(ext);
-        if (p != m_file_associations.end())
+        if (p != m_fileAssociations.end())
         {
             val = *p;
             return true;
@@ -669,14 +668,14 @@ class FileAssociationsImp
     bool remove(unsigned int id)
     {
         association_list::iterator p = find(id);
-        if (p != m_file_associations.end())
+        if (p != m_fileAssociations.end())
         {
             MSqlQuery query(MSqlQuery::InitCon());
             query.prepare("DELETE FROM videotypes WHERE intid = :ID");
             query.bindValue(":ID", p->id);
             if (query.exec())
             {
-                m_file_associations.erase(p);
+                m_fileAssociations.erase(p);
                 return true;
             }
         }
@@ -685,13 +684,13 @@ class FileAssociationsImp
 
     const association_list &getList() const
     {
-        return m_file_associations;
+        return m_fileAssociations;
     }
 
     void getExtensionIgnoreList(ext_ignore_list &ext_ignore) const
     {
-        for (association_list::const_iterator p = m_file_associations.begin();
-             p != m_file_associations.end(); ++p)
+        for (association_list::const_iterator p = m_fileAssociations.begin();
+             p != m_fileAssociations.end(); ++p)
         {
             ext_ignore.push_back(std::make_pair(p->extension, p->ignore));
         }
@@ -712,7 +711,7 @@ class FileAssociationsImp
     void cleanup()
     {
         m_ready = false;
-        m_file_associations.clear();
+        m_fileAssociations.clear();
     }
 
   private:
@@ -729,15 +728,15 @@ class FileAssociationsImp
                                     query.value(2).toString(),
                                     query.value(3).toBool(),
                                     query.value(4).toBool());
-                m_file_associations.push_back(fa);
+                m_fileAssociations.push_back(fa);
             }
         }
     }
 
     association_list::iterator find(const QString &ext)
     {
-        for (association_list::iterator p = m_file_associations.begin();
-             p != m_file_associations.end(); ++p)
+        for (association_list::iterator p = m_fileAssociations.begin();
+             p != m_fileAssociations.end(); ++p)
         {
             if (p->extension.length() == ext.length() &&
                 ext.indexOf(p->extension) == 0)
@@ -745,23 +744,23 @@ class FileAssociationsImp
                 return p;
             }
         }
-        return m_file_associations.end();
+        return m_fileAssociations.end();
     }
 
     association_list::iterator find(unsigned int id)
     {
-        for (association_list::iterator p = m_file_associations.begin();
-             p != m_file_associations.end(); ++p)
+        for (association_list::iterator p = m_fileAssociations.begin();
+             p != m_fileAssociations.end(); ++p)
         {
             if (p->id == id) return p;
         }
-        return m_file_associations.end();
+        return m_fileAssociations.end();
     }
 
     association_list::const_iterator find(const QString &ext) const
     {
-        for (association_list::const_iterator p = m_file_associations.begin();
-             p != m_file_associations.end(); ++p)
+        for (association_list::const_iterator p = m_fileAssociations.begin();
+             p != m_fileAssociations.end(); ++p)
         {
             if (p->extension.length() == ext.length() &&
                 ext.indexOf(p->extension) == 0)
@@ -769,21 +768,21 @@ class FileAssociationsImp
                 return p;
             }
         }
-        return m_file_associations.end();
+        return m_fileAssociations.end();
     }
 
     association_list::const_iterator find(unsigned int id) const
     {
-        for (association_list::const_iterator p = m_file_associations.begin();
-             p != m_file_associations.end(); ++p)
+        for (association_list::const_iterator p = m_fileAssociations.begin();
+             p != m_fileAssociations.end(); ++p)
         {
             if (p->id == id) return p;
         }
-        return m_file_associations.end();
+        return m_fileAssociations.end();
     }
 
   private:
-    association_list m_file_associations;
+    association_list m_fileAssociations;
     bool             m_ready {false};
 };
 
@@ -835,7 +834,7 @@ FileAssociations::~FileAssociations()
 
 FileAssociations &FileAssociations::getFileAssociation()
 {
-    static FileAssociations fa;
-    fa.load_data();
-    return fa;
+    static FileAssociations s_fa;
+    s_fa.load_data();
+    return s_fa;
 }

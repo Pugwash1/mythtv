@@ -321,9 +321,9 @@ void ScheduleEditor::Load()
     m_loaded = true;
 }
 
-void ScheduleEditor::LoadTemplate(QString name)
+void ScheduleEditor::LoadTemplate(const QString& name)
 {
-    m_recordingRule->LoadTemplate(std::move(name));
+    m_recordingRule->LoadTemplate(name);
     Load();
     emit templateLoaded();
 }
@@ -738,7 +738,7 @@ void ScheduleEditor::ShowPreviousView(void)
 
     if (m_view == kMainView && !m_recordingRule->m_isTemplate)
         ShowMetadataOptions();
-    else if (m_view == kMainView)
+    else if ((m_view == kMainView) || (m_view == kMetadataView))
         ShowPostProc();
     else if (m_view == kSchedOptView)
         m_child->Close();
@@ -748,8 +748,6 @@ void ScheduleEditor::ShowPreviousView(void)
         ShowFilters();
     else if (m_view == kPostProcView)
         ShowStoreOpt();
-    else if (m_view == kMetadataView)
-        ShowPostProc();
 }
 
 void ScheduleEditor::ShowNextView(void)
@@ -768,9 +766,7 @@ void ScheduleEditor::ShowNextView(void)
         ShowPostProc();
     else if (m_view == kPostProcView && !m_recordingRule->m_isTemplate)
         ShowMetadataOptions();
-    else if (m_view == kPostProcView)
-        m_child->Close();
-    else if (m_view == kMetadataView)
+    else if ((m_view == kPostProcView) || (m_view == kMetadataView))
         m_child->Close();
 }
 
@@ -2223,9 +2219,9 @@ void FilterOptMixin::Load(void)
     if (m_activeFiltersList)
         m_activeFiltersList->Reset();
 
-    MythUIButtonListItem *button;
+    MythUIButtonListItem *button = nullptr;
     QStringList::iterator Idesc;
-    int  idx;
+    int  idx = 0;
     bool not_empty = m_filtersList && !m_filtersList->IsEmpty();
     for (Idesc = m_descriptions.begin(), idx = 0;
          Idesc != m_descriptions.end(); ++Idesc, ++idx)
@@ -2268,13 +2264,12 @@ void FilterOptMixin::Save()
 
     // Iterate through button list, and build the mask
     uint32_t filter_mask = 0;
-    int idx, end;
 
-    end = m_filtersList->GetCount();
-    for (idx = 0; idx < end; ++idx)
+    int end = m_filtersList->GetCount();
+    for (int idx = 0; idx < end; ++idx)
     {
-        MythUIButtonListItem *button;
-        if ((button = m_filtersList->GetItemAt(idx)) &&
+        MythUIButtonListItem *button = m_filtersList->GetItemAt(idx);
+        if (button != nullptr &&
             button->state() == MythUIButtonListItem::FullChecked)
             filter_mask |= (1 << button->GetData().value<uint32_t>());
     }

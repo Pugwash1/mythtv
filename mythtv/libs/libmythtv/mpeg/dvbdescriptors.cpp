@@ -1,5 +1,6 @@
 // C headers
 #include <unistd.h>
+#include <algorithm>
 
 // Qt headers
 #include <QTextCodec>
@@ -555,7 +556,7 @@ QString SatelliteDeliverySystemDescriptor::toString() const
 {
     QString str = QString("SatelliteDeliverySystemDescriptor: ");
 
-    str.append(QString("Frequency: %1, Type: %2\n").arg(FrequencyHz())
+    str.append(QString("Frequency: %1, Type: %2\n").arg(FrequencykHz())
         .arg(ModulationSystemString()));
     str.append(QString("      Mod=%1, SymbR=%2, FECInner=%3, Orbit=%4, Pol=%5")
         .arg(ModulationString())
@@ -602,6 +603,71 @@ QString DVBSimulcastChannelDescriptor::toString() const
         ret += QString("%1->%2").arg(ServiceID(i)).arg(ChannelNumber(i));
         ret += (i+1<ChannelCount()) ? ", " : "";
     }
+    return ret;
+}
+
+QString BSkyBLCNDescriptor::toString() const
+{
+    QString ret = "BSkyB Logical Channel Number Descriptor ";
+    ret += QString("(0x%1) ").arg(DescriptorTag(),2,16,QChar('0'));
+    ret += QString("length(%1)").arg(DescriptorLength());
+
+    ret += QString("\n      RegionID (%1) (0x%2) Raw (0x%3)")
+        .arg(RegionID()).arg(RegionID(),4,16,QChar('0')).arg(RegionRaw(),4,16,QChar('0'));
+
+    for (uint i=0; i<ServiceCount(); i++)
+    {
+        ret += QString("\n        ServiceID (%1) (0x%2) ").arg(ServiceID(i)).arg(ServiceID(i),4,16,QChar('0'));
+        ret += QString("ServiceType (0x%1) ").arg(ServiceType(i),2,16,QChar('0'));
+        ret += QString("LCN (%1) ").arg(LogicalChannelNumber(i));
+        ret += QString("U1(0x%1) ").arg(Unknown1(i),4,16,QChar('0'));
+        ret += QString("U2(0x%1) ").arg(Unknown2(i),4,16,QChar('0'));
+    }
+
+    return ret;
+}
+
+QString FreesatLCNDescriptor::toString() const
+{
+    QString ret = "Freesat Logical Channel Number Descriptor ";
+    ret += QString("(0x%1)").arg(DescriptorTag(),2,16,QChar('0'));
+    ret += QString(" length(%1)").arg(DescriptorLength());
+
+    for (uint i=0; i<ServiceCount(); i++)
+    {
+        ret += QString("\n      ServiceID (%1) (0x%2) ").arg(ServiceID(i)).arg(ServiceID(i),4,16,QChar('0'));
+        ret += QString("ChanID (0x%1)").arg(ChanID(i), 4, 16, QChar('0'));
+        for (uint j=0; j<LCNCount(i); j++)
+        {
+            ret += QString("\n        LCN: %1 Region: %2").arg(LogicalChannelNumber(i,j),3).arg(RegionID(i,j));
+        }
+    }
+    return ret;
+}
+
+QString FreesatRegionDescriptor::toString() const
+{
+    QString ret = "Freesat Region Descriptor ";
+    ret += QString("(0x%1)").arg(DescriptorTag(),2,16,QChar('0'));
+    ret += QString(" length(%1)").arg(DescriptorLength());
+
+    for (uint i=0; i<RegionCount(); ++i)
+    {
+        uint region_id = RegionID(i);
+        QString language = Language(i);
+        QString region_name = RegionName(i);
+        ret += QString("\n    Region (%1) (%2) '%3'")
+            .arg(region_id,2).arg(language).arg(region_name);
+    }
+    return ret;
+}
+
+QString FreesatCallsignDescriptor::toString(void) const
+{
+    QString ret = QString("Freesat Callsign Descriptor ");
+    ret += QString("(0x%1)").arg(DescriptorTag(),2,16,QChar('0'));
+    ret += QString(" length(%1)").arg(DescriptorLength());
+    ret += QString("  (%1) '%2'").arg(Language()).arg(Callsign());
     return ret;
 }
 

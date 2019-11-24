@@ -40,8 +40,7 @@
 int64_t getDiskSpace(const QString &file_on_disk,
                      int64_t &total, int64_t &used)
 {
-    struct statfs statbuf;
-    memset(&statbuf, 0, sizeof(statbuf));
+    struct statfs statbuf {};
     int64_t freespace = -1;
     QByteArray cstr = file_on_disk.toLocal8Bit();
 
@@ -172,8 +171,8 @@ QByteArray gzipCompress(const QByteArray& data)
     if (data.length() == 0)
         return QByteArray();
 
-    static const int CHUNK_SIZE = 1024;
-    char out[CHUNK_SIZE];
+    static constexpr int kChunkSize = 1024;
+    char out[kChunkSize];
 
     // allocate inflate state
     z_stream strm;
@@ -198,7 +197,7 @@ QByteArray gzipCompress(const QByteArray& data)
     // run deflate()
     do
     {
-        strm.avail_out = CHUNK_SIZE;
+        strm.avail_out = kChunkSize;
         strm.next_out  = (Bytef*)(out);
 
         ret = deflate(&strm, Z_FINISH);
@@ -214,7 +213,7 @@ QByteArray gzipCompress(const QByteArray& data)
                 return QByteArray();
         }
 
-        result.append(out, CHUNK_SIZE - strm.avail_out);
+        result.append(out, kChunkSize - strm.avail_out);
     }
     while (strm.avail_out == 0);
 
@@ -230,8 +229,8 @@ QByteArray gzipUncompress(const QByteArray &data)
     if (data.length() == 0)
         return QByteArray();
 
-    static const int CHUNK_SIZE = 1024;
-    char out[CHUNK_SIZE];
+    static constexpr int kChunkSize = 1024;
+    char out[kChunkSize];
 
     // allocate inflate state
     z_stream strm;
@@ -251,7 +250,7 @@ QByteArray gzipUncompress(const QByteArray &data)
 
     do
     {
-        strm.avail_out = CHUNK_SIZE;
+        strm.avail_out = kChunkSize;
         strm.next_out = (Bytef*)out;
         ret = inflate(&strm, Z_NO_FLUSH);
 
@@ -266,7 +265,7 @@ QByteArray gzipUncompress(const QByteArray &data)
                 return QByteArray();
         }
 
-        result.append(out, CHUNK_SIZE - strm.avail_out);
+        result.append(out, kChunkSize - strm.avail_out);
     }
     while (strm.avail_out == 0);
 

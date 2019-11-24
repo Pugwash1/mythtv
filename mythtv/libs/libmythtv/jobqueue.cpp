@@ -84,7 +84,9 @@ void JobQueue::customEvent(QEvent *e)
 {
     if (e->type() == MythEvent::MythEventMessage)
     {
-        MythEvent *me = static_cast<MythEvent *>(e);
+        MythEvent *me = dynamic_cast<MythEvent *>(e);
+        if (me == nullptr)
+            return;
         QString message = me->Message();
 
         if (message.startsWith("LOCAL_JOB"))
@@ -1181,7 +1183,7 @@ bool JobQueue::InJobRunWindow(int orStartsWithinMins)
                     .arg(queueStartTimeStr).arg(queueEndTimeStr));
 
     if ((queueStartTime <= curTime) && (curTime < queueEndTime))
-    {
+    {   // NOLINT(bugprone-branch-clone)
         inTimeWindow = true;
     }
     else if ((queueStartTime > queueEndTime) &&

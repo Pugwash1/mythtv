@@ -313,7 +313,7 @@ namespace
                     m_fanartTimer.stop();
 
                 image->Reset();
-                itemsPast++;
+                m_itemsPast++;
             }
             else
             {
@@ -324,7 +324,7 @@ namespace
                     if (wasActive)
                         m_fanartTimer.stop();
 
-                    if (itemsPast > 2)
+                    if (m_itemsPast > 2)
                         m_fanart->Reset();
 
                     m_fanart->SetFilename(filename);
@@ -332,12 +332,12 @@ namespace
                     m_fanartTimer.start(300);
 
                     if (wasActive)
-                        itemsPast++;
+                        m_itemsPast++;
                     else
-                        itemsPast = 0;
+                        m_itemsPast = 0;
                 }
                 else
-                    itemsPast = 0;
+                    m_itemsPast = 0;
             }
         }
 
@@ -349,7 +349,7 @@ namespace
         }
 
       private:
-        int             itemsPast    {0};
+        int             m_itemsPast    {0};
         QMutex          m_fanartLock;
         MythUIImage    *m_fanart     {nullptr};
         QTimer          m_fanartTimer;
@@ -701,11 +701,11 @@ class VideoDialogPrivate
                 for (QStringList::const_iterator p = ratings.begin();
                     p != ratings.end(); ++p)
                 {
-                    m_rating_to_pl.push_back(
+                    m_ratingToPl.push_back(
                         parental_level_map::value_type(*p, sl.GetLevel()));
                 }
             }
-            m_rating_to_pl.sort(std::not2(rating_to_pl_less()));
+            m_ratingToPl.sort(std::not2(rating_to_pl_less()));
         }
 
         m_rememberPosition =
@@ -738,11 +738,11 @@ class VideoDialogPrivate
 
     void AutomaticParentalAdjustment(VideoMetadata *metadata)
     {
-        if (metadata && !m_rating_to_pl.empty())
+        if (metadata && !m_ratingToPl.empty())
         {
             QString rating = metadata->GetRating();
-            for (parental_level_map::const_iterator p = m_rating_to_pl.begin();
-                    !rating.isEmpty() && p != m_rating_to_pl.end(); ++p)
+            for (parental_level_map::const_iterator p = m_ratingToPl.begin();
+                    !rating.isEmpty() && p != m_ratingToPl.end(); ++p)
             {
                 if (rating.indexOf(p->first) != -1)
                 {
@@ -753,7 +753,7 @@ class VideoDialogPrivate
         }
     }
 
-    void DelayVideoListDestruction(const VideoListPtr& videoList)
+    static void DelayVideoListDestruction(const VideoListPtr& videoList)
     {
         m_savedPtr = new VideoListDeathDelay(videoList);
     }
@@ -794,7 +794,7 @@ class VideoDialogPrivate
     QMap<QString, int> m_notifications;
 
   private:
-    parental_level_map m_rating_to_pl;
+    parental_level_map m_ratingToPl;
 };
 
 VideoDialog::VideoListDeathDelayPtr VideoDialogPrivate::m_savedPtr;
@@ -1153,12 +1153,11 @@ void VideoDialog::loadData()
                 {
                     if (!lastTreeNodePath.isEmpty())
                     {
-                        MythGenericTree *node;
-
                         // go through the path list and set the current node
                         for (int i = 0; i < lastTreeNodePath.size(); i++)
                         {
-                            node = m_d->m_currentNode->getChildByName(lastTreeNodePath.at(i));
+                            MythGenericTree *node =
+                                m_d->m_currentNode->getChildByName(lastTreeNodePath.at(i));
                             if (node != nullptr)
                             {
                                 // check if the node name is the same as the currently selected
@@ -2203,8 +2202,7 @@ void VideoDialog::searchComplete(const QString& string)
 
     MythGenericTree *parent = m_d->m_currentNode->getParent();
     QStringList childList;
-    QList<MythGenericTree*>::iterator it;
-    QList<MythGenericTree*> *children;
+    QList<MythGenericTree*> *children = nullptr;
     QMap<int, QString> idTitle;
 
     if (parent && m_d->m_type == DLG_TREE)
@@ -2212,7 +2210,7 @@ void VideoDialog::searchComplete(const QString& string)
     else
         children = m_d->m_currentNode->getAllChildren();
 
-    for (it = children->begin(); it != children->end(); ++it)
+    for (auto it = children->begin(); it != children->end(); ++it)
     {
         MythGenericTree *child = *it;
         QString title = child->GetText();
@@ -2243,14 +2241,13 @@ void VideoDialog::searchStart(void)
     MythGenericTree *parent = m_d->m_currentNode->getParent();
 
     QStringList childList;
-    QList<MythGenericTree*>::iterator it;
-    QList<MythGenericTree*> *children;
+    QList<MythGenericTree*> *children = nullptr;
     if (parent && m_d->m_type == DLG_TREE)
         children = parent->getAllChildren();
     else
         children = m_d->m_currentNode->getAllChildren();
 
-    for (it = children->begin(); it != children->end(); ++it)
+    for (auto it = children->begin(); it != children->end(); ++it)
     {
         MythGenericTree *child = *it;
         childList << child->GetText();
@@ -3100,7 +3097,7 @@ void VideoDialog::playFolder()
 
     MythUIButtonListItem *item = GetItemCurrent();
     MythGenericTree *node = GetNodePtrFromButton(item);
-    int list_count;
+    int list_count = 0;
 
     if (node && !(node->getInt() >= 0))
         list_count = node->childCount();
@@ -3400,13 +3397,11 @@ MythUIButtonListItem *VideoDialog::GetItemByMetadata(VideoMetadata *metadata)
         return m_videoButtonTree->GetItemCurrent();
     }
 
-    QList<MythGenericTree*>::iterator it;
-    QList<MythGenericTree*> *children;
     QMap<int, int> idPosition;
 
-    children = m_d->m_currentNode->getAllChildren();
+    QList<MythGenericTree*> *children = m_d->m_currentNode->getAllChildren();
 
-    for (it = children->begin(); it != children->end(); ++it)
+    for (auto it = children->begin(); it != children->end(); ++it)
     {
         MythGenericTree *child = *it;
         int nodeInt = child->getInt();

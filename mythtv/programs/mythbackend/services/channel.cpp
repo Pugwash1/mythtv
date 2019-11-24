@@ -53,7 +53,8 @@ DTC::ChannelInfoList* Channel::GetChannelInfoList( uint nSourceID,
                                                    bool bOnlyVisible,
                                                    bool bDetails,
                                                    bool bOrderByName,
-                                                   bool bGroupByCallsign )
+                                                   bool bGroupByCallsign,
+                                                   bool bOnlyTunable )
 {
     ChannelInfoList chanList;
 
@@ -62,7 +63,8 @@ DTC::ChannelInfoList* Channel::GetChannelInfoList( uint nSourceID,
     chanList = ChannelUtil::LoadChannels( 0, 0, nTotalAvailable, bOnlyVisible,
                                           bOrderByName ? ChannelUtil::kChanOrderByName : ChannelUtil::kChanOrderByChanNum,
                                           bGroupByCallsign ? ChannelUtil::kChanGroupByCallsign : ChannelUtil::kChanGroupByChanid,
-                                          nSourceID, nChannelGroupID);
+                                          nSourceID, nChannelGroupID, false, "",
+                                          "", bOnlyTunable);
 
     // ----------------------------------------------------------------------
     // Build Response
@@ -153,13 +155,15 @@ bool Channel::UpdateDBChannel( uint          MplexID,
                                const QString &Icon,
                                const QString &Format,
                                const QString &XMLTVID,
-                               const QString &DefaultAuthority )
+                               const QString &DefaultAuthority,
+                               uint          ServiceType )
 {
     bool bResult = ChannelUtil::UpdateChannel( MplexID, SourceID, ChannelID,
                              CallSign, ChannelName, ChannelNumber,
                              ServiceID, ATSCMajorChannel, ATSCMinorChannel,
                              UseEIT, !visible, false, FrequencyID,
-                             Icon, Format, XMLTVID, DefaultAuthority );
+                             Icon, Format, XMLTVID, DefaultAuthority,
+                             ServiceType );
 
     return bResult;
 }
@@ -179,13 +183,15 @@ bool Channel::AddDBChannel( uint          MplexID,
                             const QString &Icon,
                             const QString &Format,
                             const QString &XMLTVID,
-                            const QString &DefaultAuthority )
+                            const QString &DefaultAuthority,
+                            uint          ServiceType )
 {
     bool bResult = ChannelUtil::CreateChannel( MplexID, SourceID, ChannelID,
                              CallSign, ChannelName, ChannelNumber,
                              ServiceID, ATSCMajorChannel, ATSCMinorChannel,
                              UseEIT, !visible, false, FrequencyID,
-                             Icon, Format, XMLTVID, DefaultAuthority );
+                             Icon, Format, XMLTVID, DefaultAuthority,
+                             ServiceType );
 
     return bResult;
 }
@@ -211,7 +217,7 @@ DTC::VideoSourceList* Channel::GetVideoSourceList()
 
     query.prepare("SELECT sourceid, name, xmltvgrabber, userid, "
                   "freqtable, lineupid, password, useeit, configpath, "
-                  "dvb_nit_id FROM videosource "
+                  "dvb_nit_id, bouquet_id, region_id, scanfrequency FROM videosource "
                   "ORDER BY sourceid" );
 
     if (!query.exec())
@@ -242,6 +248,9 @@ DTC::VideoSourceList* Channel::GetVideoSourceList()
         pVideoSource->setUseEIT        ( query.value(7).toBool()      );
         pVideoSource->setConfigPath    ( query.value(8).toString()    );
         pVideoSource->setNITId         ( query.value(9).toInt()       );
+        pVideoSource->setBouquetId     ( query.value(10).toUInt()     );
+        pVideoSource->setRegionId      ( query.value(11).toUInt()     );
+        pVideoSource->setScanFrequency ( query.value(12).toUInt()     );
     }
 
     pList->setAsOf          ( MythDate::current() );
@@ -265,7 +274,8 @@ DTC::VideoSource* Channel::GetVideoSource( uint nSourceID )
 
     query.prepare("SELECT name, xmltvgrabber, userid, "
                   "freqtable, lineupid, password, useeit, configpath, "
-                  "dvb_nit_id FROM videosource WHERE sourceid = :SOURCEID "
+                  "dvb_nit_id, bouquet_id, region_id, scanfrequency "
+                  "FROM videosource WHERE sourceid = :SOURCEID "
                   "ORDER BY sourceid" );
     query.bindValue(":SOURCEID", nSourceID);
 
@@ -294,6 +304,9 @@ DTC::VideoSource* Channel::GetVideoSource( uint nSourceID )
         pVideoSource->setUseEIT        ( query.value(6).toBool()      );
         pVideoSource->setConfigPath    ( query.value(7).toString()    );
         pVideoSource->setNITId         ( query.value(8).toInt()       );
+        pVideoSource->setBouquetId     ( query.value(9).toUInt()      );
+        pVideoSource->setRegionId      ( query.value(10).toUInt()     );
+        pVideoSource->setScanFrequency ( query.value(11).toUInt()     );
     }
 
     return pVideoSource;
@@ -312,11 +325,14 @@ bool Channel::UpdateVideoSource( uint nSourceId,
                                  const QString &sPassword,
                                  bool          bUseEIT,
                                  const QString &sConfigPath,
-                                 int           nNITId )
+                                 int           nNITId,
+                                 uint          nBouquetId,
+                                 uint          nRegionId,
+                                 uint          nScanFrequency )
 {
     bool bResult = SourceUtil::UpdateSource(nSourceId, sSourceName, sGrabber, sUserId, sFreqTable,
                                        sLineupId, sPassword, bUseEIT, sConfigPath,
-                                       nNITId);
+                                       nNITId, nBouquetId, nRegionId, nScanFrequency);
 
     return bResult;
 }
@@ -333,11 +349,14 @@ int  Channel::AddVideoSource( const QString &sSourceName,
                               const QString &sPassword,
                               bool          bUseEIT,
                               const QString &sConfigPath,
-                              int           nNITId )
+                              int           nNITId,
+                              uint          nBouquetId,
+                              uint          nRegionId,
+                              uint          nScanFrequency )
 {
     int nResult = SourceUtil::CreateSource(sSourceName, sGrabber, sUserId, sFreqTable,
                                        sLineupId, sPassword, bUseEIT, sConfigPath,
-                                       nNITId);
+                                       nNITId, nBouquetId, nRegionId, nScanFrequency);
 
     return nResult;
 }

@@ -18,7 +18,6 @@ using namespace commDetector2;
 
 BorderDetector::BorderDetector(void)
 {
-    memset(&m_analyze_time, 0, sizeof(m_analyze_time));
     m_debugLevel = gCoreContext->GetNumSetting("BorderDetectorDebugLevel", 0);
 
     if (m_debugLevel >= 1)
@@ -82,14 +81,14 @@ BorderDetector::getDimensions(const AVFrame *pgm, int pgmheight,
      * pillarboxing (when one is embedded inside the other) are different
      * colors.
      */
-    static const unsigned char  MAXRANGE = 32;
+    static constexpr unsigned char kMaxRange = 32;
 
     /*
      * TUNABLE: The maximum number of consecutive rows or columns with too many
      * outlier points that may be scanned before declaring the existence of a
      * border.
      */
-    static const int        MAXLINES = 2;
+    static constexpr int    kMaxLines = 2;
 
     const int               pgmwidth = pgm->linesize[0];
 
@@ -112,15 +111,13 @@ BorderDetector::getDimensions(const AVFrame *pgm, int pgmheight,
      * or noise between edges and content. (Really, a more general case of
      * VERTMARGIN and HORIZMARGIN, above.)
      */
-    const int               VERTSLOP = max(MAXLINES, pgmheight * 1 / 120);
-    const int               HORIZSLOP = max(MAXLINES, pgmwidth * 1 / 160);
+    const int               VERTSLOP = max(kMaxLines, pgmheight * 1 / 120);
+    const int               HORIZSLOP = max(kMaxLines, pgmwidth * 1 / 160);
 
-    struct timeval          start, end, elapsed;
-    unsigned char           minval, maxval, val;
-    int                     rr, cc, minrow, mincol, maxrow1, maxcol1, saved;
-    int                     newrow, newcol, newwidth, newheight;
-    bool                    top, bottom, left, right, inrange;
-    int                     range, outliers, lines;
+    struct timeval          start {}, end {}, elapsed {};
+    int                     minrow = 0, mincol = 0, maxrow1 = 0, maxcol1 = 0;
+    int                     newrow = 0, newcol = 0, newwidth = 0, newheight = 0;
+    bool                    top = false, bottom = false;
 
     (void)gettimeofday(&start, nullptr);
 
@@ -144,29 +141,29 @@ BorderDetector::getDimensions(const AVFrame *pgm, int pgmheight,
     for (;;)
     {
         /* Find left edge. */
-        left = false;
-        minval = UCHAR_MAX;
-        maxval = 0;
-        lines = 0;
-        saved = mincol;
-        for (cc = mincol; cc < maxcol1; cc++)
+        bool left = false;
+        uchar minval = UCHAR_MAX;
+        uchar maxval = 0;
+        int lines = 0;
+        int saved = mincol;
+        for (int cc = mincol; cc < maxcol1; cc++)
         {
-            outliers = 0;
-            inrange = true;
-            for (rr = minrow; rr < maxrow1; rr++)
+            int outliers = 0;
+            bool inrange = true;
+            for (int rr = minrow; rr < maxrow1; rr++)
             {
                 if (m_logo && rrccinrect(rr, cc, m_logorow, m_logocol,
                             m_logowidth, m_logoheight))
                     continue;   /* Exclude logo area from analysis. */
 
-                val = pgm->data[0][rr * pgmwidth + cc];
-                range = max(maxval, val) - min(minval, val) + 1;
-                if (range > MAXRANGE)
+                uchar val = pgm->data[0][rr * pgmwidth + cc];
+                int range = max(maxval, val) - min(minval, val) + 1;
+                if (range > kMaxRange)
                 {
                     if (outliers++ < MAXOUTLIERS)
                         continue;   /* Next row. */
                     inrange = false;
-                    if (lines++ < MAXLINES)
+                    if (lines++ < kMaxLines)
                         break;  /* Next column. */
                     goto found_left;
                 }
@@ -198,27 +195,27 @@ found_left:
          * Find right edge. Keep same minval/maxval (pillarboxing colors) as
          * left edge.
          */
-        right = false;
+        bool right = false;
         lines = 0;
         saved = maxcol1 - 1;
-        for (cc = maxcol1 - 1; cc >= mincol; cc--)
+        for (int cc = maxcol1 - 1; cc >= mincol; cc--)
         {
-            outliers = 0;
-            inrange = true;
-            for (rr = minrow; rr < maxrow1; rr++)
+            int outliers = 0;
+            bool inrange = true;
+            for (int rr = minrow; rr < maxrow1; rr++)
             {
                 if (m_logo && rrccinrect(rr, cc, m_logorow, m_logocol,
                             m_logowidth, m_logoheight))
                     continue;   /* Exclude logo area from analysis. */
 
-                val = pgm->data[0][rr * pgmwidth + cc];
-                range = max(maxval, val) - min(minval, val) + 1;
-                if (range > MAXRANGE)
+                uchar val = pgm->data[0][rr * pgmwidth + cc];
+                int range = max(maxval, val) - min(minval, val) + 1;
+                if (range > kMaxRange)
                 {
                     if (outliers++ < MAXOUTLIERS)
                         continue;   /* Next row. */
                     inrange = false;
-                    if (lines++ < MAXLINES)
+                    if (lines++ < kMaxLines)
                         break;  /* Next column. */
                     goto found_right;
                 }
@@ -254,24 +251,24 @@ found_right:
         maxval = 0;
         lines = 0;
         saved = minrow;
-        for (rr = minrow; rr < maxrow1; rr++)
+        for (int rr = minrow; rr < maxrow1; rr++)
         {
-            outliers = 0;
-            inrange = true;
-            for (cc = mincol; cc < maxcol1; cc++)
+            int outliers = 0;
+            bool inrange = true;
+            for (int cc = mincol; cc < maxcol1; cc++)
             {
                 if (m_logo && rrccinrect(rr, cc, m_logorow, m_logocol,
                             m_logowidth, m_logoheight))
                     continue;   /* Exclude logo area from analysis. */
 
-                val = pgm->data[0][rr * pgmwidth + cc];
-                range = max(maxval, val) - min(minval, val) + 1;
-                if (range > MAXRANGE)
+                uchar val = pgm->data[0][rr * pgmwidth + cc];
+                int range = max(maxval, val) - min(minval, val) + 1;
+                if (range > kMaxRange)
                 {
                     if (outliers++ < MAXOUTLIERS)
                         continue;   /* Next column. */
                     inrange = false;
-                    if (lines++ < MAXLINES)
+                    if (lines++ < kMaxLines)
                         break;  /* Next row. */
                     goto found_top;
                 }
@@ -303,24 +300,24 @@ found_top:
         bottom = false;
         lines = 0;
         saved = maxrow1 - 1;
-        for (rr = maxrow1 - 1; rr >= minrow; rr--)
+        for (int rr = maxrow1 - 1; rr >= minrow; rr--)
         {
-            outliers = 0;
-            inrange = true;
-            for (cc = mincol; cc < maxcol1; cc++)
+            int outliers = 0;
+            bool inrange = true;
+            for (int cc = mincol; cc < maxcol1; cc++)
             {
                 if (m_logo && rrccinrect(rr, cc, m_logorow, m_logocol,
                             m_logowidth, m_logoheight))
                     continue;   /* Exclude logo area from analysis. */
 
-                val = pgm->data[0][rr * pgmwidth + cc];
-                range = max(maxval, val) - min(minval, val) + 1;
-                if (range > MAXRANGE)
+                uchar val = pgm->data[0][rr * pgmwidth + cc];
+                int range = max(maxval, val) - min(minval, val) + 1;
+                if (range > kMaxRange)
                 {
                     if (outliers++ < MAXOUTLIERS)
                         continue;   /* Next column. */
                     inrange = false;
-                    if (lines++ < MAXLINES)
+                    if (lines++ < kMaxLines)
                         break;  /* Next row. */
                     goto found_bottom;
                 }

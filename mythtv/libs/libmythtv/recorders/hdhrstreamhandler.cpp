@@ -189,7 +189,7 @@ void HDHRStreamHandler::run(void)
     if (VERBOSE_LEVEL_CHECK(VB_RECORD, LOG_INFO))
     {
         struct hdhomerun_video_sock_t* vs;
-        struct hdhomerun_video_stats_t stats;
+        struct hdhomerun_video_stats_t stats {};
         vs = hdhomerun_device_get_video_sock(m_hdhomerun_device);
         if (vs)
         {
@@ -298,7 +298,7 @@ bool HDHRStreamHandler::Open(void)
         if (QString(model).toLower().contains("cablecard"))
         {
             QString status_channel = "none";
-            hdhomerun_tuner_status_t t_status;
+            hdhomerun_tuner_status_t t_status {};
 
             if (hdhomerun_device_get_oob_status(
                     m_hdhomerun_device, nullptr, &t_status) < 0)
@@ -325,7 +325,15 @@ bool HDHRStreamHandler::Open(void)
                 m_tuner_types.emplace_back(DTVTunerType::kTunerTypeOCUR);
             }
         }
-        else if (QString(model).toLower().contains("dvb"))
+        else if (QString(model).toLower().endsWith("dvbt"))
+        {
+            m_tuner_types.emplace_back(DTVTunerType::kTunerTypeDVBT);
+        }
+        else if (QString(model).toLower().endsWith("dvbc"))
+        {
+            m_tuner_types.emplace_back(DTVTunerType::kTunerTypeDVBC);
+        }
+        else if (QString(model).toLower().endsWith("dvbtc"))
         {
             m_tuner_types.emplace_back(DTVTunerType::kTunerTypeDVBT);
             m_tuner_types.emplace_back(DTVTunerType::kTunerTypeDVBC);

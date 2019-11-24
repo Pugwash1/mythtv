@@ -63,7 +63,7 @@ using namespace std;
 bool getUptime(time_t &uptime)
 {
 #ifdef __linux__
-    struct sysinfo sinfo;
+    struct sysinfo sinfo {};
     if (sysinfo(&sinfo) == -1)
     {
         LOG(VB_GENERAL, LOG_ERR, "sysinfo() error");
@@ -109,7 +109,7 @@ bool getMemStats(int &totalMB, int &freeMB, int &totalVM, int &freeVM)
 {
 #ifdef __linux__
     const size_t MB = (1024*1024);
-    struct sysinfo sinfo;
+    struct sysinfo sinfo {};
     if (sysinfo(&sinfo) == -1)
     {
         LOG(VB_GENERAL, LOG_ERR,
@@ -239,7 +239,7 @@ bool ping(const QString &host, int timeout)
                          kMSProcessEvents) == GENERIC_EXIT_OK;
 #else
     QString addrstr =
-        gCoreContext->resolveAddress(host, gCoreContext->ResolveAny, true);
+        MythCoreContext::resolveAddress(host, gCoreContext->ResolveAny, true);
     QHostAddress addr = QHostAddress(addrstr);
 #if defined(__FreeBSD__) || CONFIG_DARWIN
     QString timeoutparam("-t");
@@ -312,8 +312,8 @@ long long copy(QFile &dst, QFile &src, uint block_size)
     long long total_bytes = 0LL;
     while (ok)
     {
-        long long rlen, off = 0;
-        rlen = src.read(buf, buflen);
+        long long off = 0;
+        long long rlen = src.read(buf, buflen);
         if (rlen<0)
         {
             LOG(VB_GENERAL, LOG_ERR, "read error");
@@ -470,7 +470,7 @@ int intResponse(const QString &query, int def)
     QString str_resp = getResponse(query, QString("%1").arg(def));
     if (str_resp.isEmpty())
         return def;
-    bool ok;
+    bool ok = false;
     int resp = str_resp.toInt(&ok);
     return (ok ? resp : def);
 }
@@ -498,7 +498,7 @@ QString getSymlinkTarget(const QString &start_file,
     }
 
     for (uint i = 0; (i <= maxLinks) && fi.isSymLink() &&
-             !(link = fi.readLink()).isEmpty(); i++)
+             !(link = fi.symLinkTarget()).isEmpty(); i++)
     {
         cur_file = (link[0] == '/') ?
             link : // absolute link
@@ -538,9 +538,7 @@ bool IsMACAddress(const QString& MAC)
         return false;
     }
 
-    int y;
-    bool ok;
-    for (y = 0; y < 6; y++)
+    for (int y = 0; y < 6; y++)
     {
         if (tokens[y].isEmpty())
         {
@@ -550,6 +548,7 @@ bool IsMACAddress(const QString& MAC)
             return false;
         }
 
+        bool ok = false;
         int value = tokens[y].toInt(&ok, 16);
         if (!ok)
         {
@@ -619,10 +618,8 @@ bool WakeOnLAN(const QString& MAC)
 {
     char msg[1024] = "\xFF\xFF\xFF\xFF\xFF\xFF";
     int  msglen = 6;
-    int  x, y;
     QStringList tokens = MAC.split(':');
     int macaddr[6];
-    bool ok;
 
     if (tokens.size() != 6)
     {
@@ -631,8 +628,9 @@ bool WakeOnLAN(const QString& MAC)
         return false;
     }
 
-    for (y = 0; y < 6; y++)
+    for (int y = 0; y < 6; y++)
     {
+        bool ok = false;
         macaddr[y] = tokens[y].toInt(&ok, 16);
 
         if (!ok)
@@ -643,8 +641,8 @@ bool WakeOnLAN(const QString& MAC)
         }
     }
 
-    for (x = 0; x < 16; x++)
-        for (y = 0; y < 6; y++)
+    for (int x = 0; x < 16; x++)
+        for (int y = 0; y < 6; y++)
             msg[msglen++] = macaddr[y];
 
     LOG(VB_NETWORK, LOG_INFO,
@@ -937,13 +935,11 @@ void setHttpProxy(void)
 
 void wrapList(QStringList &list, int width)
 {
-    int i;
-
     // if this is triggered, something has gone seriously wrong
     // the result won't really be usable, but at least it won't crash
     width = max(width, 5);
 
-    for(i = 0; i < list.size(); i++)
+    for (int i = 0; i < list.size(); i++)
     {
         QString string = list.at(i);
 
@@ -985,26 +981,26 @@ void wrapList(QStringList &list, int width)
 
 QString xml_indent(uint level)
 {
-    static QReadWriteLock rw_lock;
-    static QMap<uint,QString> cache;
+    static QReadWriteLock s_rwLock;
+    static QMap<uint,QString> s_cache;
 
-    rw_lock.lockForRead();
-    QMap<uint,QString>::const_iterator it = cache.find(level);
-    if (it != cache.end())
+    s_rwLock.lockForRead();
+    QMap<uint,QString>::const_iterator it = s_cache.find(level);
+    if (it != s_cache.end())
     {
         QString tmp = *it;
-        rw_lock.unlock();
+        s_rwLock.unlock();
         return tmp;
     }
-    rw_lock.unlock();
+    s_rwLock.unlock();
 
     QString ret = "";
     for (uint i = 0; i < level; i++)
         ret += "    ";
 
-    rw_lock.lockForWrite();
-    cache[level] = ret;
-    rw_lock.unlock();
+    s_rwLock.lockForWrite();
+    s_cache[level] = ret;
+    s_rwLock.unlock();
 
     return ret;
 }

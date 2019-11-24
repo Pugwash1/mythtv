@@ -78,14 +78,14 @@ static bool                    logThreadFinished = false;
 static bool                    debugRegistration = false;
 
 typedef struct {
-    bool    propagate;
-    int     quiet;
-    int     facility;
-    bool    dblog;
-    QString path;
+    bool    m_propagate;
+    int     m_quiet;
+    int     m_facility;
+    bool    m_dblog;
+    QString m_path;
 } LogPropagateOpts;
 
-LogPropagateOpts        logPropagateOpts;
+LogPropagateOpts        logPropagateOpts {false, 0, 0, true, ""};
 QString                 logPropagateArgs;
 QStringList             logPropagateArgList;
 
@@ -120,7 +120,7 @@ void verboseHelp(void);
 void loggingGetTimeStamp(qlonglong *epoch, uint *usec)
 {
 #if HAVE_GETTIMEOFDAY
-    struct timeval  tv;
+    struct timeval tv {};
     gettimeofday(&tv, nullptr);
     *epoch = tv.tv_sec;
     if (usec)
@@ -137,13 +137,6 @@ void loggingGetTimeStamp(qlonglong *epoch, uint *usec)
 #endif
 }
 
-LoggingItem::LoggingItem() :
-        ReferenceCounter("LoggingItem", false)
-{
-    m_message[0]='\0';
-    m_message[LOGLINE_MAX]='\0';
-}
-
 LoggingItem::LoggingItem(const char *_file, const char *_function,
                          int _line, LogLevel_t _level, LoggingType _type) :
         ReferenceCounter("LoggingItem", false),
@@ -152,9 +145,6 @@ LoggingItem::LoggingItem(const char *_file, const char *_function,
         m_file(strdup(_file)), m_function(strdup(_function))
 {
     loggingGetTimeStamp(&m_epoch, &m_usec);
-
-    m_message[0]='\0';
-    m_message[LOGLINE_MAX]='\0';
     setThreadTid();
 }
 
@@ -187,13 +177,13 @@ QByteArray LoggingItem::toByteArray(void)
 /// \return C-string of the thread name
 char *LoggingItem::getThreadName(void)
 {
-    static const char  *unknown = "thread_unknown";
+    static constexpr char kSUnknown[] = "thread_unknown";
 
     if( m_threadName )
         return m_threadName;
 
     QMutexLocker locker(&logThreadMutex);
-    return logThreadHash.value(m_threadId, (char *)unknown);
+    return logThreadHash.value(m_threadId, (char *)kSUnknown);
 }
 
 /// \brief Get the thread ID of the thread that produced the LoggingItem
@@ -430,21 +420,19 @@ bool LoggerThread::logConsole(LoggingItem *item)
         char   usPart[9];
         char   timestamp[TIMESTAMP_MAX];
         time_t epoch = item->epoch();
-        struct tm tm;
+        struct tm tm {};
         localtime_r(&epoch, &tm);
 
         strftime( timestamp, TIMESTAMP_MAX-8, "%Y-%m-%d %H:%M:%S",
                   (const struct tm *)&tm );
         snprintf( usPart, 9, ".%06d", (int)(item->m_usec) );
         strcat( timestamp, usPart );
-        char shortname;
+        char shortname = '-';
 
         {
             QMutexLocker locker(&loglevelMapMutex);
             LoglevelDef *lev = loglevelMap.value(item->m_level, nullptr);
-            if (!lev)
-                shortname = '-';
-            else
+            if (lev != nullptr)
                 shortname = lev->shortname;
         }
 
@@ -654,42 +642,41 @@ void logPropagateCalc(void)
     logPropagateArgs = " --verbose " + mask;
     logPropagateArgList << "--verbose" << mask;
 
-    if (logPropagateOpts.propagate)
+    if (logPropagateOpts.m_propagate)
     {
-        logPropagateArgs += " --logpath " + logPropagateOpts.path;
-        logPropagateArgList << "--logpath" << logPropagateOpts.path;
+        logPropagateArgs += " --logpath " + logPropagateOpts.m_path;
+        logPropagateArgList << "--logpath" << logPropagateOpts.m_path;
     }
 
     QString name = logLevelGetName(logLevel);
     logPropagateArgs += " --loglevel " + name;
     logPropagateArgList << "--loglevel" << name;
 
-    for (int i = 0; i < logPropagateOpts.quiet; i++)
+    for (int i = 0; i < logPropagateOpts.m_quiet; i++)
     {
         logPropagateArgs += " --quiet";
         logPropagateArgList << "--quiet";
     }
 
-    if (logPropagateOpts.dblog)
+    if (logPropagateOpts.m_dblog)
     {
         logPropagateArgs += " --enable-dblog";
         logPropagateArgList << "--enable-dblog";
     }
 
 #if !defined(_WIN32) && !defined(Q_OS_ANDROID)
-    if (logPropagateOpts.facility >= 0)
+    if (logPropagateOpts.m_facility >= 0)
     {
-        const CODE *syslogname;
-
+        const CODE *syslogname = nullptr;
         for (syslogname = &facilitynames[0];
              (syslogname->c_name &&
-              syslogname->c_val != logPropagateOpts.facility); syslogname++);
+              syslogname->c_val != logPropagateOpts.m_facility); syslogname++);
 
         logPropagateArgs += QString(" --syslog %1").arg(syslogname->c_name);
         logPropagateArgList << "--syslog" << syslogname->c_name;
     }
 #if CONFIG_SYSTEMD_JOURNAL
-    else if (logPropagateOpts.facility == SYSTEMD_JOURNAL_FACILITY)
+    else if (logPropagateOpts.m_facility == SYSTEMD_JOURNAL_FACILITY)
     {
         logPropagateArgs += " --systemd-journal";
         logPropagateArgList << "--systemd-journal";
@@ -702,7 +689,7 @@ void logPropagateCalc(void)
 /// \return true if --quiet is being propagated
 bool logPropagateQuiet(void)
 {
-    return logPropagateOpts.quiet;
+    return logPropagateOpts.m_quiet;
 }
 
 /// \brief  Entry point to start logging for the application.  This will
@@ -727,16 +714,16 @@ void logStart(const QString& logfile, int progress, int quiet, int facility,
     LOG(VB_GENERAL, LOG_NOTICE, QString("Setting Log Level to LOG_%1")
              .arg(logLevelGetName(logLevel).toUpper()));
 
-    logPropagateOpts.propagate = propagate;
-    logPropagateOpts.quiet = quiet;
-    logPropagateOpts.facility = facility;
-    logPropagateOpts.dblog = dblog;
+    logPropagateOpts.m_propagate = propagate;
+    logPropagateOpts.m_quiet = quiet;
+    logPropagateOpts.m_facility = facility;
+    logPropagateOpts.m_dblog = dblog;
 
     if (propagate)
     {
         QFileInfo finfo(logfile);
         QString path = finfo.path();
-        logPropagateOpts.path = path;
+        logPropagateOpts.m_path = path;
     }
 
     logPropagateCalc();
@@ -815,8 +802,8 @@ int syslogGetFacility(const QString& facility)
     Q_UNUSED(facility);
     return( -2 );
 #else
-    const CODE *name;
-    int i;
+    const CODE *name = nullptr;
+    int i = 0;
     QByteArray ba = facility.toLocal8Bit();
     char *string = (char *)ba.constData();
 
@@ -984,7 +971,6 @@ void verboseHelp(void)
 int verboseArgParse(const QString& arg)
 {
     QString option;
-    int     idx;
 
     if (!verboseInitialized)
         verboseInit();
@@ -1045,7 +1031,8 @@ int verboseArgParse(const QString& arg)
         }
         else
         {
-            if ((idx = option.indexOf(':')) != -1)
+            int idx = option.indexOf(':');
+            if (idx != -1)
             {
                 optionLevel = option.mid(idx + 1);
                 option = option.left(idx);

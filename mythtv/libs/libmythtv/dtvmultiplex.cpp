@@ -4,6 +4,7 @@
 #include "mpeg/dvbdescriptors.h"
 #include "mythdb.h"
 #include "mythlogging.h"
+#include "cardutil.h"
 #include <utility>
 
 #define LOC      QString("DTVMux: ")
@@ -510,7 +511,7 @@ bool DTVMultiplex::FillFromDeliverySystemDesc(DTVTunerType type,
                 }
 
                 return ParseDVB_S_and_C(
-                    QString::number(cd.FrequencyHz()),  "a",
+                    QString::number(cd.FrequencykHz()),  "a",
                     QString::number(cd.SymbolRateHz()), cd.FECInnerString(),
                     cd.ModulationString(),
                     cd.PolarizationString());
@@ -519,7 +520,7 @@ bool DTVMultiplex::FillFromDeliverySystemDesc(DTVTunerType type,
             if (type == DTVTunerType::kTunerTypeDVBS2)
             {
                 return ParseDVB_S2(
-                    QString::number(cd.FrequencyHz()),  "a",
+                    QString::number(cd.FrequencykHz()),  "a",
                     QString::number(cd.SymbolRateHz()), cd.FECInnerString(),
                     cd.ModulationString(),
                     cd.PolarizationString(),
@@ -569,9 +570,11 @@ bool ScanDTVTransport::FillFromDB(DTVTunerType type, uint mplexid)
         "       c.serviceid,     c.atsc_major_chan, c.atsc_minor_chan, "
         "       c.useonairguide, c.visible,         c.freqid,          "
         "       c.icon,          c.tvformat,        c.xmltvid,         "
-        "       d.transportid,   d.networkid,       c.default_authority "
+        "       d.transportid,   d.networkid,       c.default_authority,"
+        "       c.service_type "
         "FROM channel AS c, dtv_multiplex AS d "
-        "WHERE c.mplexid = :MPLEXID AND"
+        "WHERE c.deleted IS NULL AND "
+        "      c.mplexid = :MPLEXID AND"
         "      c.mplexid = d.mplexid");
     query.bindValue(":MPLEXID", mplexid);
 
@@ -600,7 +603,8 @@ bool ScanDTVTransport::FillFromDB(DTVTunerType type, uint mplexid)
             false, false, false, false,
             false, false, false, false,
             false, false, false, 0,
-            query.value(17).toString() /* default_authority */);
+            query.value(17).toString(), /* default_authority */
+            query.value(18).toUInt());  /* service_type */
 
         m_channels.push_back(chan);
     }
@@ -675,21 +679,21 @@ uint ScanDTVTransport::SaveScan(uint scanid) const
 
 bool ScanDTVTransport::ParseTuningParams(
     DTVTunerType type,
-    QString _frequency,    QString _inversion,      QString _symbolrate,
-    QString _fec,          QString _polarity,
-    QString _hp_code_rate, QString _lp_code_rate,   QString _ofdm_modulation,
-    QString _trans_mode,   QString _guard_interval, QString _hierarchy,
-    QString _modulation,   QString _bandwidth,      QString _mod_sys,
-    QString _rolloff)
+    const QString& _frequency,    const QString& _inversion,      const QString& _symbolrate,
+    const QString& _fec,          const QString& _polarity,
+    const QString& _hp_code_rate, const QString& _lp_code_rate,   const QString& _ofdm_modulation,
+    const QString& _trans_mode,   const QString& _guard_interval, const QString& _hierarchy,
+    const QString& _modulation,   const QString& _bandwidth,      const QString& _mod_sys,
+    const QString& _rolloff)
 {
     m_tuner_type = type;
 
     return DTVMultiplex::ParseTuningParams(
         type,
-        std::move(_frequency),     std::move(_inversion),       std::move(_symbolrate),
-        std::move(_fec),           std::move(_polarity),
-        std::move(_hp_code_rate),  std::move(_lp_code_rate),    std::move(_ofdm_modulation),
-        std::move(_trans_mode),    std::move(_guard_interval),  std::move(_hierarchy),
-        std::move(_modulation),    std::move(_bandwidth),       std::move(_mod_sys),
-        std::move(_rolloff));
+        _frequency,     _inversion,       _symbolrate,
+        _fec,           _polarity,
+        _hp_code_rate,  _lp_code_rate,    _ofdm_modulation,
+        _trans_mode,    _guard_interval,  _hierarchy,
+        _modulation,    _bandwidth,       _mod_sys,
+        _rolloff);
 }

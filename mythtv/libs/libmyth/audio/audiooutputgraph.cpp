@@ -29,9 +29,9 @@ public:
 
     // Properties
     void SetMaxSamples(unsigned samples) { m_maxSamples = samples; }
-    void SetSampleRate(unsigned sample_rate) { m_sample_rate = sample_rate; }
+    void SetSampleRate(unsigned sample_rate) { m_sampleRate = sample_rate; }
 
-    inline int BitsPerChannel() const { return sizeof(short) * CHAR_BIT; }
+    static inline int BitsPerChannel() { return sizeof(short) * CHAR_BIT; }
     inline int Channels() const { return m_channels; }
 
     inline int64_t Next() const { return m_tcNext; }
@@ -136,12 +136,12 @@ protected:
 
     inline unsigned long Samples2MS(unsigned samples) const
     {
-        return m_sample_rate ? (samples * 1000UL + m_sample_rate - 1) / m_sample_rate : 0; // round up
+        return m_sampleRate ? (samples * 1000UL + m_sampleRate - 1) / m_sampleRate : 0; // round up
     }
 
     inline unsigned MS2Samples(int64_t ms) const
     {
-        return ms > 0 ? (ms * m_sample_rate) / 1000 : 0; // NB round down
+        return ms > 0 ? (ms * m_sampleRate) / 1000 : 0; // NB round down
     }
 
     void Append(const void *b, unsigned long len, int bits)
@@ -190,13 +190,13 @@ private:
     {
         m_bits = bits;
         m_channels = channels;
-        m_sizeMax = ((m_sample_rate * kBufferMilliSecs) / 1000) * BytesPerSample();
+        m_sizeMax = ((m_sampleRate * kBufferMilliSecs) / 1000) * BytesPerSample();
         resize(0);
     }
 
 private:
     unsigned m_maxSamples {0};
-    unsigned m_sample_rate {44100};
+    unsigned m_sampleRate {44100};
     unsigned long m_tcFirst {0}, m_tcNext {0};
     int m_bits {0};
     int m_channels {0};
@@ -272,7 +272,7 @@ MythImage *AudioOutputGraph::GetImage(int64_t timecode) const
     if (width <= 0)
         return nullptr;
 
-    const unsigned range = 1U << m_buffer->BitsPerChannel();
+    const unsigned range = 1U << AudioOutputGraph::Buffer::BitsPerChannel();
     const double threshold = 20 * log10(1.0 / range); // 16bit=-96.3296dB => ~6dB/bit
     const int height = (int)-ceil(threshold); // 96
     if (height <= 0)

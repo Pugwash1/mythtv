@@ -427,10 +427,7 @@ void Commands::Run(void)
     setObjectName("Commands");
 
     QString cmd;
-    int    timeout = 250;
 
-    int ret;
-    int poll_cnt = 1;
     struct pollfd polls[2];
     memset(polls, 0, sizeof(polls));
 
@@ -446,7 +443,9 @@ void Commands::Run(void)
 
     while (m_parent->m_run)
     {
-        ret = poll(polls, poll_cnt, timeout);
+        int timeout = 250;
+        int poll_cnt = 1;
+        int ret = poll(polls, poll_cnt, timeout);
 
         if (polls[0].revents & POLLHUP)
         {
@@ -502,8 +501,8 @@ bool Buffer::Fill(const QByteArray & buffer)
     if (buffer.size() < 1)
         return false;
 
-    static int dropped = 0;
-    static int dropped_bytes = 0;
+    static int s_dropped = 0;
+    static int s_droppedBytes = 0;
 
     m_parent->m_flow_mutex.lock();
     if (m_data.size() < MAX_QUEUE)
@@ -513,17 +512,17 @@ bool Buffer::Fill(const QByteArray & buffer)
                     + buffer.size());
 
         m_data.push(blk);
-        dropped = 0;
+        s_dropped = 0;
 
         LOG(VB_GENERAL, LOG_DEBUG, LOC +
             QString("Adding %1 bytes").arg(buffer.size()));
     }
     else
     {
-        dropped_bytes += buffer.size();
+        s_droppedBytes += buffer.size();
         LOG(VB_RECORD, LOG_WARNING, LOC +
             QString("Packet queue overrun. Dropped %1 packets, %2 bytes.")
-            .arg(++dropped).arg(dropped_bytes));
+            .arg(++s_dropped).arg(s_droppedBytes));
 
         std::this_thread::sleep_for(std::chrono::microseconds(250));
     }
@@ -547,7 +546,6 @@ void Buffer::Run(void)
     uint64_t   written = 0;
     uint64_t   write_cnt = 0;
     uint64_t   empty_cnt = 0;
-    uint       sz;
 
     LOG(VB_RECORD, LOG_INFO, LOC + "Buffer: Ready for data.");
 
@@ -593,7 +591,7 @@ void Buffer::Run(void)
 
                 if (!pkt.empty())
                 {
-                    sz = write(1, pkt.data(), pkt.size());
+                    uint sz = write(1, pkt.data(), pkt.size());
                     written += sz;
                     ++write_cnt;
 

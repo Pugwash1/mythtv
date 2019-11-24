@@ -35,18 +35,18 @@ static const mmx_t mz = { 0x0LL };
 
 typedef struct ThisFilter
 {
-    VideoFilter vf;
+    VideoFilter m_vf;
 
-    int offsets[3];
-    int pitches[3];
-    int mm_flags;
-    int line_size;
-    int prev_size;
-    uint8_t *line;
-    uint8_t *prev;
-    uint8_t coefs[4][512];
+    int      m_offsets[3];
+    int      m_pitches[3];
+    int      m_mmFlags;
+    int      m_lineSize;
+    int      m_prevSize;
+    uint8_t *m_line;
+    uint8_t *m_prev;
+    uint8_t  m_coefs[4][512];
 
-    void (*filtfunc)(uint8_t*, uint8_t*, uint8_t*,
+    void (*m_filtFunc)(uint8_t*, uint8_t*, uint8_t*,
                      int, int, const uint8_t*, const uint8_t*);
 
     TF_STRUCT;
@@ -70,28 +70,26 @@ static void denoise(uint8_t *Frame,
                     int W, int H,
                     const uint8_t *Spatial, const uint8_t *Temporal)
 {
-    uint8_t prev;
-    int X, Y;
     uint8_t *LineCur = Frame;
     uint8_t *LinePrev = FramePrev;
 
-    prev = Line[0] = Frame[0];
+    uint8_t prev = Line[0] = Frame[0];
     Frame[0] = LowPass (FramePrev[0], Frame[1], Temporal);
-    for (X = 1; X < W; X++)
+    for (int X = 1; X < W; X++)
     {
         prev = LowPass (prev, Frame[X], Spatial);
         Line[X] = prev;
         FramePrev[X] = Frame[X] = LowPass (FramePrev[X], prev, Temporal);
     }
 
-    for (Y = 1; Y < H; Y++)
+    for (int Y = 1; Y < H; Y++)
     {
         LineCur += W;
         LinePrev += W;
         prev = LineCur[0];
         Line[0] = LowPass (Line[0], prev, Spatial);
         LineCur[0] = LowPass (LinePrev[0], Line[0], Temporal);
-        for (X = 1; X < W; X++)
+        for (int X = 1; X < W; X++)
         {
             prev = LowPass (prev, LineCur[X], Spatial);
             Line[X] = LowPass (Line[X], prev, Spatial);
@@ -108,7 +106,7 @@ static void denoiseMMX(uint8_t *Frame,
                        int W, int H,
                        const uint8_t *Spatial, const uint8_t *Temporal)
 {
-    int X, i;
+    int X = 0;
     uint8_t *LineCur = Frame;
     uint8_t *LinePrev = FramePrev;
     uint8_t *End = Frame + W * H;
@@ -152,7 +150,7 @@ static void denoiseMMX(uint8_t *Frame,
         movq_m2r (Line[X], mm4);
         movq_m2r (Line[X+8], mm6);
 
-        for (i = 0; i < 16; i++)
+        for (int i = 0; i < 16; i++)
             cbuf[i] = Temporal[wbuf[i]];
 
         paddb_m2r (cbuf[0], mm4);
@@ -206,7 +204,7 @@ static void denoiseMMX(uint8_t *Frame,
             movq_m2r (LineCur[X], mm4);
             movq_m2r (LineCur[X+8], mm6);
 
-            for (i = 0; i < 16; i++)
+            for (int i = 0; i < 16; i++)
                 cbuf[i] = Spatial[wbuf[i]];
 
             movq_m2r (LinePrev[X], mm0);
@@ -243,7 +241,7 @@ static void denoiseMMX(uint8_t *Frame,
             movq_m2r (Line[X], mm4);
             movq_m2r (Line[X+8], mm6);
 
-            for (i = 0; i < 16; i++)
+            for (int i = 0; i < 16; i++)
                 cbuf[i] = Temporal[wbuf[i]];
 
             paddb_m2r (cbuf[0], mm4);
@@ -268,36 +266,36 @@ static void denoiseMMX(uint8_t *Frame,
 
 static int alloc_line(ThisFilter *filter, int size)
 {
-    if (filter->line_size >= size)
+    if (filter->m_lineSize >= size)
         return 1;
 
-    uint8_t *tmp = realloc(filter->line, size);
+    uint8_t *tmp = realloc(filter->m_line, size);
     if (!tmp)
     {
         fprintf(stderr, "Couldn't allocate memory for line buffer\n");
         return 0;
     }
 
-    filter->line = tmp;
-    filter->line_size = size;
+    filter->m_line = tmp;
+    filter->m_lineSize = size;
 
     return 1;
 }
 
 static int alloc_prev(ThisFilter *filter, int size)
 {
-    if (filter->prev_size >= size)
+    if (filter->m_prevSize >= size)
         return 1;
 
-    uint8_t *tmp = realloc(filter->prev, size);
+    uint8_t *tmp = realloc(filter->m_prev, size);
     if (!tmp)
     {
         fprintf(stderr, "Couldn't allocate memory for frame buffer\n");
         return 0;
     }
 
-    filter->prev = tmp;
-    filter->prev_size = size;
+    filter->m_prev = tmp;
+    filter->m_prevSize = size;
 
     return 1;
 }
@@ -313,17 +311,17 @@ static int init_buf(ThisFilter *filter, VideoFrame *frame)
     if (!alloc_line(filter, sz))
         return 0;
 
-    if ((filter->prev_size  != frame->size)       ||
-        (filter->offsets[0] != frame->offsets[0]) ||
-        (filter->offsets[1] != frame->offsets[1]) ||
-        (filter->offsets[2] != frame->offsets[2]) ||
-        (filter->pitches[0] != frame->pitches[0]) ||
-        (filter->pitches[1] != frame->pitches[1]) ||
-        (filter->pitches[2] != frame->pitches[2]))
+    if ((filter->m_prevSize  != frame->size)       ||
+        (filter->m_offsets[0] != frame->offsets[0]) ||
+        (filter->m_offsets[1] != frame->offsets[1]) ||
+        (filter->m_offsets[2] != frame->offsets[2]) ||
+        (filter->m_pitches[0] != frame->pitches[0]) ||
+        (filter->m_pitches[1] != frame->pitches[1]) ||
+        (filter->m_pitches[2] != frame->pitches[2]))
     {
-        memcpy(filter->prev,    frame->buf,     frame->size);
-        memcpy(filter->offsets, frame->offsets, sizeof(int) * 3);
-        memcpy(filter->pitches, frame->pitches, sizeof(int) * 3);
+        memcpy(filter->m_prev,    frame->buf,     frame->size);
+        memcpy(filter->m_offsets, frame->offsets, sizeof(int) * 3);
+        memcpy(filter->m_pitches, frame->pitches, sizeof(int) * 3);
     }
 
     return 1;
@@ -341,29 +339,29 @@ static int denoise3DFilter(VideoFilter *f, VideoFrame *frame, int field)
     TF_START;
 
 #ifdef MMX
-    if (filter->mm_flags & AV_CPU_FLAG_MMX)
+    if (filter->m_mmFlags & AV_CPU_FLAG_MMX)
         emms();
 #endif
 
-    (filter->filtfunc)(frame->buf   + frame->offsets[0],
-                       filter->prev + frame->offsets[0],
-                       filter->line,  frame->pitches[0], frame->height,
-                       filter->coefs[0] + 256,
-                       filter->coefs[1] + 256);
+    (filter->m_filtFunc)(frame->buf   + frame->offsets[0],
+                       filter->m_prev + frame->offsets[0],
+                       filter->m_line,  frame->pitches[0], frame->height,
+                       filter->m_coefs[0] + 256,
+                       filter->m_coefs[1] + 256);
 
-    (filter->filtfunc)(frame->buf   + frame->offsets[1],
-                       filter->prev + frame->offsets[1],
-                       filter->line,  frame->pitches[1], frame->height >> 1,
-                       filter->coefs[2] + 256,
-                       filter->coefs[3] + 256);
+    (filter->m_filtFunc)(frame->buf   + frame->offsets[1],
+                       filter->m_prev + frame->offsets[1],
+                       filter->m_line,  frame->pitches[1], frame->height >> 1,
+                       filter->m_coefs[2] + 256,
+                       filter->m_coefs[3] + 256);
 
-    (filter->filtfunc)(frame->buf   + frame->offsets[2],
-                       filter->prev + frame->offsets[2],
-                       filter->line,  frame->pitches[2], frame->height >> 1,
-                       filter->coefs[2] + 256,
-                       filter->coefs[3] + 256);
+    (filter->m_filtFunc)(frame->buf   + frame->offsets[2],
+                       filter->m_prev + frame->offsets[2],
+                       filter->m_line,  frame->pitches[2], frame->height >> 1,
+                       filter->m_coefs[2] + 256,
+                       filter->m_coefs[3] + 256);
 #ifdef MMX
-    if (filter->mm_flags & AV_CPU_FLAG_MMX)
+    if (filter->m_mmFlags & AV_CPU_FLAG_MMX)
         emms();
 #endif
 
@@ -373,11 +371,11 @@ static int denoise3DFilter(VideoFilter *f, VideoFrame *frame, int field)
 
 static void Denoise3DFilterCleanup(VideoFilter *filter)
 {
-    if (((ThisFilter*)filter)->prev)
-        free(((ThisFilter*)filter)->prev);
+    if (((ThisFilter*)filter)->m_prev)
+        free(((ThisFilter*)filter)->m_prev);
 
-    if (((ThisFilter*)filter)->line)
-        free (((ThisFilter*)filter)->line);
+    if (((ThisFilter*)filter)->m_line)
+        free (((ThisFilter*)filter)->m_line);
 }
 
 static VideoFilter *NewDenoise3DFilter(VideoFrameType inpixfmt,
@@ -389,7 +387,6 @@ static VideoFilter *NewDenoise3DFilter(VideoFrameType inpixfmt,
     double LumTmp    = PARAM3_DEFAULT;
     double ChromSpac = PARAM2_DEFAULT;
     double ChromTmp  = 0.0;
-    ThisFilter *filter;
 
     (void) width;
     (void) height;
@@ -401,7 +398,7 @@ static VideoFilter *NewDenoise3DFilter(VideoFrameType inpixfmt,
         return NULL;
     }
 
-    filter = malloc(sizeof (ThisFilter));
+    ThisFilter *filter = malloc(sizeof (ThisFilter));
     if (filter == NULL)
     {
         fprintf (stderr, "Denoise3D: failed to allocate memory for filter\n");
@@ -410,21 +407,21 @@ static VideoFilter *NewDenoise3DFilter(VideoFrameType inpixfmt,
 
     memset(filter, 0, sizeof(ThisFilter));
 
-    filter->vf.filter = &denoise3DFilter;
-    filter->vf.cleanup = &Denoise3DFilterCleanup;
-    filter->filtfunc = &denoise;
+    filter->m_vf.filter = &denoise3DFilter;
+    filter->m_vf.cleanup = &Denoise3DFilterCleanup;
+    filter->m_filtFunc = &denoise;
 
 #ifdef MMX
-    filter->mm_flags = av_get_cpu_flags();
-    if (filter->mm_flags & AV_CPU_FLAG_MMX)
-        filter->filtfunc = &denoiseMMX;
+    filter->m_mmFlags = av_get_cpu_flags();
+    if (filter->m_mmFlags & AV_CPU_FLAG_MMX)
+        filter->m_filtFunc = &denoiseMMX;
 #endif
 
     TF_INIT(filter);
 
     if (options)
     {
-        double param1, param2, param3;
+        double param1=NAN, param2=NAN, param3=NAN;
         switch (sscanf(options, "%20lf:%20lf:%20lf",
                        &param1, &param2, &param3))
         {
@@ -454,10 +451,10 @@ static VideoFilter *NewDenoise3DFilter(VideoFrameType inpixfmt,
 
     ChromTmp = LumTmp * ChromSpac / LumSpac;
 
-    calc_coefs(filter->coefs[0], LumSpac);
-    calc_coefs(filter->coefs[1], LumTmp);
-    calc_coefs(filter->coefs[2], ChromSpac);
-    calc_coefs(filter->coefs[3], ChromTmp);
+    calc_coefs(filter->m_coefs[0], LumSpac);
+    calc_coefs(filter->m_coefs[1], LumTmp);
+    calc_coefs(filter->m_coefs[2], ChromSpac);
+    calc_coefs(filter->m_coefs[3], ChromTmp);
 
     return (VideoFilter*) filter;
 }

@@ -16,10 +16,10 @@
 
 typedef struct OFFilter
 {
-    VideoFilter vf;
+    VideoFilter m_vf;
 
     /* functions and variables below here considered "private" */
-    int bottom;
+    int m_bottom;
 } OFFilter;
 
 int oneFieldFilter(VideoFilter *f, VideoFrame *frame, int field)
@@ -27,15 +27,14 @@ int oneFieldFilter(VideoFilter *f, VideoFrame *frame, int field)
     (void)field;
     OFFilter *filter = (OFFilter *)(f);
     int height = frame->height;
-    int bottom = filter->bottom;
+    int bottom = filter->m_bottom;
     int stride = frame->pitches[0];
     int ymax = height - 2;
-    int y;
     unsigned char *yoff = frame->buf + frame->offsets[0];
     unsigned char *uoff = frame->buf + frame->offsets[1];
     unsigned char *voff = frame->buf + frame->offsets[2];
 
-    for (y = 0; y < ymax; y += 2) 
+    for (int y = 0; y < ymax; y += 2) 
     {
         unsigned char *src = (bottom ? &(yoff[(y+1)*stride]) : &(yoff[y*stride]));
         unsigned char *dst = (bottom ? &(yoff[y*stride]) : &(yoff[(y+1)*stride]));
@@ -45,7 +44,7 @@ int oneFieldFilter(VideoFilter *f, VideoFrame *frame, int field)
     stride = frame->pitches[1];
     ymax = height / 2 - 2;
   
-    for (y = 0; y < ymax; y += 2)
+    for (int y = 0; y < ymax; y += 2)
     {
         unsigned char *src = (bottom ? &(uoff[(y+1)*stride]) : &(uoff[y*stride]));
         unsigned char *dst = (bottom ? &(uoff[y*stride]) : &(uoff[(y+1)*stride]));
@@ -63,7 +62,6 @@ static VideoFilter *new_filter(VideoFrameType inpixfmt,
                                const int *width, const int *height, const char *options,
                                int threads)
 {
-    OFFilter *filter;
     (void)width;
     (void)height;
     (void)threads;
@@ -71,20 +69,19 @@ static VideoFilter *new_filter(VideoFrameType inpixfmt,
     if (inpixfmt != FMT_YV12 || outpixfmt != FMT_YV12)
         return NULL;
 
-    filter = malloc(sizeof(OFFilter));
-
+    OFFilter *filter = malloc(sizeof(OFFilter));
     if (filter == NULL)
     {
         fprintf(stderr,"Couldn't allocate memory for filter\n");
         return NULL;
     }
 
-    filter->vf.filter = &oneFieldFilter;
-    filter->bottom = 0;
+    filter->m_vf.filter = &oneFieldFilter;
+    filter->m_bottom = 0;
     if (options != NULL && strstr(options, "bottom") != NULL)
-        filter->bottom = 1;
+        filter->m_bottom = 1;
 
-    filter->vf.cleanup = NULL;
+    filter->m_vf.cleanup = NULL;
     return (VideoFilter *)filter;
 }
 

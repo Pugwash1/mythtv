@@ -577,11 +577,11 @@ void TV::InitKeys(void)
     // Check if this is a new frontend - if PAUSE returns
     // "?" then frontend is new, never used before, so we will not assign
     // any default bookmark keys
-    QString testKey = GetMythMainWindow()->GetKey("TV Playback", ACTION_PAUSE);
+    QString testKey = MythMainWindow::GetKey("TV Playback", ACTION_PAUSE);
     if (testKey != "?")
     {
         int alternate = gCoreContext->GetNumSetting("AltClearSavedPosition",0);
-        QString selectKeys = GetMythMainWindow()->GetKey("Global", ACTION_SELECT);
+        QString selectKeys = MythMainWindow::GetKey("Global", ACTION_SELECT);
         if (selectKeys != "?")
         {
             if (alternate)
@@ -1876,9 +1876,9 @@ void TV::ShowOSDAskAllow(PlayerContext *ctx)
         for (; it != m_askAllowPrograms.end(); ++it)
         {
             if (!(*it).is_in_same_input_group)
-                (*it).is_conflicting = false;
+                (*it).is_conflicting = false;    // NOLINT(bugprone-branch-clone)
             else if (cardid == (*it).info->GetInputID())
-                (*it).is_conflicting = true;
+                (*it).is_conflicting = true;    // NOLINT(bugprone-branch-clone)
             else if (!CardUtil::IsTunerShared(cardid, (*it).info->GetInputID()))
                 (*it).is_conflicting = true;
             else if ((busy_input.m_mplexid &&
@@ -2316,10 +2316,6 @@ void TV::HandleStateChange(PlayerContext *mctx, PlayerContext *ctx)
         if ((mctx != ctx) && (GetPlayer(ctx,-1) == ctx))
             SetActive(mctx, 0, true);
     }
-    else if (TRANSITION(kState_WatchingRecording, kState_WatchingPreRecorded))
-    {
-        SET_NEXT();
-    }
     else if (TRANSITION(kState_None, kState_WatchingPreRecorded) ||
              TRANSITION(kState_None, kState_WatchingVideo) ||
              TRANSITION(kState_None, kState_WatchingDVD)   ||
@@ -2415,7 +2411,8 @@ void TV::HandleStateChange(PlayerContext *mctx, PlayerContext *ctx)
         if ((mctx != ctx) && (GetPlayer(ctx,-1) == ctx))
             SetActive(mctx, 0, true);
     }
-    else if (TRANSITION(kState_None, kState_None))
+    else if (TRANSITION(kState_WatchingRecording, kState_WatchingPreRecorded) ||
+             TRANSITION(kState_None, kState_None))
     {
         SET_NEXT();
     }
@@ -2503,7 +2500,7 @@ void TV::HandleStateChange(PlayerContext *mctx, PlayerContext *ctx)
              TRANSITION(kState_None, kState_WatchingLiveTV))
     {
         if (!ctx->IsPIP())
-            GetMythUI()->DisableScreensaver();
+            MythUIHelper::DisableScreensaver();
         bool switchMode = gCoreContext->GetBoolSetting("UseVideoModes", false);
         // m_playerBounds is not applicable when switching modes so
         // skip this logic in that case.
@@ -3610,8 +3607,9 @@ bool TV::event(QEvent *e)
     {
         PlayerContext *mctx = GetPlayerReadLock(0, __FILE__, __LINE__);
         mctx->LockDeletePlayer(__FILE__, __LINE__);
-        if (mctx->m_player)
-            mctx->m_player->WindowResized(((const QResizeEvent*) e)->size());
+        const QResizeEvent *qre = dynamic_cast<const QResizeEvent*>(e);
+        if (qre && mctx->m_player)
+            mctx->m_player->WindowResized(qre->size());
         mctx->UnlockDeletePlayer(__FILE__, __LINE__);
         ReturnPlayerLock(mctx);
         return true;
@@ -3876,11 +3874,11 @@ bool TV::TranslateKeyPressOrGesture(const QString &context,
     if (QEvent::KeyPress == e->type())
     {
         return GetMythMainWindow()->TranslateKeyPress(
-                    context, (QKeyEvent*)e, actions, allowJumps);
+            context, dynamic_cast<QKeyEvent*>(e), actions, allowJumps);
     }
     if (MythGestureEvent::kEventType == e->type())
     {
-        return TranslateGesture(context, (MythGestureEvent*)e, actions, isLiveTV);
+        return TranslateGesture(context, dynamic_cast<MythGestureEvent*>(e), actions, isLiveTV);
     }
 
     return false;
@@ -3955,11 +3953,13 @@ bool TV::ProcessKeypressOrGesture(PlayerContext *actx, QEvent *e)
     {
         if (QEvent::KeyPress == e->type())
         {
-            handled = osd->DialogHandleKeypress((QKeyEvent*)e);
+            QKeyEvent *qke = dynamic_cast<QKeyEvent*>(e);
+            handled = (qke != nullptr) && osd->DialogHandleKeypress(qke);
         }
         if (MythGestureEvent::kEventType == e->type())
         {
-            handled = osd->DialogHandleGesture((MythGestureEvent*)e);
+            MythGestureEvent *mge = dynamic_cast<MythGestureEvent*>(e);
+            handled = (mge != nullptr) && osd->DialogHandleGesture(mge);
         }
     }
     ReturnOSDLock(actx, osd);
@@ -4021,7 +4021,10 @@ bool TV::ProcessKeypressOrGesture(PlayerContext *actx, QEvent *e)
     // This allows hex teletext entry and minor channel entry.
     if (QEvent::KeyPress == e->type())
     {
-        const QString txt = ((QKeyEvent*)e)->text();
+        QKeyEvent *qke = dynamic_cast<QKeyEvent*>(e);
+        if (qke == nullptr)
+            return false;
+        const QString txt = qke->text();
         if (HasQueuedInput() && (1 == txt.length()))
         {
             bool ok = false;
@@ -4093,7 +4096,7 @@ bool TV::ProcessKeypressOrGesture(PlayerContext *actx, QEvent *e)
 
     if (QEvent::KeyPress == e->type())
     {
-        handled = handled || SysEventHandleAction((QKeyEvent*)e, actions);
+        handled = handled || SysEventHandleAction(dynamic_cast<QKeyEvent*>(e), actions);
     }
     handled = handled || BrowseHandleAction(actx, actions);
     handled = handled || ManualZoomHandleAction(actx, actions);
@@ -4217,21 +4220,35 @@ bool TV::ManualZoomHandleAction(PlayerContext *actx, const QStringList &actions)
     bool handled = true;
     bool updateOSD = true;
     ZoomDirection zoom = kZoom_END;
-    if (has_action(ACTION_ZOOMUP, actions))
+    if (has_action(ACTION_ZOOMUP, actions) ||
+        has_action(ACTION_UP, actions)     ||
+        has_action(ACTION_CHANNELUP, actions))
+    {
         zoom = kZoomUp;
-    else if (has_action(ACTION_ZOOMDOWN, actions))
+    }
+    else if (has_action(ACTION_ZOOMDOWN, actions) ||
+             has_action(ACTION_DOWN, actions)     ||
+             has_action(ACTION_CHANNELDOWN, actions))
+    {
         zoom = kZoomDown;
-    else if (has_action(ACTION_ZOOMLEFT, actions))
+    }
+    else if (has_action(ACTION_ZOOMLEFT, actions) ||
+             has_action(ACTION_LEFT, actions))
         zoom = kZoomLeft;
-    else if (has_action(ACTION_ZOOMRIGHT, actions))
+    else if (has_action(ACTION_ZOOMRIGHT, actions) ||
+             has_action(ACTION_RIGHT, actions))
         zoom = kZoomRight;
-    else if (has_action(ACTION_ZOOMASPECTUP, actions))
+    else if (has_action(ACTION_ZOOMASPECTUP, actions) ||
+             has_action(ACTION_VOLUMEUP, actions))
         zoom = kZoomAspectUp;
-    else if (has_action(ACTION_ZOOMASPECTDOWN, actions))
+    else if (has_action(ACTION_ZOOMASPECTDOWN, actions) ||
+             has_action(ACTION_VOLUMEDOWN, actions))
         zoom = kZoomAspectDown;
-    else if (has_action(ACTION_ZOOMIN, actions))
+    else if (has_action(ACTION_ZOOMIN, actions) ||
+             has_action(ACTION_JUMPFFWD, actions))
         zoom = kZoomIn;
-    else if (has_action(ACTION_ZOOMOUT, actions))
+    else if (has_action(ACTION_ZOOMOUT, actions) ||
+             has_action(ACTION_JUMPRWND, actions))
         zoom = kZoomOut;
     else if (has_action(ACTION_ZOOMVERTICALIN, actions))
         zoom = kZoomVerticalIn;
@@ -4241,49 +4258,19 @@ bool TV::ManualZoomHandleAction(PlayerContext *actx, const QStringList &actions)
         zoom = kZoomHorizontalIn;
     else if (has_action(ACTION_ZOOMHORIZONTALOUT, actions))
         zoom = kZoomHorizontalOut;
-    else if (has_action(ACTION_ZOOMQUIT, actions))
-    {
-        zoom = kZoomHome;
-        end_manual_zoom = true;
-    }
-    else if (has_action(ACTION_ZOOMCOMMIT, actions))
-    {
-        end_manual_zoom = true;
-        SetManualZoom(actx, false, tr("Zoom Committed"));
-    }
-    else if (has_action(ACTION_UP, actions) ||
-        has_action(ACTION_CHANNELUP, actions))
-    {
-        zoom = kZoomUp;
-    }
-    else if (has_action(ACTION_DOWN, actions) ||
-             has_action(ACTION_CHANNELDOWN, actions))
-    {
-        zoom = kZoomDown;
-    }
-    else if (has_action(ACTION_LEFT, actions))
-        zoom = kZoomLeft;
-    else if (has_action(ACTION_RIGHT, actions))
-        zoom = kZoomRight;
-    else if (has_action(ACTION_VOLUMEUP, actions))
-        zoom = kZoomAspectUp;
-    else if (has_action(ACTION_VOLUMEDOWN, actions))
-        zoom = kZoomAspectDown;
-    else if (has_action("ESCAPE", actions) ||
+    else if (has_action(ACTION_ZOOMQUIT, actions) ||
+             has_action("ESCAPE", actions)        ||
              has_action("BACK", actions))
     {
         zoom = kZoomHome;
         end_manual_zoom = true;
     }
-    else if (has_action(ACTION_SELECT, actions))
+    else if (has_action(ACTION_ZOOMCOMMIT, actions) ||
+             has_action(ACTION_SELECT, actions))
     {
         end_manual_zoom = true;
         SetManualZoom(actx, false, tr("Zoom Committed"));
     }
-    else if (has_action(ACTION_JUMPFFWD, actions))
-        zoom = kZoomIn;
-    else if (has_action(ACTION_JUMPRWND, actions))
-        zoom = kZoomOut;
     else
     {
         updateOSD = false;
@@ -4380,9 +4367,8 @@ bool TV::AudioSyncHandleAction(PlayerContext *ctx,
         ChangeAudioSync(ctx, 10);
     else if (has_action(ACTION_DOWN, actions))
         ChangeAudioSync(ctx, -10);
-    else if (has_action(ACTION_TOGGELAUDIOSYNC, actions))
-        ClearOSD(ctx);
-    else if (has_action(ACTION_SELECT, actions))
+    else if (has_action(ACTION_TOGGELAUDIOSYNC, actions) ||
+             has_action(ACTION_SELECT, actions))
         ClearOSD(ctx);
     else
         handled = false;
@@ -4406,9 +4392,8 @@ bool TV::SubtitleZoomHandleAction(PlayerContext *ctx,
         ChangeSubtitleZoom(ctx, 10);
     else if (has_action(ACTION_DOWN, actions))
         ChangeSubtitleZoom(ctx, -10);
-    else if (has_action(ACTION_TOGGLESUBTITLEZOOM, actions))
-        ClearOSD(ctx);
-    else if (has_action(ACTION_SELECT, actions))
+    else if (has_action(ACTION_TOGGLESUBTITLEZOOM, actions) ||
+             has_action(ACTION_SELECT, actions))
         ClearOSD(ctx);
     else
         handled = false;
@@ -4432,9 +4417,8 @@ bool TV::SubtitleDelayHandleAction(PlayerContext *ctx,
         ChangeSubtitleDelay(ctx, 25);
     else if (has_action(ACTION_DOWN, actions))
         ChangeSubtitleDelay(ctx, -25);
-    else if (has_action(ACTION_TOGGLESUBTITLEDELAY, actions))
-        ClearOSD(ctx);
-    else if (has_action(ACTION_SELECT, actions))
+    else if (has_action(ACTION_TOGGLESUBTITLEDELAY, actions) ||
+             has_action(ACTION_SELECT, actions))
         ClearOSD(ctx);
     else
         handled = false;
@@ -4589,7 +4573,7 @@ bool TV::ActiveHandleAction(PlayerContext *ctx,
     else if (has_action(ACTION_VIEWSCHEDULED, actions))
         EditSchedule(ctx, kViewSchedule);
     else if (HandleJumpToProgramAction(ctx, actions))
-    {
+    { // NOLINT(bugprone-branch-clone)
     }
     else if (has_action(ACTION_SIGNALMON, actions))
     {
@@ -4605,7 +4589,7 @@ bool TV::ActiveHandleAction(PlayerContext *ctx,
             }
 
             int rate   = m_sigMonMode ? 0 : 100;
-            bool notify = m_sigMonMode ? false : true;
+            bool notify = !m_sigMonMode;
 
             PauseLiveTV(ctx);
             ctx->m_recorder->SetSignalMonitoringRate(rate, notify);
@@ -4624,7 +4608,7 @@ bool TV::ActiveHandleAction(PlayerContext *ctx,
         }
         else
         {
-            GetMythMainWindow()->ScreenShot();
+            MythMainWindow::ScreenShot();
         }
         ctx->UnlockDeletePlayer(__FILE__, __LINE__);
     }
@@ -6365,7 +6349,7 @@ void TV::DoPlay(PlayerContext *ctx)
     DoPlayerSeek(ctx, time);
     UpdateOSDSeekMessage(ctx, ctx->GetPlayMessage(), kOSDTimeout_Med);
 
-    GetMythUI()->DisableScreensaver();
+    MythUIHelper::DisableScreensaver();
 
     SetSpeedChangeTimer(0, __LINE__);
     gCoreContext->emitTVPlaybackPlaying();
@@ -6430,7 +6414,7 @@ void TV::DoTogglePauseFinish(PlayerContext *ctx, float time, bool showOSD)
         DoPlayerSeek(ctx, time);
         if (showOSD)
             UpdateOSDSeekMessage(ctx, ctx->GetPlayMessage(), kOSDTimeout_Short);
-        GetMythUI()->DisableScreensaver();
+        MythUIHelper::DisableScreensaver();
     }
 
     SetSpeedChangeTimer(0, __LINE__);
@@ -6726,7 +6710,7 @@ void TV::DoArbSeek(PlayerContext *ctx, ArbSeekWhence whence,
     if (!ok)
         return;
 
-    float time = ((seek / 100) * 3600) + ((seek % 100) * 60);
+    float time = ((seek / 100.0F) * 3600) + ((seek % 100) * 60);
 
     if (whence == ARBSEEK_FORWARD)
         DoSeek(ctx, time, tr("Jump Ahead"),
@@ -6925,9 +6909,8 @@ void TV::DoQueueTranscode(PlayerContext *ctx, const QString& profile)
     if (ctx->GetState() == kState_WatchingPreRecorded)
     {
         bool stop = false;
-        if (m_queuedTranscode)
-            stop = true;
-        else if (JobQueue::IsJobQueuedOrRunning(
+        if (m_queuedTranscode ||
+            JobQueue::IsJobQueuedOrRunning(
                      JOB_TRANSCODE,
                      ctx->m_playingInfo->GetChanID(),
                      ctx->m_playingInfo->GetRecordingStartTime()))
@@ -7371,10 +7354,10 @@ void TV::ToggleChannelFavorite(PlayerContext */*ctx*/)
         "TV::ToggleChannelFavorite() -- currently disabled");
 }
 
-void TV::ToggleChannelFavorite(PlayerContext *ctx, QString changroup_name)
+void TV::ToggleChannelFavorite(PlayerContext *ctx, const QString& changroup_name)
 {
     if (ctx->m_recorder)
-        ctx->m_recorder->ToggleChannelFavorite(std::move(changroup_name));
+        ctx->m_recorder->ToggleChannelFavorite(changroup_name);
 }
 
 QString TV::GetQueuedInput(void) const
@@ -7649,7 +7632,7 @@ void TV::ChangeChannel(PlayerContext *ctx, ChannelChangeDirection direction)
     if (ContextIsPaused(ctx, __FILE__, __LINE__))
     {
         HideOSDWindow(ctx, "osd_status");
-        GetMythUI()->DisableScreensaver();
+        MythUIHelper::DisableScreensaver();
     }
 
     // Save the current channel if this is the first time
@@ -7818,7 +7801,7 @@ void TV::ChangeChannel(PlayerContext *ctx, uint chanid, const QString &chan)
     if (ContextIsPaused(ctx, __FILE__, __LINE__))
     {
         HideOSDWindow(ctx, "osd_status");
-        GetMythUI()->DisableScreensaver();
+        MythUIHelper::DisableScreensaver();
     }
 
     // Save the current channel if this is the first time
@@ -8123,20 +8106,14 @@ void TV::UpdateOSDSeekMessage(const PlayerContext *ctx,
     }
 }
 
-void TV::UpdateOSDInput(const PlayerContext *ctx, QString inputname)
+void TV::UpdateOSDInput(const PlayerContext *ctx)
 {
     if (!ctx->m_recorder || !ctx->m_tvchain)
         return;
 
     int cardid = ctx->GetCardID();
 
-    if (inputname.isEmpty())
-        inputname = ctx->m_tvchain->GetInputName(-1);
-
     QString displayName = CardUtil::GetDisplayName(cardid);
-    // If a display name doesn't exist use cardid and inputname
-    if (displayName.isEmpty())
-        displayName = QString("%1: %2").arg(cardid).arg(inputname);
 
     SetOSDMessage(ctx, displayName);
 }
@@ -8858,7 +8835,8 @@ void TV::ChangeTimeStretch(PlayerContext *ctx, int dir, bool allowEdit)
 {
     const float kTimeStretchMin = 0.5;
     const float kTimeStretchMax = 2.0;
-    float new_ts_normal = ctx->m_tsNormal + (0.05F * dir);
+    const float kTimeStretchStep = 0.05;
+    float new_ts_normal = ctx->m_tsNormal + (kTimeStretchStep * dir);
     m_stretchAdjustment = allowEdit;
 
     if (new_ts_normal > kTimeStretchMax &&
@@ -8878,7 +8856,7 @@ void TV::ChangeTimeStretch(PlayerContext *ctx, int dir, bool allowEdit)
         return;
     }
 
-    ctx->m_tsNormal = new_ts_normal;
+    ctx->m_tsNormal = kTimeStretchStep * (int)(new_ts_normal / kTimeStretchStep + 0.5F);
 
     ctx->LockDeletePlayer(__FILE__, __LINE__);
     if (ctx->m_player && !ctx->m_player->IsPaused())
@@ -8894,7 +8872,7 @@ void TV::ChangeTimeStretch(PlayerContext *ctx, int dir, bool allowEdit)
         else
         {
             UpdateOSDStatus(ctx, tr("Adjust Time Stretch"), tr("Time Stretch"),
-                            QString::number(ctx->m_tsNormal),
+                            QString::number(ctx->m_tsNormal,'f',2),
                             kOSDFunctionalType_TimeStretchAdjust, "X",
                             (int)(ctx->m_tsNormal*(1000/kTimeStretchMax)),
                             kOSDTimeout_None);
@@ -9302,7 +9280,9 @@ void TV::customEvent(QEvent *e)
 
     if (e->type() == MythEvent::MythUserMessage)
     {
-        MythEvent *me = static_cast<MythEvent*>(e);
+        MythEvent *me = dynamic_cast<MythEvent*>(e);
+        if (me == nullptr)
+            return;
         QString message = me->Message();
 
         if (message.isEmpty())
@@ -9382,7 +9362,9 @@ void TV::customEvent(QEvent *e)
             return;
         }
 
-        MythMediaEvent *me = static_cast<MythMediaEvent*>(e);
+        MythMediaEvent *me = dynamic_cast<MythMediaEvent*>(e);
+        if (me == nullptr)
+            return;
         MythMediaDevice *device = me->getDevice();
 
         QString filename = mctx->m_buffer ? mctx->m_buffer->GetFilename() : "";
@@ -9409,7 +9391,9 @@ void TV::customEvent(QEvent *e)
         return;
 
     uint cardnum   = 0;
-    MythEvent *me = static_cast<MythEvent*>(e);
+    MythEvent *me = dynamic_cast<MythEvent*>(e);
+    if (me == nullptr)
+        return;
     QString message = me->Message();
 
     // TODO Go through these and make sure they make sense...
@@ -9471,7 +9455,7 @@ void TV::customEvent(QEvent *e)
         }
         else
         {
-            GetMythMainWindow()->ScreenShot(width, height, filename);
+            MythMainWindow::ScreenShot(width, height, filename);
         }
         ReturnPlayerLock(mctx);
     }
@@ -10017,14 +10001,8 @@ PictureAttribute TV::NextPictureAdjustType(
         if (mp->HasAudioOut() && mp->PlayerControlsVolume())
             sup |= kPictureAttributeSupported_Volume;
     }
-    else if (kAdjustingPicture_Channel == type)
-    {
-        sup = (kPictureAttributeSupported_Brightness |
-               kPictureAttributeSupported_Contrast |
-               kPictureAttributeSupported_Colour |
-               kPictureAttributeSupported_Hue);
-    }
-    else if (kAdjustingPicture_Recording == type)
+    else if ((kAdjustingPicture_Channel == type) ||
+             (kAdjustingPicture_Recording == type))
     {
         sup = (kPictureAttributeSupported_Brightness |
                kPictureAttributeSupported_Contrast |
@@ -10530,15 +10508,13 @@ void TV::OSDDialogEvent(int result, const QString& text, QString action)
         {
             hide = HandleOSDCutpoint(actx, desc[1]);
         }
-        else if (valid && desc[0] == "DELETE")
+        else if ((valid && desc[0] == "DELETE") ||
+                 (valid && desc[0] == "CONFIRM"))
         {
         }
         else if (valid && desc[0] == ACTION_PLAY)
         {
             DoPlay(actx);
-        }
-        else if (valid && desc[0] == "CONFIRM")
-        {
         }
         else
         {
@@ -10546,7 +10522,7 @@ void TV::OSDDialogEvent(int result, const QString& text, QString action)
         }
     }
     else if (result < 0)
-        ; // exit dialog
+        ; // exit dialog // NOLINT(bugprone-branch-clone)
     else if (HandleTrackAction(actx, action))
         ;
     else if (action == ACTION_PAUSE)
@@ -12030,7 +12006,6 @@ void TV::PlaybackMenuInit(const MenuBase &menu)
     m_tvmState             = ctx->GetState();
     m_tvmIsRecording       = (m_tvmState == kState_WatchingRecording);
     m_tvmIsRecorded        = (m_tvmState == kState_WatchingPreRecorded);
-    m_tvmIsRecorded        = (m_tvmState == kState_WatchingPreRecorded);
     m_tvmIsVideo           = (m_tvmState == kState_WatchingVideo);
     m_tvmCurSkip           = kCommSkipOff;
     m_tvmIsPaused          = false;
@@ -13263,7 +13238,7 @@ bool TV::IsSameProgram(int player_idx, const ProgramInfo *rcinfo) const
 void TV::RestoreScreenSaver(const PlayerContext *ctx)
 {
     if (ctx == GetPlayer(ctx, 0))
-        GetMythUI()->RestoreScreensaver();
+        MythUIHelper::RestoreScreensaver();
 }
 
 bool TV::ContextIsPaused(PlayerContext *ctx, const char *file, int location)

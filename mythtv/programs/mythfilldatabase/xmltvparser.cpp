@@ -49,7 +49,7 @@ static uint ELFHash(const QByteArray &ba)
     {
         while (*k)
         {
-            uint g;
+            uint g = 0;
             h = (h << 4) + *k++;
             if ((g = (h & 0xf0000000)) != 0)
                 h ^= g >> 24;
@@ -169,14 +169,14 @@ static void fromXMLTVDate(QString &timestr, QDateTime &dt)
         else
         {
             tzoffset = "+0000";
-            static bool warned_once_on_implicit_utc = false;
-            if (!warned_once_on_implicit_utc)
+            static bool s_warnedOnceOnImplicitUtc = false;
+            if (!s_warnedOnceOnImplicitUtc)
             {
                 LOG(VB_XMLTV, LOG_WARNING, "No explicit time zone found, "
                     "guessing implicit UTC! Please consider enhancing "
                     "the guide source to provide explicit UTC or local "
                     "time instead.");
-                warned_once_on_implicit_utc = true;
+                s_warnedOnceOnImplicitUtc = true;
             }
         }
     }
@@ -348,7 +348,7 @@ ProgInfo *XMLTVParser::parseProgram(QDomElement &element)
             if (info.tagName() == "title")
             {
                 if (info.attribute("lang") == "ja_JP")
-                {
+                {   // NOLINT(bugprone-branch-clone)
                     pginfo->m_title = getFirstText(info);
                 }
                 else if (info.attribute("lang") == "ja_JP@kana")
@@ -497,7 +497,6 @@ ProgInfo *XMLTVParser::parseProgram(QDomElement &element)
                 }
                 else if (info.attribute("system") == "xmltv_ns")
                 {
-                    int tmp;
                     QString episodenum(getFirstText(info));
                     episode = episodenum.section('.',1,1);
                     totalepisodes = episode.section('/',1,1).trimmed();
@@ -512,7 +511,7 @@ ProgInfo *XMLTVParser::parseProgram(QDomElement &element)
 
                     if (!season.isEmpty())
                     {
-                        tmp = season.toUInt() + 1;
+                        int tmp = season.toUInt() + 1;
                         pginfo->m_season = tmp;
                         season = QString::number(tmp);
                         pginfo->m_syndicatedepisodenumber = 'S' + season;
@@ -520,7 +519,7 @@ ProgInfo *XMLTVParser::parseProgram(QDomElement &element)
 
                     if (!episode.isEmpty())
                     {
-                        tmp = episode.toUInt() + 1;
+                        int tmp = episode.toUInt() + 1;
                         pginfo->m_episode = tmp;
                         episode = QString::number(tmp);
                         pginfo->m_syndicatedepisodenumber.append('E' + episode);
@@ -534,14 +533,14 @@ ProgInfo *XMLTVParser::parseProgram(QDomElement &element)
                     uint partno = 0;
                     if (!partnumber.isEmpty())
                     {
-                        bool ok;
+                        bool ok = false;
                         partno = partnumber.toUInt(&ok) + 1;
                         partno = (ok) ? partno : 0;
                     }
 
                     if (!parttotal.isEmpty() && partno > 0)
                     {
-                        bool ok;
+                        bool ok = false;
                         uint partto = parttotal.toUInt(&ok);
                         if (ok && partnumber <= parttotal)
                         {

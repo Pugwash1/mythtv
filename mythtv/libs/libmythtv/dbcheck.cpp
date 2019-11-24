@@ -1313,6 +1313,7 @@ nullptr
         const char *updates[] = {
 "DELETE FROM profilegroups WHERE id >= 15;",
 "DELETE FROM recordingprofiles WHERE profilegroup >= 15;",
+// NOLINTNEXTLINE(bugprone-suspicious-missing-comma)
 "INSERT INTO profilegroups SET id = '15', name = 'ASI Recorder (DVEO)',"
 " cardtype = 'ASI', is_default = 1;",
 "INSERT INTO recordingprofiles SET name = \"Default\", profilegroup = 15;",
@@ -1474,6 +1475,7 @@ nullptr
     if (dbver == "1277")
     {
         const char *updates[] = {
+// NOLINTNEXTLINE(bugprone-suspicious-missing-comma)
 "ALTER TABLE record ADD autometadata TINYINT(1) NOT NULL DEFAULT "
 "    0 AFTER autouserjob4;",
 "ALTER TABLE record ADD inetref VARCHAR(40) NOT NULL AFTER programid;",
@@ -1619,6 +1621,7 @@ nullptr
 "UPDATE record SET filter = filter | 2 WHERE record.dupin & 0x40",
 "UPDATE record SET filter = filter | 5 WHERE record.dupin & 0x80",
 "UPDATE record SET dupin = dupin & ~0xe0",
+// NOLINTNEXTLINE(bugprone-suspicious-missing-comma)
 "INSERT INTO recordfilter (filterid, description, clause, newruledefault) "
 "    VALUES (6, 'This Episode', '(program.programid <> '''' AND program.programid = RECTABLE.programid) OR (program.programid = '''' AND program.subtitle = RECTABLE.subtitle AND program.description = RECTABLE.description)', 0);",
 nullptr
@@ -1645,6 +1648,7 @@ nullptr
         const char *updates[] = {
 "DELETE FROM profilegroups WHERE id >= 17;",
 "DELETE FROM recordingprofiles WHERE profilegroup >= 17;",
+// NOLINTNEXTLINE(bugprone-suspicious-missing-comma)
 "INSERT INTO profilegroups SET id = '17', name = 'Ceton Recorder',"
 " cardtype = 'CETON', is_default = 1;",
 "INSERT INTO recordingprofiles SET name = \"Default\", profilegroup = 17;",
@@ -1831,6 +1835,7 @@ nullptr
 "ALTER TABLE recordmatch ADD UNIQUE INDEX (recordid, chanid, starttime)",
 "UPDATE recordfilter SET description='Prime time' WHERE filterid=3",
 "UPDATE recordfilter SET description='This episode' WHERE filterid=6",
+// NOLINTNEXTLINE(bugprone-suspicious-missing-comma)
 "REPLACE INTO recordfilter (filterid, description, clause, newruledefault) "
 "    VALUES (7, 'This series', '(RECTABLE.seriesid <> '''' AND program.seriesid = RECTABLE.seriesid)', 0);",
 nullptr
@@ -2626,9 +2631,9 @@ nullptr
                 "UNIQUE KEY recgroup ( recgroup )"
                 ") ENGINE=MyISAM DEFAULT CHARSET=utf8;",
             // Create the built-in, 'special', groups
-            "INSERT INTO recgroups ( recgroup, special ) VALUES ( 'Default', '1' );",
-            "INSERT INTO recgroups ( recgroup, special ) VALUES ( 'LiveTV', '1' );",
-            "INSERT INTO recgroups ( recgroup, special ) VALUES ( 'Deleted', '1' );",
+            "INSERT INTO recgroups ( recgroupid, recgroup, special ) VALUES ( 1, 'Default', '1' );",
+            "INSERT INTO recgroups ( recgroupid, recgroup, special ) VALUES ( 2, 'LiveTV', '1' );",
+            "INSERT INTO recgroups ( recgroupid, recgroup, special ) VALUES ( 3, 'Deleted', '1' );",
             // Copy in the passwords for the built-in groups
             "DELETE FROM recgrouppassword WHERE password = '';",
             "UPDATE recgroups r, recgrouppassword p SET r.password = p.password WHERE r.recgroup = p.recgroup;",
@@ -2667,6 +2672,7 @@ nullptr
     {
         const char *updates[] = {
         // add inetref to (recorded)program before season/episode
+            // NOLINTNEXTLINE(bugprone-suspicious-missing-comma)
             "ALTER TABLE program "
             " ADD COLUMN inetref varchar(40) DEFAULT '' AFTER videoprop;",
             "ALTER TABLE recordedprogram "
@@ -3439,6 +3445,83 @@ nullptr
             return false;
     }
 
+    if (dbver == "1350")
+    {
+        const char *updates[] = {
+            "ALTER TABLE videosource ADD COLUMN bouquet_id INT DEFAULT 0;",
+            "ALTER TABLE videosource ADD COLUMN region_id INT DEFAULT 0;",
+            nullptr
+        };
+        if (!performActualUpdate(updates, "1351", dbver))
+            return false;
+    }
+
+    if (dbver == "1351")
+    {
+        const char *updates[] = {
+            "ALTER TABLE videosource MODIFY bouquet_id INT UNSIGNED;",
+            "ALTER TABLE videosource MODIFY region_id INT UNSIGNED;",
+            "ALTER TABLE channel ADD COLUMN service_type INT UNSIGNED DEFAULT 0 AFTER serviceid;",
+            nullptr
+        };
+        if (!performActualUpdate(updates, "1352", dbver))
+            return false;
+    }
+
+    if (dbver == "1352")
+    {
+        const char *updates[] = {
+            "ALTER TABLE capturecard MODIFY schedgroup TINYINT(1) DEFAULT 1 NOT NULL",
+            nullptr
+        };
+        if (!performActualUpdate(updates, "1353", dbver))
+            return false;
+    }
+
+    if (dbver == "1353")
+    {
+        const char *updates[] = {
+            "ALTER TABLE channel ADD COLUMN deleted TIMESTAMP NULL",
+            nullptr
+        };
+        if (!performActualUpdate(updates, "1354", dbver))
+            return false;
+    }
+
+    if (dbver == "1354")
+    {
+        const char *updates[] = {
+            "ALTER TABLE videosource ADD COLUMN scanfrequency INT UNSIGNED DEFAULT 0;",
+            nullptr
+        };
+        if (!performActualUpdate(updates, "1355", dbver))
+            return false;
+    }
+
+    if (dbver == "1355")
+    {
+        const char *updates[] = {
+            "UPDATE capturecard "
+            "SET displayname = CONCAT('Input ', cardid) "
+            "WHERE displayname = ''",
+            nullptr
+        };
+        if (!performActualUpdate(updates, "1356", dbver))
+            return false;
+    }
+
+    if (dbver == "1356")
+    {
+        const char *updates[] = {
+            "REPLACE INTO recordfilter (filterid, description, clause, "
+            "                          newruledefault) "
+            "  VALUES (12, 'Priority channel', 'channel.recpriority > 0', 0)",
+            nullptr
+        };
+        if (!performActualUpdate(updates, "1357", dbver))
+            return false;
+    }
+
     return true;
 }
 
@@ -4115,10 +4198,10 @@ bool InitializeMythSchema(void)
 "CREATE TABLE programrating ("
 "  chanid int(10) unsigned NOT NULL DEFAULT '0',"
 "  starttime datetime NOT NULL DEFAULT '0000-00-00 00:00:00',"
-"  system varchar(8) DEFAULT NULL,"
+"  `system` varchar(8) DEFAULT NULL,"
 "  rating varchar(16) DEFAULT NULL,"
-"  UNIQUE KEY chanid (chanid,starttime,system,rating),"
-"  KEY starttime (starttime,system)"
+"  UNIQUE KEY chanid (chanid,starttime,`system`,rating),"
+"  KEY starttime (starttime,`system`)"
 ") ENGINE=MyISAM DEFAULT CHARSET=utf8;",
 "CREATE TABLE recgrouppassword ("
 "  recgroup varchar(32) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL DEFAULT '',"
@@ -4325,10 +4408,10 @@ bool InitializeMythSchema(void)
 "CREATE TABLE recordedrating ("
 "  chanid int(10) unsigned NOT NULL DEFAULT '0',"
 "  starttime datetime NOT NULL DEFAULT '0000-00-00 00:00:00',"
-"  system varchar(8) DEFAULT NULL,"
+"  `system` varchar(8) DEFAULT NULL,"
 "  rating varchar(16) DEFAULT NULL,"
-"  UNIQUE KEY chanid (chanid,starttime,system,rating),"
-"  KEY starttime (starttime,system)"
+"  UNIQUE KEY chanid (chanid,starttime,`system`,rating),"
+"  KEY starttime (starttime,`system`)"
 ") ENGINE=MyISAM DEFAULT CHARSET=utf8;",
 "CREATE TABLE recordedseek ("
 "  chanid int(10) unsigned NOT NULL DEFAULT '0',"

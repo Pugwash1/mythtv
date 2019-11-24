@@ -125,7 +125,7 @@ void DVBStreamHandler::run(void)
 /** \fn DVBStreamHandler::RunTS(void)
  *  \brief Uses TS filtering devices to read a DVB device for tables & data
  *
- *  This supports all types of MPEG based stream data, but is extreemely
+ *  This supports all types of MPEG based stream data, but is extremely
  *  slow with DVB over USB 1.0 devices which for efficiency reasons buffer
  *  a stream until a full block transfer buffer full of the requested
  *  tables is available. This takes a very long time when you are just
@@ -615,8 +615,7 @@ bool DVBPIDInfo::Open(const QString &dvb_dev, bool use_section_reader)
 
     if (!use_section_reader)
     {
-        struct dmx_pes_filter_params pesFilterParams;
-        memset(&pesFilterParams, 0, sizeof(struct dmx_pes_filter_params));
+        struct dmx_pes_filter_params pesFilterParams {};
         pesFilterParams.pid      = (uint16_t) _pid;
         pesFilterParams.input    = DMX_IN_FRONTEND;
         pesFilterParams.output   = DMX_OUT_TS_TAP;
@@ -635,8 +634,7 @@ bool DVBPIDInfo::Open(const QString &dvb_dev, bool use_section_reader)
     }
     else
     {
-        struct dmx_sct_filter_params sctFilterParams;
-        memset(&sctFilterParams, 0, sizeof(struct dmx_sct_filter_params));
+        struct dmx_sct_filter_params sctFilterParams {};
         switch ( _pid )
         {
             case 0x0: // PAT

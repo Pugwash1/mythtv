@@ -276,10 +276,10 @@ void ZMLivePlayer::customEvent(QEvent *event)
 {
     if (event->type() == DialogCompletionEvent::kEventType)
     {
-        DialogCompletionEvent *dce = static_cast<DialogCompletionEvent*>(event);
+        auto dce = dynamic_cast<DialogCompletionEvent*>(event);
 
         // make sure the user didn't ESCAPE out of the menu
-        if (dce->GetResult() < 0)
+        if ((dce == nullptr) || (dce->GetResult() < 0))
             return;
 
         QString resultid   = dce->GetId();
@@ -297,6 +297,7 @@ void ZMLivePlayer::customEvent(QEvent *event)
             }
         }
     }
+    MythUIType::customEvent(event);
 }
 
 void ZMLivePlayer::changeView(void)
@@ -315,14 +316,13 @@ void ZMLivePlayer::changePlayerMonitor(int playerNo)
     m_frameTimer->stop();
 
     int oldMonID = m_players->at(playerNo - 1)->getMonitor()->id;
-    Monitor *mon;
 
     // find the old monitor ID in the list of available monitors
-    int pos;
+    int pos = 0;
     for (pos = 0; pos < ZMClient::get()->getMonitorCount(); pos++)
     {
-        mon = ZMClient::get()->getMonitorAt(pos);
-        if (oldMonID == mon->id)
+        Monitor *omon = ZMClient::get()->getMonitorAt(pos);
+        if (oldMonID == omon->id)
         {
             break;
         }
@@ -336,7 +336,7 @@ void ZMLivePlayer::changePlayerMonitor(int playerNo)
     if (pos >= ZMClient::get()->getMonitorCount())
         pos = 0;
 
-    mon = ZMClient::get()->getMonitorAt(pos);
+    Monitor *mon = ZMClient::get()->getMonitorAt(pos);
 
     m_players->at(playerNo - 1)->setMonitor(mon);
     m_players->at(playerNo - 1)->updateCamera();
@@ -346,7 +346,7 @@ void ZMLivePlayer::changePlayerMonitor(int playerNo)
 
 void ZMLivePlayer::updateFrame()
 {
-    static unsigned char buffer[MAX_IMAGE_SIZE];
+    static unsigned char s_buffer[MAX_IMAGE_SIZE];
     m_frameTimer->stop();
 
     // get a list of monitor id's that need updating
@@ -361,7 +361,7 @@ void ZMLivePlayer::updateFrame()
     for (int x = 0; x < monList.count(); x++)
     {
         QString status;
-        int frameSize = ZMClient::get()->getLiveFrame(monList[x], status, buffer, sizeof(buffer));
+        int frameSize = ZMClient::get()->getLiveFrame(monList[x], status, s_buffer, sizeof(s_buffer));
 
         if (frameSize > 0 && !status.startsWith("ERROR"))
         {
@@ -376,7 +376,7 @@ void ZMLivePlayer::updateFrame()
                         p->getMonitor()->status = status;
                         p->updateStatus();
                     }
-                    p->updateFrame(buffer);
+                    p->updateFrame(s_buffer);
                 }
             }
         }

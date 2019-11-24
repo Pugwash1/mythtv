@@ -224,6 +224,8 @@ DTC::ProgramList* Guide::GetProgramList(int              nStartIndex,
                 + sSQL
                 + "oldprogram.oldtitle IS NULL AND ";
 
+    sSQL += "deleted IS NULL AND ";
+
     if (!bWithInvisible)
         sSQL += "visible != 0 AND ";
 
@@ -275,7 +277,7 @@ DTC::ProgramList* Guide::GetProgramList(int              nStartIndex,
     }
 
     if (sSort == "starttime")
-        sSQL += "ORDER BY program.starttime ";
+        sSQL += "ORDER BY program.starttime ";        // NOLINT(bugprone-branch-clone)
     else if (sSort == "title")
         sSQL += "ORDER BY program.title ";
     else if (sSort == "channel")

@@ -1243,7 +1243,7 @@ QString MusicMetadata::getAlbumArtFile(void)
     QString res;
 
     if ((albumart_image = m_albumArt->getImage(IT_FRONTCOVER)))
-        res = albumart_image->m_filename;
+        res = albumart_image->m_filename; // NOLINT(bugprone-branch-clone)
     else if ((albumart_image = m_albumArt->getImage(IT_UNKNOWN)))
         res = albumart_image->m_filename;
     else if ((albumart_image = m_albumArt->getImage(IT_BACKCOVER)))
@@ -1960,18 +1960,18 @@ void AlbumArtImages::findImages(void)
                 if (embedded)
                 {
                     if (url.scheme() == "myth")
-                        image->m_filename = gCoreContext->GenMythURL(url.host(), url.port(),
-                                                                   QString("AlbumArt/") + query.value(1).toString(),
-                                                                   "MusicArt");
+                        image->m_filename = MythCoreContext::GenMythURL(url.host(), url.port(),
+                                                                        QString("AlbumArt/") + query.value(1).toString(),
+                                                                        "MusicArt");
                     else
                         image->m_filename = query.value(1).toString();
                 }
                 else
                 {
                     if (url.scheme() == "myth")
-                        image->m_filename =  gCoreContext->GenMythURL(url.host(), url.port(),
-                                                                    query.value(1).toString(),
-                                                                    "Music");
+                        image->m_filename =  MythCoreContext::GenMythURL(url.host(), url.port(),
+                                                                         query.value(1).toString(),
+                                                                         "Music");
                     else
                         image->m_filename = query.value(1).toString();
                 }
@@ -2053,15 +2053,15 @@ void AlbumArtImages::scanForImages()
 
         if (image->m_embedded)
         {
-            image->m_filename = gCoreContext->GenMythURL(m_parent->Hostname(), 0,
-                                                       QString("AlbumArt/") + strList[x + 4],
-                                                       "MusicArt");
+            image->m_filename = MythCoreContext::GenMythURL(m_parent->Hostname(), 0,
+                                                            QString("AlbumArt/") + strList[x + 4],
+                                                            "MusicArt");
         }
         else
         {
-            image->m_filename =  gCoreContext->GenMythURL(m_parent->Hostname(), 0,
-                                                        strList[x + 4],
-                                                        "Music");
+            image->m_filename =  MythCoreContext::GenMythURL(m_parent->Hostname(), 0,
+                                                             strList[x + 4],
+                                                             "Music");
         }
 
         image->m_hostname = strList[x + 5];
@@ -2128,7 +2128,7 @@ AlbumArtImage *AlbumArtImages::getImageAt(uint index)
 QString AlbumArtImages::getTypeName(ImageType type)
 {
     // these const's should match the ImageType enum's
-    static const char* type_strings[] = {
+    static const char* s_typeStrings[] = {
         QT_TR_NOOP("Unknown"),            // IT_UNKNOWN
         QT_TR_NOOP("Front Cover"),        // IT_FRONTCOVER
         QT_TR_NOOP("Back Cover"),         // IT_BACKCOVER
@@ -2138,14 +2138,14 @@ QString AlbumArtImages::getTypeName(ImageType type)
     };
 
     return QCoreApplication::translate("AlbumArtImages",
-                                       type_strings[type]);
+                                       s_typeStrings[type]);
 }
 
 // static method to get a filename from an ImageType
 QString AlbumArtImages::getTypeFilename(ImageType type)
 {
     // these const's should match the ImageType enum's
-    static const char* filename_strings[] = {
+    static const char* s_filenameStrings[] = {
         QT_TR_NOOP("unknown"),      // IT_UNKNOWN
         QT_TR_NOOP("front"),        // IT_FRONTCOVER
         QT_TR_NOOP("back"),         // IT_BACKCOVER
@@ -2155,7 +2155,7 @@ QString AlbumArtImages::getTypeFilename(ImageType type)
     };
 
     return QCoreApplication::translate("AlbumArtImages",
-                                       filename_strings[type]);
+                                       s_filenameStrings[type]);
 }
 
 // static method to guess the image type from the filename
@@ -2164,7 +2164,9 @@ ImageType AlbumArtImages::guessImageType(const QString &filename)
     ImageType type = IT_FRONTCOVER;
 
     if (filename.contains("front", Qt::CaseInsensitive) ||
-             filename.contains(tr("front"), Qt::CaseInsensitive))
+             filename.contains(tr("front"), Qt::CaseInsensitive) ||
+             filename.contains("cover", Qt::CaseInsensitive) ||
+             filename.contains(tr("cover"), Qt::CaseInsensitive))
         type = IT_FRONTCOVER;
     else if (filename.contains("back", Qt::CaseInsensitive) ||
              filename.contains(tr("back"),  Qt::CaseInsensitive))
@@ -2175,9 +2177,6 @@ ImageType AlbumArtImages::guessImageType(const QString &filename)
     else if (filename.contains("cd", Qt::CaseInsensitive) ||
              filename.contains(tr("cd"), Qt::CaseInsensitive))
         type = IT_CD;
-    else if (filename.contains("cover", Qt::CaseInsensitive) ||
-             filename.contains(tr("cover"), Qt::CaseInsensitive))
-        type = IT_FRONTCOVER;
 
     return type;
 }

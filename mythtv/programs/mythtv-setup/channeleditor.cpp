@@ -2,6 +2,7 @@
 #include <QCoreApplication>
 
 // MythTV
+#include "mythcorecontext.h"
 #include "mythprogressdialog.h"
 #include "mythuibuttonlist.h"
 #include "channelsettings.h"
@@ -251,7 +252,8 @@ void ChannelEditor::fillList(void)
                        "LEFT JOIN videosource ON "
                        "(channel.sourceid = videosource.sourceid) "
                        "LEFT JOIN dtv_multiplex ON "
-                       "(channel.mplexid = dtv_multiplex.mplexid)";
+                       "(channel.mplexid = dtv_multiplex.mplexid) "
+                       "WHERE deleted IS NULL ";
 
     if (m_sourceFilter == FILTER_ALL)
     {
@@ -259,7 +261,7 @@ void ChannelEditor::fillList(void)
     }
     else
     {
-        querystr += QString(" WHERE channel.sourceid='%1' ")
+        querystr += QString("AND channel.sourceid='%1' ")
                            .arg(m_sourceFilter);
         fAllSources = false;
     }
@@ -505,9 +507,63 @@ void ChannelEditor::menu()
     }
 }
 
+// Check that we have a video source and that at least one
+// capture card is connected to the video source.
+//
+static bool check_cardsource(int sourceid, QString &sourcename)
+{
+    // Check for videosource
+    if (sourceid < 1)
+    {
+        MythConfirmationDialog *md = ShowOkPopup(QObject::tr(
+            "Select a video source. 'All' cannot be used. "
+            "If there is no video source then create one in the "
+            "'Video sources' menu page and connect a capture card."));
+        WaitFor(md);
+        return false;
+    }
+
+    // Check for a connected capture card
+    MSqlQuery query(MSqlQuery::InitCon());
+    query.prepare(
+        "SELECT capturecard.cardid "
+        "FROM  capturecard "
+        "WHERE capturecard.sourceid = :SOURCEID AND "
+        "      capturecard.hostname = :HOSTNAME");
+    query.bindValue(":SOURCEID", sourceid);
+    query.bindValue(":HOSTNAME", gCoreContext->GetHostName());
+
+    if (!query.exec() || !query.isActive())
+    {
+        MythDB::DBError("check_capturecard()", query);
+        return false;
+    }
+    uint cardid = 0;
+    if (query.next())
+        cardid = query.value(0).toUInt();
+
+    if (cardid < 1)
+    {
+        MythConfirmationDialog *md = ShowOkPopup(QObject::tr(
+            "No capture card!"
+            "\n"
+            "Connect video source '%1' to a capture card "
+            "in the 'Input Connections' menu page.")
+            .arg(sourcename));
+        WaitFor(md);
+        return false;
+    }
+
+    return true;
+}
+
 void ChannelEditor::scan(void)
 {
-#ifdef USING_BACKEND
+    // Check that we have a videosource and a connected capture card
+    if (!check_cardsource(m_sourceFilter, m_sourceFilterName))
+        return;
+ 
+    // Create the dialog now that we have a video source and a capture card
     MythScreenStack *mainStack = GetMythMainWindow()->GetMainStack();
     StandardSettingDialog *ssd =
         new StandardSettingDialog(mainStack, "scanwizard",
@@ -519,15 +575,15 @@ void ChannelEditor::scan(void)
     }
     else
         delete ssd;
-
-#else
-    LOG(VB_GENERAL, LOG_ERR,
-        "You must compile the backend to be able to scan for channels");
-#endif
 }
 
 void ChannelEditor::transportEditor(void)
 {
+    // Check that we have a videosource and a connected capture card
+    if (!check_cardsource(m_sourceFilter, m_sourceFilterName))
+        return;
+ 
+    // Create the dialog now that we have a video source and a capture card
     MythScreenStack *mainStack = GetMythMainWindow()->GetMainStack();
     StandardSettingDialog *ssd =
         new StandardSettingDialog(mainStack, "transporteditor",
@@ -655,14 +711,17 @@ void ChannelEditor::customEvent(QEvent *event)
                 else
                 {
                     tmp = tmp.left(tmp.length() - 1);
-                    query.prepare(QString("DELETE FROM channel "
-                    "WHERE sourceid NOT IN (%1)").arg(tmp));
+                    query.prepare(QString("UPDATE channel "
+                    "SET deleted = NOW() "
+                    "WHERE deleted IS NULL AND "
+                    "      sourceid NOT IN (%1)").arg(tmp));
                 }
             }
             else
             {
-                query.prepare("DELETE FROM channel "
-                "WHERE sourceid = :SOURCEID");
+                query.prepare("UPDATE channel "
+                "SET deleted = NOW() "
+                "WHERE deleted IS NULL AND sourceid = :SOURCEID");
                 query.bindValue(":SOURCEID", m_sourceFilter);
             }
 
@@ -675,7 +734,7 @@ void ChannelEditor::customEvent(QEvent *event)
         {
             MythScreenStack *mainStack = GetMythMainWindow()->GetMainStack();
 
-            ImportIconsWizard *iconwizard;
+            ImportIconsWizard *iconwizard = nullptr;
 
             QString channelname = dce->GetData().toString();
 

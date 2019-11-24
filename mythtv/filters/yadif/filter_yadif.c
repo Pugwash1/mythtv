@@ -54,51 +54,51 @@ static void* (*fast_memcpy)(void * to, const void * from, size_t len);
 
 struct DeintThread
 {
-    int       ready;
-    pthread_t id;
-    int       exists;
+    int       m_ready;
+    pthread_t m_id;
+    int       m_exists;
 };
 
 typedef struct ThisFilter
 {
-    VideoFilter vf;
+    VideoFilter m_vf;
 
-    struct DeintThread *threads;
-    VideoFrame *frame;
-    int         field;
-    int         ready;
-    int         kill_threads;
-    int         actual_threads;
-    int         requested_threads;
-    pthread_mutex_t mutex;
+    struct DeintThread *m_threads;
+    VideoFrame         *m_frame;
+    int                 m_field;
+    int                 m_ready;
+    int                 m_killThreads;
+    int                 m_actualThreads;
+    int                 m_requestedThreads;
+    pthread_mutex_t     m_mutex;
 
-    long long last_framenr;
+    long long           m_lastFrameNr;
 
-    uint8_t *ref[4][3];
-    int stride[3];
-    int8_t got_frames[4];
+    uint8_t            *m_ref[4][3];
+    int                 m_stride[3];
+    int8_t              m_gotFrames[4];
 
-    void (*filter_line)(struct ThisFilter *p, uint8_t *dst,
+    void (*m_filterLine)(struct ThisFilter *p, uint8_t *dst,
                         const uint8_t *prev, const uint8_t *cur, const uint8_t *next,
                         int w, int refs, int parity);
-    int mode;
-    int width;
-    int height;
+    int                 m_mode;
+    int                 m_width;
+    int                 m_height;
 
-    int mm_flags;
+    int                 m_mmFlags;
     TF_STRUCT;
 } ThisFilter;
 
 static void AllocFilter(ThisFilter* filter, int width, int height)
 {
-    if ((width != filter->width) || height != filter->height)
+    if ((width != filter->m_width) || height != filter->m_height)
     {
         printf("YadifDeint: size changed from %d x %d -> %d x %d\n",
-                filter->width, filter->height, width, height);
+                filter->m_width, filter->m_height, width, height);
         for (int i=0; i<3*3; i++)
         {
-            uint8_t **p= &filter->ref[i%3][i/3];
-            if (*p) free(*p - 3*filter->stride[i/3]);
+            uint8_t **p= &filter->m_ref[i%3][i/3];
+            if (*p) free(*p - 3*filter->m_stride[i/3]);
             *p= NULL;
         }
         for (int i=0; i<3; i++)
@@ -107,13 +107,13 @@ static void AllocFilter(ThisFilter* filter, int width, int height)
             int w= ((width   + 31) & (~31))>>is_chroma;
             int h= ((height+6+ 31) & (~31))>>is_chroma;
 
-            filter->stride[i]= w;
+            filter->m_stride[i]= w;
             for (int j=0; j<3; j++)
-                filter->ref[j][i]= (uint8_t*)calloc(w*h*sizeof(uint8_t),1)+3*w;
+                filter->m_ref[j][i]= (uint8_t*)calloc(w*h*sizeof(uint8_t),1)+3*w;
         }
-        filter->width = width;
-        filter->height = height;
-        memset(filter->got_frames, 0, sizeof(filter->got_frames));
+        filter->m_width = width;
+        filter->m_height = height;
+        memset(filter->m_gotFrames, 0, sizeof(filter->m_gotFrames));
     }
 }
 
@@ -150,21 +150,19 @@ static inline void * memcpy_pic2(void * dst, const void * src,
 static void store_ref(struct ThisFilter *p, uint8_t *src, int src_offsets[3],
                       int src_stride[3], int width, int height)
 {
-    int i;
+    memcpy (p->m_ref[3], p->m_ref[0], sizeof(uint8_t *)*3);
+    memmove(p->m_ref[0], p->m_ref[1], sizeof(uint8_t *)*3*3);
 
-    memcpy (p->ref[3], p->ref[0], sizeof(uint8_t *)*3);
-    memmove(p->ref[0], p->ref[1], sizeof(uint8_t *)*3*3);
+    memcpy (&p->m_gotFrames[3], &p->m_gotFrames[0], sizeof(uint8_t));
+    memmove(&p->m_gotFrames[0], &p->m_gotFrames[1], sizeof(uint8_t) * 3);
 
-    memcpy (&p->got_frames[3], &p->got_frames[0], sizeof(uint8_t));
-    memmove(&p->got_frames[0], &p->got_frames[1], sizeof(uint8_t) * 3);
-
-    for (i=0; i<3; i++)
+    for (int i=0; i<3; i++)
     {
         int is_chroma= !!i;
-        memcpy_pic(p->ref[2][i], src + src_offsets[i], width>>is_chroma,
-                   height>>is_chroma, p->stride[i], src_stride[i]);
+        memcpy_pic(p->m_ref[2][i], src + src_offsets[i], width>>is_chroma,
+                   height>>is_chroma, p->m_stride[i], src_stride[i]);
     }
-    p->got_frames[2] = 1;
+    p->m_gotFrames[2] = 1;
 }
 
 
@@ -233,12 +231,11 @@ static void filter_line_mmx2(struct ThisFilter *p, uint8_t *dst,
 {
     static const uint64_t pw_1 = 0x0001000100010001ULL;
     static const uint64_t pb_1 = 0x0101010101010101ULL;
-    const int mode = p->mode;
-    uint64_t tmp0, tmp1, tmp2, tmp3;
-    int x;
+    const int mode = p->m_mode;
+    uint64_t tmp0 = 0, tmp1 = 0, tmp2 = 0, tmp3 = 0;
 
 #define FILTER\
-    for (x=0; x<w; x+=4){\
+    for (int x=0; x<w; x+=4){\
         __asm__ volatile(\
             "pxor      %%mm7, %%mm7 \n\t"\
             LOAD4("(%[cur],%[mrefs])", %%mm0) /* c = cur[x-refs] */\
@@ -302,7 +299,7 @@ static void filter_line_mmx2(struct ThisFilter *p, uint8_t *dst,
             CHECK(1,-3)\
             CHECK2\
 \
-            /* if (p->mode<2) ... */\
+            /* if (p->m_mode<2) ... */\
             "movq    %[tmp3], %%mm6 \n\t" /* diff */\
             "cmpl      $2, %[mode] \n\t"\
             "jge       1f \n\t"\
@@ -394,10 +391,9 @@ static void filter_line_c(struct ThisFilter *p, uint8_t *dst,
                           int w, int refs, int parity)
 {
     (void) p;
-    int x;
     const uint8_t *prev2= parity ? prev : cur ;
     const uint8_t *next2= parity ? cur  : next;
-    for (x=0; x<w; x++)
+    for (int x=0; x<w; x++)
     {
         int c= cur[-refs];
         int d= (prev2[0] + next2[0])>>1;
@@ -409,7 +405,7 @@ static void filter_line_c(struct ThisFilter *p, uint8_t *dst,
         int spatial_pred= (c+e)>>1;
         int spatial_score= ABS(cur[-refs-1] - cur[+refs-1]) + ABS(c-e)
                          + ABS(cur[-refs+1] - cur[+refs+1]) - 1;
-        int score;
+        int score = 0;
 
 #define CHECK(j)\
     {   score= ABS(cur[-refs-1+(j)] - cur[+refs-1-(j)])\
@@ -451,10 +447,8 @@ static void filter_func(struct ThisFilter *p, uint8_t *dst, int dst_offsets[3],
     if (total_slices < 1)
         return;
 
-    int y, i;
-    uint8_t nr_p, nr_c;
-    nr_c = p->got_frames[1] ? 1: 2;
-    nr_p = p->got_frames[0] ? 0: nr_c;
+    uint8_t nr_c = p->m_gotFrames[1] ? 1: 2;
+    uint8_t nr_p = p->m_gotFrames[0] ? 0: nr_c;
     int slice_height = height / total_slices;
     slice_height     = (slice_height >> 1) << 1;
     int starth       = slice_height * this_slice;
@@ -462,29 +456,29 @@ static void filter_func(struct ThisFilter *p, uint8_t *dst, int dst_offsets[3],
     if ((this_slice + 1) >= total_slices)
         endh = height;
 
-    for (i = 0; i < 3; i++)
+    for (int i = 0; i < 3; i++)
     {
         int is_chroma= !!i;
         int w     = width  >> is_chroma;
         int start = starth >> is_chroma;
         int end   = endh   >> is_chroma;
-        int refs  = p->stride[i];
+        int refs  = p->m_stride[i];
 
-        for (y = start; y < end; y++)
+        for (int y = start; y < end; y++)
         {
             uint8_t *dst2= dst + dst_offsets[i] + y*dst_stride[i];
             int field = parity ^ tff;
             if ((y ^ (1 - field)) & 1)
             {
-                uint8_t *prev= &p->ref[nr_p][i][y*refs];
-                uint8_t *cur = &p->ref[nr_c][i][y*refs];
-                uint8_t *next= &p->ref[2][i][y*refs];
+                uint8_t *prev= &p->m_ref[nr_p][i][y*refs];
+                uint8_t *cur = &p->m_ref[nr_c][i][y*refs];
+                uint8_t *next= &p->m_ref[2][i][y*refs];
                 uint8_t *dst2a= dst + dst_offsets[i] + y*dst_stride[i];
-                p->filter_line(p, dst2a, prev, cur, next, w, refs, field);
+                p->m_filterLine(p, dst2a, prev, cur, next, w, refs, field);
             }
             else
             {
-                fast_memcpy(dst2, &p->ref[nr_c][i][y*refs], w);
+                fast_memcpy(dst2, &p->m_ref[nr_c][i][y*refs], w);
             }
         }
     }
@@ -499,15 +493,15 @@ static int YadifDeint (VideoFilter * f, VideoFrame * frame, int field)
 
     AllocFilter(filter, frame->width, frame->height);
 
-    if (filter->last_framenr != frame->frameNumber)
+    if (filter->m_lastFrameNr != frame->frameNumber)
     {
-        if (filter->last_framenr != (frame->frameNumber - 1))
-            memset(filter->got_frames, 0, sizeof(filter->got_frames));
+        if (filter->m_lastFrameNr != (frame->frameNumber - 1))
+            memset(filter->m_gotFrames, 0, sizeof(filter->m_gotFrames));
         store_ref(filter, frame->buf,  frame->offsets,
                   frame->pitches, frame->width, frame->height);
     }
 
-    if (filter->actual_threads < 1)
+    if (filter->m_actualThreads < 1)
     {
         filter_func(
             filter, frame->buf, frame->offsets, frame->pitches,
@@ -516,21 +510,20 @@ static int YadifDeint (VideoFilter * f, VideoFrame * frame, int field)
     }
     else
     {
-        int i;
-        for (i = 0; i < filter->actual_threads; i++)
-            filter->threads[i].ready = 1;
-        filter->field = field;
-        filter->frame = frame;
-        filter->ready = filter->actual_threads;
-        i = 0;
-        while (filter->ready > 0 && i < 1000)
+        for (int i = 0; i < filter->m_actualThreads; i++)
+            filter->m_threads[i].m_ready = 1;
+        filter->m_field = field;
+        filter->m_frame = frame;
+        filter->m_ready = filter->m_actualThreads;
+        int i = 0;
+        while (filter->m_ready > 0 && i < 1000)
         {
             usleep(1000);
             i++;
         }
     }
 
-    filter->last_framenr = frame->frameNumber;
+    filter->m_lastFrameNr = frame->frameNumber;
 
     return 0;
 }
@@ -538,22 +531,21 @@ static int YadifDeint (VideoFilter * f, VideoFrame * frame, int field)
 
 static void CleanupYadifDeintFilter (VideoFilter * filter)
 {
-    int i;
     ThisFilter* f = (ThisFilter*)filter;
 
-    if (f->threads != NULL)
+    if (f->m_threads != NULL)
     {
-        f->kill_threads = 1;
-        for (i = 0; i < f->requested_threads; i++)
-            if (f->threads[i].exists)
-                pthread_join(f->threads[i].id, NULL);
-        free(f->threads);
+        f->m_killThreads = 1;
+        for (int i = 0; i < f->m_requestedThreads; i++)
+            if (f->m_threads[i].m_exists)
+                pthread_join(f->m_threads[i].m_id, NULL);
+        free(f->m_threads);
     }
 
-    for (i = 0; i < 3*3; i++)
+    for (int i = 0; i < 3*3; i++)
     {
-        uint8_t **p= &f->ref[i%3][i/3];
-        if (*p) free(*p - 3*f->stride[i/3]);
+        uint8_t **p= &f->m_ref[i%3][i/3];
+        if (*p) free(*p - 3*f->m_stride[i/3]);
         *p= NULL;
     }
 }
@@ -562,28 +554,28 @@ static void *YadifThread(void *args)
 {
     ThisFilter *filter = (ThisFilter*)args;
 
-    pthread_mutex_lock(&(filter->mutex));
-    int num = filter->actual_threads;
-    filter->actual_threads = num + 1;
-    pthread_mutex_unlock(&(filter->mutex));
+    pthread_mutex_lock(&(filter->m_mutex));
+    int num = filter->m_actualThreads;
+    filter->m_actualThreads = num + 1;
+    pthread_mutex_unlock(&(filter->m_mutex));
 
-    while (!filter->kill_threads)
+    while (!filter->m_killThreads)
     {
         usleep(1000);
-        if (filter->ready &&
-            filter->frame != NULL &&
-            filter->threads[num].ready)
+        if (filter->m_ready &&
+            filter->m_frame != NULL &&
+            filter->m_threads[num].m_ready)
         {
             filter_func(
-                filter, filter->frame->buf, filter->frame->offsets,
-                filter->frame->pitches, filter->frame->width,
-                filter->frame->height, filter->field,
-                filter->frame->top_field_first, num, filter->actual_threads);
+                filter, filter->m_frame->buf, filter->m_frame->offsets,
+                filter->m_frame->pitches, filter->m_frame->width,
+                filter->m_frame->height, filter->m_field,
+                filter->m_frame->top_field_first, num, filter->m_actualThreads);
 
-            pthread_mutex_lock(&(filter->mutex));
-            filter->ready = filter->ready - 1;
-            filter->threads[num].ready = 0;
-            pthread_mutex_unlock(&(filter->mutex));
+            pthread_mutex_lock(&(filter->m_mutex));
+            filter->m_ready = filter->m_ready - 1;
+            filter->m_threads[num].m_ready = 0;
+            pthread_mutex_unlock(&(filter->m_mutex));
         }
     }
     pthread_exit(NULL);
@@ -595,100 +587,99 @@ static VideoFilter * YadifDeintFilter(VideoFrameType inpixfmt,
                                       const int *width, const int *height, const char *options,
                                       int threads)
 {
-    ThisFilter *filter;
     (void) options;
 
     fprintf(stderr, "YadifDeint: In-Pixformat = %d Out-Pixformat=%d\n",
             inpixfmt, outpixfmt);
-    filter = (ThisFilter *) malloc (sizeof(ThisFilter));
+    ThisFilter *filter = (ThisFilter *) malloc (sizeof(ThisFilter));
     if (filter == NULL)
     {
         fprintf (stderr, "YadifDeint: failed to allocate memory.\n");
         return NULL;
     }
 
-    filter->width = 0;
-    filter->height = 0;
-    filter->mode = 1;
-    memset(filter->ref, 0, sizeof(filter->ref));
+    filter->m_width = 0;
+    filter->m_height = 0;
+    filter->m_mode = 1;
+    memset(filter->m_ref, 0, sizeof(filter->m_ref));
 
     AllocFilter(filter, *width, *height);
 
 #if HAVE_MMX
-    filter->mm_flags = av_get_cpu_flags();
+    filter->m_mmFlags = av_get_cpu_flags();
     TF_INIT(filter);
 #else
-    filter->mm_flags = 0;
+    filter->m_mmFlags = 0;
 #endif
 
-    filter->filter_line = filter_line_c;
+    filter->m_filterLine = filter_line_c;
 #if HAVE_MMX
-    if (filter->mm_flags & AV_CPU_FLAG_MMX)
+    if (filter->m_mmFlags & AV_CPU_FLAG_MMX)
     {
-        filter->filter_line = filter_line_mmx2;
+        filter->m_filterLine = filter_line_mmx2;
     }
 
-    if (filter->mm_flags & AV_CPU_FLAG_SSE2)
+    if (filter->m_mmFlags & AV_CPU_FLAG_SSE2)
         fast_memcpy=fast_memcpy_SSE;
-    else if (filter->mm_flags & AV_CPU_FLAG_MMX2)
+    else if (filter->m_mmFlags & AV_CPU_FLAG_MMX2)
         fast_memcpy=fast_memcpy_MMX2;
-    else if (filter->mm_flags & AV_CPU_FLAG_3DNOW)
+    else if (filter->m_mmFlags & AV_CPU_FLAG_3DNOW)
         fast_memcpy=fast_memcpy_3DNow;
-    else if (filter->mm_flags & AV_CPU_FLAG_MMX)
+    else if (filter->m_mmFlags & AV_CPU_FLAG_MMX)
         fast_memcpy=fast_memcpy_MMX;
     else
 #endif
         fast_memcpy=memcpy;
 
-    filter->vf.filter = &YadifDeint;
-    filter->vf.cleanup = &CleanupYadifDeintFilter;
+    filter->m_vf.filter = &YadifDeint;
+    filter->m_vf.cleanup = &CleanupYadifDeintFilter;
 
-    filter->frame = NULL;
-    filter->field = 0;
-    filter->ready = 0;
-    filter->kill_threads = 0;
-    filter->actual_threads  = 0;
-    filter->requested_threads  = threads;
-    filter->threads = NULL;
+    filter->m_frame = NULL;
+    filter->m_field = 0;
+    filter->m_ready = 0;
+    filter->m_killThreads = 0;
+    filter->m_actualThreads  = 0;
+    filter->m_requestedThreads  = threads;
+    filter->m_threads = NULL;
 
-    if (filter->requested_threads > 1)
+    if (filter->m_requestedThreads > 1)
     {
-        filter->threads = (struct DeintThread *) calloc(threads,
+        filter->m_threads = (struct DeintThread *) calloc(threads,
                           sizeof(struct DeintThread));
-        if (filter->threads == NULL)
+        if (filter->m_threads == NULL)
         {
             printf("YadifDeint: failed to allocate memory for threads - "
                    "falling back to existing, single thread.\n");
-            filter->requested_threads = 1;
+            filter->m_requestedThreads = 1;
         }
     }
 
-    if (filter->requested_threads > 1)
+    if (filter->m_requestedThreads > 1)
     {
-        pthread_mutex_init(&(filter->mutex), NULL);
+        pthread_mutex_init(&(filter->m_mutex), NULL);
         int success = 0;
-        for (int i = 0; i < filter->requested_threads; i++)
+        for (int i = 0; i < filter->m_requestedThreads; i++)
         {
-            if (pthread_create(&(filter->threads[i].id), NULL,
+            if (pthread_create(&(filter->m_threads[i].m_id), NULL,
                                YadifThread, (void*)filter) != 0)
-                filter->threads[i].exists = 0;
+                filter->m_threads[i].m_exists = 0;
             else
             {
                 success++;
-                filter->threads[i].exists = 1;
+                filter->m_threads[i].m_exists = 1;
             }
         }
 
-        if (success < filter->requested_threads)
+        if (success < filter->m_requestedThreads)
         {
             printf("YadifDeint: only created %d of %d threads - "
                    "falling back to existing, single thread.\n"
-                   , success, filter->requested_threads);
+                   , success, filter->m_requestedThreads);
         }
         else
         {
             int timeout = 0;
-            while (filter->actual_threads != filter->requested_threads)
+            while (filter->m_actualThreads != filter->m_requestedThreads)
             {
                 timeout++;
                 if (timeout > 5000)
@@ -700,11 +691,11 @@ static VideoFilter * YadifDeintFilter(VideoFrameType inpixfmt,
                 usleep(1000);
             }
             printf("yadifdeint: Created %d threads (%d requested)\n",
-                   filter->actual_threads, filter->requested_threads);
+                   filter->m_actualThreads, filter->m_requestedThreads);
         }
     }
 
-    if (filter->actual_threads < 1 )
+    if (filter->m_actualThreads < 1 )
     {
         printf("YadifDeint: Using existing thread.\n");
     }

@@ -61,8 +61,6 @@ using namespace std;
 #include HDHOMERUN_HEADERFILE
 #endif
 
-static const uint kDefaultMultirecCount = 2;
-
 VideoSourceSelector::VideoSourceSelector(uint           _initial_sourceid,
                                          const QString &_card_types,
                                          bool           _must_have_mplexid) :
@@ -71,6 +69,12 @@ VideoSourceSelector::VideoSourceSelector(uint           _initial_sourceid,
     m_mustHaveMplexId(_must_have_mplexid)
 {
     setLabel(tr("Video Source"));
+    setHelpText(
+        QObject::tr(
+            "Select a video source that is connected to one "
+            "or more capture cards. Default is the video source "
+            "selected in the Channel Editor page."
+            ));
 }
 
 void VideoSourceSelector::Load(void)
@@ -120,7 +124,6 @@ void VideoSourceSelector::Load(void)
     {
         if (cnt)
             setValue(sel);
-        setEnabled(false);
     }
 
     TransMythUIComboBoxSetting::Load();
@@ -129,12 +132,12 @@ void VideoSourceSelector::Load(void)
 class InstanceCount : public MythUISpinBoxSetting
 {
   public:
-    InstanceCount(const CardInput &parent, int _initValue) :
+    explicit InstanceCount(const CardInput &parent) :
         MythUISpinBoxSetting(new CardInputDBStorage(this, parent, "reclimit"),
                              1, 10, 1)
     {
         setLabel(QObject::tr("Max recordings"));
-        setValue(_initValue);
+        setValue(1);
         setHelpText(
             QObject::tr(
                 "Maximum number of simultaneous recordings MythTV will "
@@ -347,6 +350,20 @@ class CaptureCardTextEditSetting : public MythUITextEditSetting
     }
 };
 
+class ScanFrequency : public MythUITextEditSetting
+{
+  public:
+    ScanFrequency(const VideoSource &parent) :
+        MythUITextEditSetting(new VideoSourceDBStorage(this, parent, "scanfrequency"))
+    {
+       setLabel(QObject::tr("Scan Frequency"));
+       setHelpText(QObject::tr("The frequency to start scanning this video source. "
+                               "This is then default for 'Full Scan (Tuned)' channel scanning. "
+                               "Frequency value in Hz for DVB-T/T2/C, in kHz for DVB-S/S2. "
+                               "Leave at 0 if not known. "));
+    };
+};
+
 class DVBNetID : public MythUISpinBoxSetting
 {
   public:
@@ -360,6 +377,40 @@ class DVBNetID : public MythUISpinBoxSetting
        setHelpText(QObject::tr("If your provider has asked you to configure a "
                                "specific network identifier (Network_ID), "
                                "enter it here. Leave it at -1 otherwise."));
+       setValue(value);
+    };
+};
+
+class BouquetID : public MythUISpinBoxSetting
+{
+  public:
+    BouquetID(const VideoSource &parent, signed int value, signed int min_val) :
+        MythUISpinBoxSetting(new VideoSourceDBStorage(this, parent, "bouquet_id"),
+                             min_val, 0xffff, 1)
+    {
+       setLabel(QObject::tr("Bouquet ID"));
+       setHelpText(QObject::tr("Bouquet ID for Freesat or BSkyB on satellite Astra-2 28.2E. "
+                               "Leave this at 0 if you do not receive this satellite. "
+                               "This is needed to get the Freesat and Sky channel numbers. "
+                               "Value 272 selects Freesat bouquet 'England HD'. "
+                               "See the MythTV Wiki https://www.mythtv.org/wiki/DVB_UK."));
+       setValue(value);
+    };
+};
+
+class RegionID : public MythUISpinBoxSetting
+{
+  public:
+    RegionID(const VideoSource &parent, signed int value, signed int min_val) :
+        MythUISpinBoxSetting(new VideoSourceDBStorage(this, parent, "region_id"),
+                             min_val, 100, 1)
+    {
+       setLabel(QObject::tr("Region ID"));
+       setHelpText(QObject::tr("Region ID for Freesat or BSkyB on satellite Astra-2 28.2E. "
+                               "Leave this at 0 you do not receive this satellite.  "
+                               "This is needed to get the Freesat and Sky channel numbers. "
+                               "Value 1 selects region London. "
+                               "See the MythTV Wiki https://www.mythtv.org/wiki/DVB_UK."));
        setValue(value);
     };
 };
@@ -577,7 +628,10 @@ VideoSource::VideoSource()
     addChild(m_name = new Name(*this));
     addChild(new XMLTVGrabber(*this));
     addChild(new FreqTableSelector(*this));
+    addChild(new ScanFrequency(*this));
     addChild(new DVBNetID(*this, -1, -1));
+    addChild(new BouquetID(*this, 0, 0));
+    addChild(new RegionID(*this, 0, 0));
 }
 
 bool VideoSource::canDelete(void)
@@ -652,7 +706,7 @@ void VideoSource::loadByID(int sourceid)
 class VideoDevice : public CaptureCardComboBoxSetting
 {
   public:
-    VideoDevice(const CaptureCard &parent,
+    explicit VideoDevice(const CaptureCard &parent,
                 uint    minor_min = 0,
                 uint    minor_max = UINT_MAX,
                 const QString& card      = QString(),
@@ -713,7 +767,7 @@ class VideoDevice : public CaptureCardComboBoxSetting
         {
             QFileInfo &fi = *it;
 
-            struct stat st;
+            struct stat st {};
             QString filepath = fi.absoluteFilePath();
             int err = lstat(filepath.toLocal8Bit().constData(), &st);
 
@@ -1052,7 +1106,10 @@ class DVBCardName : public GroupSetting
     DVBCardName()
     {
         setLabel(QObject::tr("Frontend ID"));
-        setEnabled(false);
+        setHelpText(
+            QObject::tr("Identification string reported by the card. "
+                        "If the message \"Could not get card info...\" appears "
+                        "the card can be in use by another program."));
     };
 };
 
@@ -2634,7 +2691,10 @@ class InputName : public MythUIComboBoxSetting
     void fillSelections() {
         clearSelections();
         addSelection(QObject::tr("(None)"), "None");
-        uint cardid = static_cast<CardInputDBStorage*>(GetStorage())->getInputID();
+        CardInputDBStorage *storage = dynamic_cast<CardInputDBStorage*>(GetStorage());
+        if (storage == nullptr)
+            return;
+        uint cardid = storage->getInputID();
         QString type = CardUtil::GetRawInputType(cardid);
         QString device = CardUtil::GetVideoDevice(cardid);
         QStringList inputs;
@@ -2664,15 +2724,21 @@ class InputDisplayName : public MythUITextEditSetting
 {
   public:
     explicit InputDisplayName(const CardInput &parent) :
-        MythUITextEditSetting(new CardInputDBStorage(this, parent, "displayname"))
+        MythUITextEditSetting(new CardInputDBStorage(this, parent, "displayname")), m_parent(parent)
     {
-        setLabel(QObject::tr("Display name (optional)"));
+        setLabel(QObject::tr("Display name"));
         setHelpText(QObject::tr(
                         "This name is displayed on screen when Live TV begins "
-                        "and when changing the selected input or card. If you "
-                        "use this, make sure the information is unique for "
-                        "each input."));
+                        "and in various other places.  Make sure the last two "
+                        "characters are unique for each input."));
     };
+    void Load(void) override {
+        MythUITextEditSetting::Load();
+        if (getValue().isEmpty())
+            setValue(tr("Input %1").arg(m_parent.getInputID()));
+    }
+  private:
+    const CardInput &m_parent;
 };
 
 class CardInputComboBoxSetting : public MythUIComboBoxSetting
@@ -2739,7 +2805,7 @@ class InputGroup : public TransMythUIComboBoxSetting
         }
     }
 
-    virtual void Save(QString /*destination*/) { Save(); }
+    virtual void Save(const QString& /*destination*/) { Save(); }
 
   private:
     const CardInput &m_cardInput;
@@ -2892,7 +2958,10 @@ void StartingChannel::SetSourceID(const QString &sourceid)
         return;
 
     // Get the existing starting channel
-    int inputId = static_cast<CardInputDBStorage*>(GetStorage())->getInputID();
+    CardInputDBStorage *storage = dynamic_cast<CardInputDBStorage*>(GetStorage());
+    if (storage == nullptr)
+        return;
+    int inputId = storage->getInputID();
     QString startChan = CardUtil::GetStartingChannel(inputId);
 
     ChannelInfoList channels = ChannelUtil::GetAllChannels(sourceid.toUInt());
@@ -3058,7 +3127,7 @@ CardInput::CardInput(const QString & cardtype, const QString & device,
     interact->setLabel(QObject::tr("Interactions between inputs"));
     if (CardUtil::IsTunerSharingCapable(cardtype))
     {
-        m_instanceCount = new InstanceCount(*this, kDefaultMultirecCount);
+        m_instanceCount = new InstanceCount(*this);
         interact->addChild(m_instanceCount);
         m_schedGroup = new SchedGroup(*this);
         interact->addChild(m_schedGroup);
@@ -3587,9 +3656,8 @@ static QString remove_chaff(const QString &name)
         short_name = "pcHDTV HD-3000";
     else if (short_name.startsWith("bcm3510", Qt::CaseInsensitive))
         short_name = "Air2PC v1";
-    else if (short_name.startsWith("nxt2002", Qt::CaseInsensitive))
-        short_name = "Air2PC v2";
-    else if (short_name.startsWith("nxt200x", Qt::CaseInsensitive))
+    else if (short_name.startsWith("nxt2002", Qt::CaseInsensitive) ||
+             short_name.startsWith("nxt200x", Qt::CaseInsensitive))
         short_name = "Air2PC v2";
     else if (short_name.startsWith("lgdt3302", Qt::CaseInsensitive))
         short_name = "DViCO HDTV3";

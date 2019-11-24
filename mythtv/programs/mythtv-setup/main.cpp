@@ -276,6 +276,7 @@ int main(int argc, char *argv[])
     bool    scanFTAOnly = false;
     bool    scanLCNOnly = false;
     bool    scanCompleteOnly = false;
+    bool    scanFullChannelSearch = false;
     bool    addFullTS = false;
     ServiceRequirements scanServiceRequirements = kRequireAV;
     uint    scanCardId = 0;
@@ -303,7 +304,7 @@ int main(int argc, char *argv[])
 
     if (cmdline.toBool("showversion"))
     {
-        cmdline.PrintVersion();
+        MythTVSetupCommandLineParser::PrintVersion();
         return GENERIC_EXIT_OK;
     }
 
@@ -347,9 +348,9 @@ int main(int argc, char *argv[])
     if (cmdline.toBool("geometry"))
         geometry = cmdline.toString("geometry");
 
-    int retval;
     QString mask("general");
-    if ((retval = cmdline.ConfigureLogging(mask, quiet)) != GENERIC_EXIT_OK)
+    int retval = cmdline.ConfigureLogging(mask, quiet);
+    if (retval != GENERIC_EXIT_OK)
         return retval;
 
     if (cmdline.toBool("expert"))
@@ -369,6 +370,8 @@ int main(int argc, char *argv[])
         scanLCNOnly = true;
     if (cmdline.toBool("completeonly"))
         scanCompleteOnly = true;
+    if (cmdline.toBool("fullsearch"))
+        scanFullChannelSearch = true;
     if (cmdline.toBool("addfullts"))
         addFullTS = true;
     if (cmdline.toBool("servicetype"))
@@ -499,9 +502,9 @@ int main(int argc, char *argv[])
         {
             ChannelScannerCLI scanner(doScanSaveOnly, scanInteractive);
 
-            int scantype;
+            int scantype = ScanTypeSetting::FullScan_ATSC;
             if (frequencyStandard == "atsc")
-                scantype = ScanTypeSetting::FullScan_ATSC;
+                scantype = ScanTypeSetting::FullScan_ATSC; // NOLINT(bugprone-branch-clone)
             else if (frequencyStandard == "dvbt")
                 scantype = ScanTypeSetting::FullScan_DVBT;
             else if (frequencyStandard == "mpeg")
@@ -526,6 +529,7 @@ int main(int argc, char *argv[])
                          scanFTAOnly,
                          scanLCNOnly,
                          scanCompleteOnly,
+                         scanFullChannelSearch,
                          addFullTS,
                          scanServiceRequirements,
                          // stuff needed for particular scans
@@ -560,7 +564,8 @@ int main(int argc, char *argv[])
         {
             ScanDTVTransportList list = LoadScan(scanImport);
             ChannelImporter ci(false, true, true, true, false,
-                               scanFTAOnly, scanLCNOnly, scanCompleteOnly, scanServiceRequirements);
+                               scanFTAOnly, scanLCNOnly, scanCompleteOnly,
+                               scanFullChannelSearch, scanServiceRequirements);
             ci.Process(list);
         }
         cout<<"*** SCAN IMPORT END ***"<<endl;

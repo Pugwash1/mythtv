@@ -23,12 +23,9 @@ extern "C" {
  */
 SPDIFEncoder::SPDIFEncoder(const QString& muxer, AVCodecID codec_id)
 {
-    memset(&m_buffer, 0, sizeof(m_buffer));
-
     QByteArray dev_ba     = muxer.toLatin1();
-    AVOutputFormat *fmt;
 
-    fmt = av_guess_format(dev_ba.constData(), nullptr, nullptr);
+    AVOutputFormat *fmt = av_guess_format(dev_ba.constData(), nullptr, nullptr);
     if (!fmt)
     {
         LOG(VB_AUDIO, LOG_ERR, LOC + "av_guess_format");
@@ -103,8 +100,8 @@ void SPDIFEncoder::WriteFrame(unsigned char *data, int size)
 {
     AVPacket packet;
     av_init_packet(&packet);
-    static int pts = 1; // to avoid warning "Encoder did not produce proper pts"
-    packet.pts  = pts++;
+    static int s_pts = 1; // to avoid warning "Encoder did not produce proper pts"
+    packet.pts     = s_pts++;
     packet.data    = data;
     packet.size    = size;
 

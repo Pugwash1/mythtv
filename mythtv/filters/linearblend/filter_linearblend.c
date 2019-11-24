@@ -25,11 +25,11 @@
 
 typedef struct LBFilter
 {
-    VideoFilter vf;
+    VideoFilter m_vf;
 
     /* functions and variables below here considered "private" */
-    int mm_flags;
-    void (*subfilter)(unsigned char *, int);
+    int m_mmFlags;
+    void (*m_subfilter)(unsigned char *, int);
     TF_STRUCT;
 } LBFilter;
 
@@ -182,7 +182,7 @@ int linearBlendFilterAltivec(VideoFilter *f, VideoFrame *frame, int field)
             for (x = 0; x < stride; x += 8)
             {
                 src = yptr + x + y * stride;  
-                linearBlend(src, stride);  
+                linearBlend(src, stride);
             }
         }
     }
@@ -289,8 +289,6 @@ static int linearBlendFilter(VideoFilter *f, VideoFrame *frame, int  field)
     unsigned char *yptr = frame->buf + frame->offsets[0];
     int stride = frame->pitches[0];
     int ymax = height - 8;
-    int x,y;
-    unsigned char *src;
     unsigned char *uoff = frame->buf + frame->offsets[1];
     unsigned char *voff = frame->buf + frame->offsets[2];
     LBFilter *vf = (LBFilter *)f;
@@ -298,32 +296,32 @@ static int linearBlendFilter(VideoFilter *f, VideoFrame *frame, int  field)
 
     TF_START;
 
-    for (y = 0; y < ymax; y+=8)
+    for (int y = 0; y < ymax; y+=8)
     {  
-        for (x = 0; x < stride; x+=8)
+        for (int x = 0; x < stride; x+=8)
         {
-            src = yptr + x + y * stride;
-            (vf->subfilter)(src, stride);  
+            unsigned char *src = yptr + x + y * stride;
+            (vf->m_subfilter)(src, stride);  
         }
     }
  
     stride = frame->pitches[1];
     ymax = height / 2 - 8;
   
-    for (y = 0; y < ymax; y += 8)
+    for (int y = 0; y < ymax; y += 8)
     {
-        for (x = 0; x < stride; x += 8)
+        for (int x = 0; x < stride; x += 8)
         {
-            src = uoff + x + y * stride;
-            (vf->subfilter)(src, stride);
+            unsigned char *src = uoff + x + y * stride;
+            (vf->m_subfilter)(src, stride);
        
             src = voff + x + y * stride;
-            (vf->subfilter)(src, stride);
+            (vf->m_subfilter)(src, stride);
         }
     }
 
 #if HAVE_MMX || HAVE_AMD3DNOW
-    if ((vf->mm_flags & AV_CPU_FLAG_MMX2) || (vf->mm_flags & AV_CPU_FLAG_3DNOW))
+    if ((vf->m_mmFlags & AV_CPU_FLAG_MMX2) || (vf->m_mmFlags & AV_CPU_FLAG_3DNOW))
         emms();
 #endif
 
@@ -336,7 +334,6 @@ static VideoFilter *new_filter(VideoFrameType inpixfmt,
                                const int *width, const int *height, const char *options,
                                int threads)
 {
-    LBFilter *filter;
     (void)width;
     (void)height;
     (void)options;
@@ -344,25 +341,24 @@ static VideoFilter *new_filter(VideoFrameType inpixfmt,
     if (inpixfmt != FMT_YV12 || outpixfmt != FMT_YV12)
         return NULL;
 
-    filter = malloc(sizeof(LBFilter));
-
+    LBFilter *filter = malloc(sizeof(LBFilter));
     if (filter == NULL)
     {
         fprintf(stderr,"Couldn't allocate memory for filter\n");
         return NULL;
     }
 
-    filter->vf.filter = &linearBlendFilter;
-    filter->subfilter = &linearBlend;    /* Default, non accellerated */
-    filter->mm_flags = av_get_cpu_flags();
-    if (HAVE_MMX && filter->mm_flags & AV_CPU_FLAG_MMX2)
-        filter->subfilter = &linearBlendMMX;
-    else if (HAVE_AMD3DNOW && filter->mm_flags & AV_CPU_FLAG_3DNOW)
-        filter->subfilter = &linearBlend3DNow;
-    else if (HAVE_ALTIVEC && filter->mm_flags & AV_CPU_FLAG_ALTIVEC)
-        filter->vf.filter = &linearBlendFilterAltivec;
+    filter->m_vf.filter = &linearBlendFilter;
+    filter->m_subfilter = &linearBlend;    /* Default, non accellerated */
+    filter->m_mmFlags = av_get_cpu_flags();
+    if (HAVE_MMX && filter->m_mmFlags & AV_CPU_FLAG_MMX2)
+        filter->m_subfilter = &linearBlendMMX;
+    else if (HAVE_AMD3DNOW && filter->m_mmFlags & AV_CPU_FLAG_3DNOW)
+        filter->m_subfilter = &linearBlend3DNow;
+    else if (HAVE_ALTIVEC && filter->m_mmFlags & AV_CPU_FLAG_ALTIVEC)
+        filter->m_vf.filter = &linearBlendFilterAltivec;
 
-    filter->vf.cleanup = NULL;
+    filter->m_vf.cleanup = NULL;
     TF_INIT(filter);
     return (VideoFilter *)filter;
 }

@@ -17,29 +17,29 @@ class VideoMetadataListManagerImp
   public:
     void setList(metadata_list &list)
     {
-        m_id_map.clear();
-        m_file_map.clear();
-        m_meta_list.swap(list);
+        m_idMap.clear();
+        m_fileMap.clear();
+        m_metaList.swap(list);
 
-        for (metadata_list::iterator p = m_meta_list.begin();
-             p != m_meta_list.end(); ++p)
+        for (metadata_list::iterator p = m_metaList.begin();
+             p != m_metaList.end(); ++p)
         {
-            m_id_map.insert(int_to_meta::value_type((*p)->GetID(), p));
-            m_file_map.insert(
+            m_idMap.insert(int_to_meta::value_type((*p)->GetID(), p));
+            m_fileMap.insert(
                     string_to_meta::value_type((*p)->GetFilename(), p));
         }
     }
 
     const metadata_list &getList() const
     {
-        return m_meta_list;
+        return m_metaList;
     }
 
 
     VideoMetadataPtr byFilename(const QString &file_name) const
     {
-        string_to_meta::const_iterator p = m_file_map.find(file_name);
-        if (p != m_file_map.end())
+        string_to_meta::const_iterator p = m_fileMap.find(file_name);
+        if (p != m_fileMap.end())
         {
             return *(p->second);
         }
@@ -48,8 +48,8 @@ class VideoMetadataListManagerImp
 
     VideoMetadataPtr byID(unsigned int db_id) const
     {
-        int_to_meta::const_iterator p = m_id_map.find(db_id);
-        if (p != m_id_map.end())
+        int_to_meta::const_iterator p = m_idMap.find(db_id);
+        if (p != m_idMap.end())
         {
             return *(p->second);
         }
@@ -71,19 +71,19 @@ class VideoMetadataListManagerImp
     {
         if (metadata)
         {
-            int_to_meta::iterator im = m_id_map.find(metadata->GetID());
+            int_to_meta::iterator im = m_idMap.find(metadata->GetID());
 
-            if (im != m_id_map.end())
+            if (im != m_idMap.end())
             {
                 metadata_list::iterator mdi = im->second;
                 (*mdi)->DeleteFromDatabase();
 
-                m_id_map.erase(im);
+                m_idMap.erase(im);
                 string_to_meta::iterator sm =
-                        m_file_map.find(metadata->GetFilename());
-                if (sm != m_file_map.end())
-                    m_file_map.erase(sm);
-                m_meta_list.erase(mdi);
+                        m_fileMap.find(metadata->GetFilename());
+                if (sm != m_fileMap.end())
+                    m_fileMap.erase(sm);
+                m_metaList.erase(mdi);
                 return true;
             }
         }
@@ -92,9 +92,9 @@ class VideoMetadataListManagerImp
     }
 
   private:
-    metadata_list m_meta_list;
-    int_to_meta m_id_map;
-    string_to_meta m_file_map;
+    metadata_list  m_metaList;
+    int_to_meta    m_idMap;
+    string_to_meta m_fileMap;
 };
 
 VideoMetadataListManager::VideoMetadataListManager()
@@ -249,10 +249,10 @@ VideoMetadata* meta_data_node::getData()
 
 meta_dir_node::meta_dir_node(const QString &path, const QString &name,
                             meta_dir_node *parent, bool is_path_root,
-                            const QString &host, const QString &prefix,
-                            const QVariant &data)
+                            QString host, QString prefix,
+                            QVariant data)
   : meta_node(parent, is_path_root), m_path(path), m_name(name),
-    m_host(host), m_prefix(prefix), m_data(data)
+    m_host(std::move(host)), m_prefix(std::move(prefix)), m_data(std::move(data))
 {
     if (!name.length())
         m_name = path;

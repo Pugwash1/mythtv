@@ -598,8 +598,7 @@ void MusicPlayer::customEvent(QEvent *event)
     // handle MythEvent events
     else if (event->type() == MythEvent::MythEventMessage)
     {
-        MythEvent *me = static_cast<MythEvent*>(event);
-
+        MythEvent *me = dynamic_cast<MythEvent*>(event);
         if (!me)
             return;
 
@@ -1195,8 +1194,6 @@ MusicPlayer::RepeatMode MusicPlayer::toggleRepeatMode(void)
             m_repeatMode = REPEAT_ALL;
             break;
         case REPEAT_ALL:
-            m_repeatMode = REPEAT_OFF;
-           break;
         default:
             m_repeatMode = REPEAT_OFF;
             break;
@@ -1222,8 +1219,6 @@ MusicPlayer::ShuffleMode MusicPlayer::toggleShuffleMode(void)
             m_shuffleMode = SHUFFLE_ARTIST;
            break;
         case SHUFFLE_ARTIST:
-            m_shuffleMode = SHUFFLE_OFF;
-           break;
         default:
             m_shuffleMode = SHUFFLE_OFF;
             break;

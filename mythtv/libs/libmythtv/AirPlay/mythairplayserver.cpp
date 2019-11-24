@@ -537,7 +537,7 @@ void MythAirplayServer::newConnection(QTcpSocket *client)
 void MythAirplayServer::deleteConnection(void)
 {
     QMutexLocker locker(m_lock);
-    QTcpSocket *socket = (QTcpSocket *)sender();
+    QTcpSocket *socket = dynamic_cast<QTcpSocket *>(sender());
     if (!socket)
         return;
 
@@ -601,7 +601,7 @@ void MythAirplayServer::deleteConnection(QTcpSocket *socket)
 void MythAirplayServer::read(void)
 {
     QMutexLocker locker(m_lock);
-    QTcpSocket *socket = (QTcpSocket *)sender();
+    QTcpSocket *socket = dynamic_cast<QTcpSocket *>(sender());
     if (!socket)
         return;
 
@@ -877,11 +877,8 @@ void MythAirplayServer::HandleResponse(APHTTPRequest *req,
     {
         LOG(VB_GENERAL, LOG_INFO, LOC + "Ignoring authorize request.");
     }
-    else if (req->GetURI() == "/setProperty")
-    {
-        status = HTTP_STATUS_NOT_FOUND;
-    }
-    else if (req->GetURI() == "/getProperty")
+    else if ((req->GetURI() == "/setProperty") ||
+             (req->GetURI() == "/getProperty"))
     {
         status = HTTP_STATUS_NOT_FOUND;
     }

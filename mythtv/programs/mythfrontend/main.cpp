@@ -218,7 +218,7 @@ namespace
       public:
         BookmarkDialog(ProgramInfo *pginfo, MythScreenStack *parent) :
                 MythScreenType(parent, "bookmarkdialog"),
-                pgi(pginfo)
+                m_pgi(pginfo)
         {
         }
 
@@ -259,19 +259,19 @@ namespace
                     }
                     else if (buttonnum != 0)
                     {
-                        delete pgi;
+                        delete m_pgi;
                         return;
                     }
 
-                    TV::StartTV(pgi, flags);
+                    TV::StartTV(m_pgi, flags);
 
-                    delete pgi;
+                    delete m_pgi;
                 }
             }
         }
 
       private:
-        ProgramInfo* pgi {nullptr};
+        ProgramInfo* m_pgi {nullptr};
     };
 
     void cleanup()
@@ -631,7 +631,7 @@ static void startTVNormal(void)
         "DefaultChanKeys", gCoreContext->GetHostName()).split("[]:[]");
     while (keylist.size() < 2)
         keylist << "";
-    uint dummy;
+    uint dummy = 0;
     ChannelInfoList livetvchannels = ChannelUtil::LoadChannels(
         0,                      // startIndex
         0,                      // count
@@ -839,7 +839,6 @@ static void handleDVDMedia(MythMediaDevice *dvd)
     switch (gCoreContext->GetNumSetting("DVDOnInsertDVD", 1))
     {
         case 0 : // Do nothing
-            break;
         case 1 : // Display menu (mythdvd)*/
             break;
         case 2 : // play DVD or Blu-ray
@@ -1760,7 +1759,7 @@ static bool WasAutomaticStart(void)
 
     // Is backend running?
     //
-    if( gCoreContext->BackendIsRunning() )
+    if( MythCoreContext::BackendIsRunning() )
     {
         QDateTime startupTime = QDateTime();
 
@@ -1808,7 +1807,7 @@ static bool WasAutomaticStart(void)
             if (!wakeupCmd.isEmpty())
             {
                 ProgramList progList;
-                bool        bConflicts;
+                bool        bConflicts = false;
                 QDateTime   nextRecordingStart;
 
                 if (LoadFromScheduler(progList, bConflicts))
@@ -1890,7 +1889,7 @@ int main(int argc, char **argv)
 
     if (cmdline.toBool("showversion"))
     {
-        cmdline.PrintVersion();
+        MythFrontendCommandLineParser::PrintVersion();
         return GENERIC_EXIT_OK;
     }
 
@@ -1942,8 +1941,8 @@ int main(int argc, char **argv)
     SignalHandler::SetHandler(SIGHUP, logSigHup);
 #endif
 
-    int retval;
-    if ((retval = cmdline.ConfigureLogging()) != GENERIC_EXIT_OK)
+    int retval = cmdline.ConfigureLogging();
+    if (retval != GENERIC_EXIT_OK)
         return retval;
 
     bool ResetSettings = false;

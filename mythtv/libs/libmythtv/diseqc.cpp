@@ -347,14 +347,19 @@ bool DiSEqCDevTree::Load(const QString &device)
 bool DiSEqCDevTree::Load(uint cardid)
 {
     // clear children
+
+    // TODO find root cause so that "delete m_root" can be enabled again, see ticket #13465
+    // Not doing the "delete m_root" fixes a segfault but creates a memory leak
+#if 0
     delete m_root;
+#endif
     m_delete.clear();
     m_root = nullptr;
 
     // lookup configuration for this card
     MSqlQuery query(MSqlQuery::InitCon());
     query.prepare(
-        "SELECT diseqcid, cardtype "
+        "SELECT diseqcid, cardtype, inputname "
         "FROM capturecard "
         "WHERE cardid = :CARDID");
     query.bindValue(":CARDID", cardid);
@@ -373,7 +378,9 @@ bool DiSEqCDevTree::Load(uint cardid)
         m_root = DiSEqCDevDevice::CreateById(
             *this, query.value(0).toUInt());
     }
-    else if (query.value(1).toString().toUpper() == "DVB")
+    else if ((query.value(1).toString().toUpper() == "DVB") &&
+             ((query.value(2).toString().toUpper() == "DVB-S" ) ||
+              (query.value(2).toString().toUpper() == "DVB-S2")  ))
     {
         LOG(VB_GENERAL, LOG_WARNING, LOC +
             QString("No device tree for cardid %1").arg(cardid));
@@ -694,7 +701,7 @@ bool DiSEqCDevTree::SendCommand(uint adr, uint cmd, uint repeats,
     bool resend_cmd = false;
 
     // prepare command
-    dvb_diseqc_master_cmd mcmd;
+    dvb_diseqc_master_cmd mcmd = {};
     mcmd.msg[0] = DISEQC_FRM;
     mcmd.msg[1] = adr;
     mcmd.msg[2] = cmd;
@@ -1694,7 +1701,7 @@ int DiSEqCDevSwitch::GetPosition(const DiSEqCDevSettings &settings) const
 
 static double GetCurTimeFloating(void)
 {
-    struct timeval curtime;
+    struct timeval curtime {};
     gettimeofday(&curtime, nullptr);
     return (double)curtime.tv_sec + (((double)curtime.tv_usec) / 1000000);
 }
@@ -2559,8 +2566,6 @@ bool DiSEqCDevLNB::IsHorizontal(const DTVMultiplex &tuning) const
 uint32_t DiSEqCDevLNB::GetIntermediateFrequency(
     const DiSEqCDevSettings& /*settings*/, const DTVMultiplex &tuning) const
 {
-    (void) tuning;
-
     uint64_t abs_freq = tuning.m_frequency;
     uint lof = (IsHighBand(tuning)) ? m_lof_hi : m_lof_lo;
 

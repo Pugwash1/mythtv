@@ -478,8 +478,7 @@ bool Scheduler::FillRecordList(void)
  */
 void Scheduler::FillRecordListFromDB(uint recordid)
 {
-    struct timeval fillstart, fillend;
-    float matchTime, checkTime, placeTime;
+    struct timeval fillstart {}, fillend {};
 
     MSqlQuery query(m_dbConn);
     QString thequery;
@@ -525,8 +524,8 @@ void Scheduler::FillRecordListFromDB(uint recordid)
     gettimeofday(&fillstart, nullptr);
     UpdateMatches(recordid, 0, 0, QDateTime());
     gettimeofday(&fillend, nullptr);
-    matchTime = ((fillend.tv_sec - fillstart.tv_sec ) * 1000000 +
-                 (fillend.tv_usec - fillstart.tv_usec)) / 1000000.0;
+    float matchTime = ((fillend.tv_sec - fillstart.tv_sec ) * 1000000 +
+                       (fillend.tv_usec - fillstart.tv_usec)) / 1000000.0;
 
     LOG(VB_SCHEDULE, LOG_INFO, "CreateTempTables...");
     CreateTempTables();
@@ -535,14 +534,14 @@ void Scheduler::FillRecordListFromDB(uint recordid)
     LOG(VB_SCHEDULE, LOG_INFO, "UpdateDuplicates...");
     UpdateDuplicates();
     gettimeofday(&fillend, nullptr);
-    checkTime = ((fillend.tv_sec - fillstart.tv_sec ) * 1000000 +
-                 (fillend.tv_usec - fillstart.tv_usec)) / 1000000.0;
+    float checkTime = ((fillend.tv_sec - fillstart.tv_sec ) * 1000000 +
+                       (fillend.tv_usec - fillstart.tv_usec)) / 1000000.0;
 
     gettimeofday(&fillstart, nullptr);
     FillRecordList();
     gettimeofday(&fillend, nullptr);
-    placeTime = ((fillend.tv_sec - fillstart.tv_sec ) * 1000000 +
-                 (fillend.tv_usec - fillstart.tv_usec)) / 1000000.0;
+    float placeTime = ((fillend.tv_sec - fillstart.tv_sec ) * 1000000 +
+                       (fillend.tv_usec - fillstart.tv_usec)) / 1000000.0;
 
     LOG(VB_SCHEDULE, LOG_INFO, "DeleteTempTables...");
     DeleteTempTables();
@@ -568,7 +567,7 @@ void Scheduler::FillRecordListFromDB(uint recordid)
 void Scheduler::FillRecordListFromMaster(void)
 {
     RecordingList schedList(false);
-    bool dummy;
+    bool dummy = false;
     LoadFromScheduler(schedList, dummy);
 
     QMutexLocker lockit(&m_schedLock);
@@ -946,13 +945,11 @@ void Scheduler::BuildWorkList(void)
 
 bool Scheduler::ClearWorkList(void)
 {
-    RecordingInfo *p;
-
     if (m_reclist_changed)
     {
         while (!m_worklist.empty())
         {
-            p = m_worklist.front();
+            RecordingInfo *p = m_worklist.front();
             delete p;
             m_worklist.pop_front();
         }
@@ -962,14 +959,14 @@ bool Scheduler::ClearWorkList(void)
 
     while (!m_reclist.empty())
     {
-        p = m_reclist.front();
+        RecordingInfo *p = m_reclist.front();
         delete p;
         m_reclist.pop_front();
     }
 
     while (!m_worklist.empty())
     {
-        p = m_worklist.front();
+        RecordingInfo *p = m_worklist.front();
         m_reclist.push_back(p);
         m_worklist.pop_front();
     }
@@ -1198,9 +1195,7 @@ const RecordingInfo *Scheduler::FindConflict(
 
 void Scheduler::MarkOtherShowings(RecordingInfo *p)
 {
-    RecList *showinglist;
-
-    showinglist = &m_titlelistmap[p->GetTitle().toLower()];
+    RecList *showinglist = &m_titlelistmap[p->GetTitle().toLower()];
     MarkShowingsList(*showinglist, p);
 
     if (p->GetRecordingRuleType() == kOneRecord ||
@@ -2312,8 +2307,7 @@ bool Scheduler::HandleReschedule(void)
     // sure our DB connection is fresh before continuing.
     m_dbConn = MSqlQuery::SchedCon();
 
-    struct timeval fillstart, fillend;
-    float matchTime, checkTime, placeTime;
+    struct timeval fillstart {}, fillend {};
 
     gettimeofday(&fillstart, nullptr);
     QString msg;
@@ -2406,8 +2400,8 @@ bool Scheduler::HandleReschedule(void)
     }
 
     gettimeofday(&fillend, nullptr);
-    matchTime = ((fillend.tv_sec - fillstart.tv_sec ) * 1000000 +
-                 (fillend.tv_usec - fillstart.tv_usec)) / 1000000.0;
+    float matchTime = ((fillend.tv_sec - fillstart.tv_sec ) * 1000000 +
+                       (fillend.tv_usec - fillstart.tv_usec)) / 1000000.0;
 
     LOG(VB_SCHEDULE, LOG_INFO, "CreateTempTables...");
     CreateTempTables();
@@ -2419,14 +2413,14 @@ bool Scheduler::HandleReschedule(void)
         UpdateDuplicates();
     }
     gettimeofday(&fillend, nullptr);
-    checkTime = ((fillend.tv_sec - fillstart.tv_sec ) * 1000000 +
-                 (fillend.tv_usec - fillstart.tv_usec)) / 1000000.0;
+    float checkTime = ((fillend.tv_sec - fillstart.tv_sec ) * 1000000 +
+                       (fillend.tv_usec - fillstart.tv_usec)) / 1000000.0;
 
     gettimeofday(&fillstart, nullptr);
     bool worklistused = FillRecordList();
     gettimeofday(&fillend, nullptr);
-    placeTime = ((fillend.tv_sec - fillstart.tv_sec ) * 1000000 +
-                 (fillend.tv_usec - fillstart.tv_usec)) / 1000000.0;
+    float placeTime = ((fillend.tv_sec - fillstart.tv_sec ) * 1000000 +
+                       (fillend.tv_usec - fillstart.tv_usec)) / 1000000.0;
 
     LOG(VB_SCHEDULE, LOG_INFO, "DeleteTempTables...");
     DeleteTempTables();
@@ -2459,7 +2453,7 @@ bool Scheduler::HandleReschedule(void)
         if (p->GetRecordingStatus() != p->m_oldrecstatus)
         {
             if (p->GetRecordingEndTime() < m_schedTime)
-                p->AddHistory(false, false, false);
+                p->AddHistory(false, false, false); // NOLINT(bugprone-branch-clone)
             else if (p->GetRecordingStartTime() < m_schedTime &&
                      p->GetRecordingStatus() != RecStatus::WillRecord &&
                      p->GetRecordingStatus() != RecStatus::Pending)
@@ -2534,7 +2528,7 @@ bool Scheduler::HandleRunSchedulerStartup(
 // If a recording is about to start on a backend in a few minutes, wake it...
 void Scheduler::HandleWakeSlave(RecordingInfo &ri, int prerollseconds)
 {
-    static const int sysEventSecs[5] = { 120, 90, 60, 30, 0 };
+    static constexpr int kSysEventSecs[5] = { 120, 90, 60, 30, 0 };
 
     QDateTime curtime = MythDate::current();
     QDateTime nextrectime = ri.GetRecordingStartTime();
@@ -2550,9 +2544,9 @@ void Scheduler::HandleWakeSlave(RecordingInfo &ri, int prerollseconds)
 
     int i = 0;
     bool pendingEventSent = false;
-    while (sysEventSecs[i] != 0)
+    while (kSysEventSecs[i] != 0)
     {
-        if ((secsleft <= sysEventSecs[i]) &&
+        if ((secsleft <= kSysEventSecs[i]) &&
             (!m_sysEvents[i].contains(sysEventKey)))
         {
             if (!pendingEventSent)
@@ -2569,7 +2563,7 @@ void Scheduler::HandleWakeSlave(RecordingInfo &ri, int prerollseconds)
 
     // cleanup old sysEvents once in a while
     QSet<QString> keys;
-    for (i = 0; sysEventSecs[i] != 0; i++)
+    for (i = 0; kSysEventSecs[i] != 0; i++)
     {
         if (m_sysEvents[i].size() < 20)
             continue;
@@ -3063,6 +3057,12 @@ bool Scheduler::AssignGroupInput(RecordingInfo &ri,
     return bestid != 0U;
 }
 
+// Called to delay shutdown for 5 minutes
+void Scheduler::DelayShutdown()
+{
+    m_delayShutdownTime = QDateTime::currentMSecsSinceEpoch() + 5*60*1000;
+}
+
 void Scheduler::HandleIdleShutdown(
     bool &blockShutdown, QDateTime &idleSince,
     int prerollseconds, int idleTimeoutSecs, int idleWaitForRecordingTime,
@@ -3093,6 +3093,9 @@ void Scheduler::HandleIdleShutdown(
     }
     else
     {
+        // Check for delay shutdown request
+        bool delay = (m_delayShutdownTime > QDateTime::currentMSecsSinceEpoch());
+
         QDateTime curtime = MythDate::current();
 
         // find out, if we are currently recording (or LiveTV)
@@ -3113,7 +3116,7 @@ void Scheduler::HandleIdleShutdown(
         // If there are active jobs, then we're not idle
         bool activeJobs = JobQueue::HasRunningOrPendingJobs(0);
 
-        if (!blocking && !recording && !activeJobs)
+        if (!blocking && !recording && !activeJobs && !delay)
         {
             // have we received a RESET_IDLETIME message?
             m_resetIdleTime_lock.lock();
@@ -3258,6 +3261,10 @@ void Scheduler::HandleIdleShutdown(
             if (activeJobs)
                 LOG(logmask, LOG_NOTICE, "Blocking shutdown because "
                                          "of active jobs");
+
+            if (delay)
+                LOG(logmask, LOG_NOTICE, "Blocking shutdown because "
+                                         "of delay request from external application");
 
             // not idle, make the time invalid
             if (idleSince.isValid())
@@ -3711,7 +3718,7 @@ void Scheduler::UpdateManuals(uint recordid)
                   query.value(6).toTime(), Qt::UTC));
 
     query.prepare("SELECT chanid from channel "
-                  "WHERE callsign = :STATION");
+                  "WHERE deleted IS NULL AND callsign = :STATION");
     query.bindValue(":STATION", station);
     if (!query.exec())
     {
@@ -3723,10 +3730,10 @@ void Scheduler::UpdateManuals(uint recordid)
     while (query.next())
         chanidlist.push_back(query.value(0).toUInt());
 
-    int progcount;
-    int skipdays;
-    bool weekday;
-    int daysoff;
+    int progcount = 0;
+    int skipdays = 1;
+    bool weekday = false;
+    int daysoff = 0;
     QDateTime lstartdt = startdt.toLocalTime();
 
     switch (rectype)
@@ -3959,7 +3966,7 @@ static QString progfindid = QString(
 void Scheduler::UpdateMatches(uint recordid, uint sourceid, uint mplexid,
                               const QDateTime &maxstarttime)
 {
-    struct timeval dbstart, dbend;
+    struct timeval dbstart {}, dbend {};
 
     MSqlQuery query(m_dbConn);
     MSqlBindings bindings;
@@ -4042,14 +4049,13 @@ void Scheduler::UpdateMatches(uint recordid, uint sourceid, uint mplexid,
             MythDB::DBError("UpdateMatches4", query);
     }
 
-    int clause;
     QStringList fromclauses, whereclauses;
 
     BuildNewRecordsQueries(recordid, fromclauses, whereclauses, bindings);
 
     if (VERBOSE_LEVEL_CHECK(VB_SCHEDULE, LOG_INFO))
     {
-        for (clause = 0; clause < fromclauses.count(); ++clause)
+        for (int clause = 0; clause < fromclauses.count(); ++clause)
         {
             LOG(VB_SCHEDULE, LOG_INFO, QString("Query %1: %2/%3")
                 .arg(clause).arg(fromclauses[clause])
@@ -4057,7 +4063,7 @@ void Scheduler::UpdateMatches(uint recordid, uint sourceid, uint mplexid,
         }
     }
 
-    for (clause = 0; clause < fromclauses.count(); ++clause)
+    for (int clause = 0; clause < fromclauses.count(); ++clause)
     {
         QString query2 = QString(
 "REPLACE INTO recordmatch (recordid, chanid, starttime, manualid, "
@@ -4068,7 +4074,8 @@ void Scheduler::UpdateMatches(uint recordid, uint sourceid, uint mplexid,
 "FROM (RECTABLE, program INNER JOIN channel "
 "      ON channel.chanid = program.chanid) ") + fromclauses[clause] + QString(
 " WHERE ") + whereclauses[clause] +
-    QString(" AND channel.visible = 1 ") +
+    QString(" AND channel.deleted IS NULL "
+            " AND channel.visible = 1 ") +
     filterClause + QString(" AND "
 
 "("
@@ -4305,7 +4312,7 @@ void Scheduler::AddNewRecords(void)
     if (schedTmpRecord == "record")
         schedTmpRecord = "sched_temp_record";
 
-    struct timeval dbstart, dbend;
+    struct timeval dbstart {}, dbend {};
 
     RecList tmpList;
 
@@ -4724,7 +4731,7 @@ void Scheduler::AddNewRecords(void)
 
 void Scheduler::AddNotListed(void) {
 
-    struct timeval dbstart, dbend;
+    struct timeval dbstart {}, dbend {};
     RecList tmpList;
 
     QString query = QString(
@@ -4903,6 +4910,7 @@ void Scheduler::GetAllScheduled(RecList &proglist, SchedSortColumn sortBy,
         "       channel.commmethod                      " // 25
         "FROM record "
         "LEFT JOIN channel ON channel.callsign = record.station "
+        "WHERE deleted IS NULL "
         "GROUP BY recordid "
         "ORDER BY %1 %2");
 
@@ -5508,7 +5516,7 @@ int Scheduler::FillRecordingDir(
                 }
             }
 
-            m_expirer->ClearExpireList(expiring);
+            AutoExpire::ClearExpireList(expiring);
         }
         else // passes 1 & 3 (or 1 & 2 if !simulateAutoExpire)
         {

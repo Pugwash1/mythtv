@@ -175,11 +175,9 @@ ELD& ELD::operator=(const ELD &rhs)
 void ELD::update_sad(int index,
                      const char *buf)
 {
-    int val;
-
     cea_sad *a = m_e.sad + index;
 
-    val = GRAB_BITS(buf, 1, 0, 7);
+    int val = GRAB_BITS(buf, 1, 0, 7);
     a->rates = 0;
     for (int i = 0; i < 7; i++)
         if ((val & (1 << i)) != 0)
@@ -215,17 +213,9 @@ void ELD::update_sad(int index,
             break;
 
         case TYPE_SACD:
-            break;
-
         case TYPE_EAC3:
-            break;
-
         case TYPE_DTS_HD:
-            break;
-
         case TYPE_MLP:
-            break;
-
         case TYPE_DST:
             break;
 
@@ -252,8 +242,7 @@ void ELD::update_sad(int index,
 
 int ELD::update_eld(const char *buf, int size)
 {
-    int mnl;
-    int i;
+    int mnl = 0;
 
     m_e.eld_ver = GRAB_BITS(buf, 0, 3, 5);
     if (m_e.eld_ver != ELD_VER_CEA_861D &&
@@ -298,7 +287,7 @@ int ELD::update_eld(const char *buf, int size)
         m_e.monitor_name[mnl] = '\0';
     }
 
-    for (i = 0; i < m_e.sad_count; i++)
+    for (int i = 0; i < m_e.sad_count; i++)
     {
         if (ELD_FIXED_BYTES + mnl + 3 * (i + 1) > size)
         {
@@ -442,8 +431,6 @@ bool ELD::isValid()
 
 void ELD::show()
 {
-    int i;
-
     if (!isValid())
     {
         VBAUDIO("Invalid ELD");
@@ -461,7 +448,7 @@ void ELD::show()
     VBAUDIO(QString("max LPCM channels = %1").arg(maxLPCMChannels()));
     VBAUDIO(QString("max channels = %1").arg(maxChannels()));
     VBAUDIO(QString("supported codecs = %1").arg(codecs_desc()));
-    for (i = 0; i < m_e.sad_count; i++)
+    for (int i = 0; i < m_e.sad_count; i++)
     {
         VBAUDIO(sad_desc(i));
     }

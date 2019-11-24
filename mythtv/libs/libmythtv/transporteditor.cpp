@@ -35,7 +35,6 @@ using namespace std;
 
 #include "transporteditor.h"
 #include "videosource.h"
-#include "cardutil.h"
 #include "mythcorecontext.h"
 #include "mythdb.h"
 
@@ -182,9 +181,11 @@ void TransportListEditor::SetSourceID(uint _sourceid)
 TransportListEditor::TransportListEditor(uint sourceid) :
     m_videosource(new VideoSourceSelector(sourceid, QString(), false))
 {
-    setLabel(tr("Multiplex Editor"));
+    setLabel(tr("Transport Editor"));
 
     addChild(m_videosource);
+    m_videosource->setEnabled(false);
+
     ButtonStandardSetting *newTransport =
         new ButtonStandardSetting("(" + tr("New Transport") + ")");
     connect(newTransport, SIGNAL(clicked()), SLOT(NewTransport(void)));
@@ -316,7 +317,8 @@ void TransportListEditor::Delete(TransportSetting *transport)
             if (!query.exec() || !query.isActive())
                 MythDB::DBError("TransportEditor -- delete multiplex", query);
 
-            query.prepare("DELETE FROM channel WHERE mplexid = :MPLEXID");
+            query.prepare("UPDATE channel SET deleted = NOW() "
+                          "WHERE deleted IS NULL AND mplexid = :MPLEXID");
             query.bindValue(":MPLEXID", mplexid);
 
             if (!query.exec() || !query.isActive())
@@ -437,14 +439,14 @@ class DTVStandard : public MythUIComboBoxSetting, public MuxDBStorage
 class Frequency : public MythUITextEditSetting, public MuxDBStorage
 {
   public:
-    Frequency(const MultiplexID *id, bool in_kHz = false) :
+    explicit Frequency(const MultiplexID *id, bool in_kHz = false) :
         MythUITextEditSetting(this), MuxDBStorage(this, id, "frequency")
     {
         QString hz = (in_kHz) ? "kHz" : "Hz";
         setLabel(QObject::tr("Frequency") + " (" + hz + ")");
         setHelpText(QObject::tr(
                         "Frequency (Option has no default).\n"
-                        "The frequency for this channel in") + " " + hz + ".");
+                        "The frequency for this transport (multiplex) in") + " " + hz + ".");
     };
 };
 

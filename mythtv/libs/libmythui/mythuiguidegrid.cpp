@@ -28,13 +28,6 @@ using namespace std;
 MythUIGuideGrid::MythUIGuideGrid(MythUIType *parent, const QString &name)
     : MythUIType(parent, name)
 {
-    // themeable setting defaults
-    for (uint x = 0; x < RECSTATUSSIZE; x++)
-        m_recImages[x] = nullptr;
-
-    for (uint x = 0; x < ARROWIMAGESIZE; x++)
-        m_arrowImages[x] = nullptr;
-
     m_font = new MythFontProperties();
 
     QMap<QString, QString> catColors;
@@ -556,12 +549,12 @@ void MythUIGuideGrid::drawBackground(MythPainter *p, int xoffset, int yoffset, U
         {
             if (area.bottom() < m_progPastCol)
             {
-                fillColor = fillColor.dark();
+                fillColor = fillColor.darker();
                 area.adjust(breakin, breakin, -breakin, -breakin);
             }
             else
             {
-                overColor = fillColor.dark();
+                overColor = fillColor.darker();
                 int first = m_progPastCol - area.top();
                 int second = area.height() - first;
                 overArea = area;
@@ -582,12 +575,12 @@ void MythUIGuideGrid::drawBackground(MythPainter *p, int xoffset, int yoffset, U
         {
             if (area.right() < m_progPastCol)
             {
-                fillColor = fillColor.dark();
+                fillColor = fillColor.darker();
                 area.adjust(breakin, breakin, -breakin, -breakin);
             }
             else
             {
-                overColor = fillColor.dark();
+                overColor = fillColor.darker();
                 int first = m_progPastCol - area.left();
                 int second = area.width() - first;
                 overArea = area;

@@ -26,7 +26,6 @@ using namespace std;
 AudioOutputNULL::AudioOutputNULL(const AudioSettings &settings) :
     AudioOutputBase(settings)
 {
-    memset(m_pcm_output_buffer, 0, sizeof(char) * NULLAUDIO_OUTPUT_BUFFER_SIZE);
     InitSettings(settings);
     if (settings.m_init)
         Reconfigure(settings);
@@ -56,11 +55,13 @@ AudioOutputSettings* AudioOutputNULL::GetOutputSettings(bool /*digital*/)
     // Pretend that we support everything
     AudioOutputSettings *settings = new AudioOutputSettings();
 
+    // NOLINTNEXTLINE(bugprone-infinite-loop)
     while (int rate = settings->GetNextRate())
     {
         settings->AddSupportedRate(rate);
     }
 
+    // NOLINTNEXTLINE(bugprone-infinite-loop)
     while (AudioFormat fmt = settings->GetNextFormat())
     {
         settings->AddSupportedFormat(fmt);
