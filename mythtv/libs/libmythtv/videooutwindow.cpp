@@ -38,7 +38,6 @@
 
 #define LOC QString("VideoWin: ")
 
-static QSize fix_alignment(QSize raw);
 static float fix_aspect(float raw);
 static float snap(float value, float snapto, float diff);
 
@@ -112,15 +111,6 @@ void VideoOutWindow::MoveResize(void)
     // Preset all image placement and sizing variables.
     m_videoRect = QRect(QPoint(0, 0), m_videoDispDim);
     m_displayVideoRect = m_displayVisibleRect;
-
-
-    // Avoid too small frames for audio only streams (for OSD).
-    if ((m_videoRect.width() <= 0) || (m_videoRect.height() <= 0))
-    {
-        m_videoDispDim = m_displayVisibleRect.size();
-        m_videoDim     = fix_alignment(m_displayVisibleRect.size());
-        m_videoRect    = QRect(QPoint(0, 0), m_videoDim);
-    }
 
     // Apply various modifications
     ApplyDBScaleAndMove();
@@ -1069,12 +1059,6 @@ void VideoOutWindow::SetPIPState(PIPState Setting)
         LOG(VB_PLAYBACK, LOG_INFO, LOC + QString("SetPIPState: %1").arg(toString(Setting)));
         m_pipState = Setting;
     }
-}
-
-/// Correct for underalignment
-static QSize fix_alignment(QSize raw)
-{
-    return { (raw.width() + 15) & (~0xf), (raw.height() + 15) & (~0xf) };
 }
 
 static float snap(float value, float snapto, float diff)

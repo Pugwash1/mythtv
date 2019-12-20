@@ -493,6 +493,8 @@ void MythPlayer::ReinitVideo(bool ForceUpdate)
 
     if (m_textDisplayMode)
         EnableSubtitles(true);
+
+    AutoVisualise();
 }
 
 static inline QString toQString(FrameScanType scan) {
@@ -622,7 +624,7 @@ void MythPlayer::SetVideoParams(int width, int height, double fps,
 {
     bool paramsChanged = ForceUpdate;
 
-    if (width >= 1 && height >= 1)
+    if (width >= 0 && height >= 0)
     {
         paramsChanged  = true;
         m_videoDim      = m_videoDispDim = QSize(width, height);
@@ -1590,7 +1592,7 @@ void MythPlayer::AVSync(VideoFrame *buffer)
     // controller gain
     static float const s_av_control_gain = 0.4F;
     // time weighted exponential filter coefficient
-    static float const s_sync_fc = 0.6F;
+    static float const s_sync_fc = 0.9F;
 
     while (framedue == 0)
     {
@@ -1616,14 +1618,15 @@ void MythPlayer::AVSync(VideoFrame *buffer)
             if (videotimecode == 0)
                 videotimecode = m_audio.GetAudioTime();;
 
-            // minor 'hack' to ensure data only streams work - always ensure
-            // m_rtcBase is set so we don't continually fail the next check
-            m_rtcBase = unow - videotimecode * playspeed1000;
+            // cater for data only streams (i.e. MHEG)
+            bool dataonly = !m_audio.HasAudioIn() && m_videoDim.isEmpty();
 
             // On first frame we get nothing, so exit out.
-            if (videotimecode == 0)
+            // FIXME - does this mean we skip the first frame? Should be avoidable.
+            if (videotimecode == 0 && !dataonly)
                 return;
 
+            m_rtcBase = unow - videotimecode * playspeed1000;
             m_maxTcVal = 0;
             m_maxTcFrames = 0;
             m_numDroppedFrames = 0;
@@ -2202,6 +2205,8 @@ void MythPlayer::VideoStart(void)
 
     InitAVSync();
     m_videoSync->Start();
+
+    AutoVisualise();
 }
 
 bool MythPlayer::VideoLoop(void)
@@ -5445,6 +5450,21 @@ bool MythPlayer::EnableVisualisation(bool enable, const QString &name)
     if (m_videoOutput)
         return m_videoOutput->EnableVisualisation(&m_audio, enable, name);
     return false;
+}
+
+/*! \brief Enable visualisation if possible, there is no video and user has requested.
+*/
+void MythPlayer::AutoVisualise(void)
+{
+    if (!m_videoOutput || !m_audio.HasAudioIn() || !m_videoDim.isEmpty())
+        return;
+
+    if (!CanVisualise() || IsVisualising())
+        return;
+
+    auto visualiser = gCoreContext->GetSetting("AudioVisualiser", "");
+    if (!visualiser.isEmpty())
+        EnableVisualisation(true, visualiser);
 }
 
 void MythPlayer::SetOSDMessage(const QString &msg, OSDTimeout timeout)
