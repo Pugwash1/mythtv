@@ -95,8 +95,7 @@ void VideoSetupWizard::loadData(void)
     for (QStringList::const_iterator i = profiles.begin();
          i != profiles.end(); ++i)
     {
-        MythUIButtonListItem *item =
-            new MythUIButtonListItem(m_playbackProfileButtonList, *i);
+        auto *item = new MythUIButtonListItem(m_playbackProfileButtonList, *i);
         item->SetData(*i);
     }
 
@@ -233,9 +232,11 @@ void VideoSetupWizard::customEvent(QEvent *e)
 {
     if (e->type() == MythEvent::MythEventMessage)
     {
-        MythEvent *me = static_cast<MythEvent *>(e);
-        QStringList tokens = me->Message().split(" ", QString::SkipEmptyParts);
+        auto *me = dynamic_cast<MythEvent *>(e);
+        if (me == nullptr)
+            return;
 
+        QStringList tokens = me->Message().split(" ", QString::SkipEmptyParts);
         if (tokens.isEmpty())
             return;
 

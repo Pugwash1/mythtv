@@ -24,20 +24,9 @@
 Checks: '-*,
 
     bugprone-*,
-        # A handful of warnings
-        bugprone-integer-division,
-
         # Bunch of warnings.... ,
         # Comment out this and the cppcoreguidelines version. ,
        -bugprone-narrowing-conversions,
-
-        # Errors in code?  GroupAnimation overrides several parent
-        # functions with an explicit nullptr.  Shouldnt it just call
-        # up? ,
-        bugprone-parent-virtual-call,
-
-        # Prevent self-assignment.  Needs to be investigated.
-       -bugprone-unhandled-self-assignment,
 
     # Explicitly list the tests that arent aliases. ,
     cert-*,
@@ -60,16 +49,6 @@ Checks: '-*,
         # possibly throwing exceptions that cant be caught.  These
         # all appear to be within Qt code that cant be fixed by us. ,
        -cert-err58-cpp,
-
-        # Dont use floating point variable for looping. ,
-       -cert-flp30-c,
-
-        # Limited randomness. Should fix. ,
-       -cert-msc30-c,
-       -cert-msc50-cpp,
-
-        # Alias for -bugprone-unhandled-self-assignment. ,
-       -cert-oop54-cpp,
 
     clang-analyzer-*,
         # Not tested. ,
@@ -97,32 +76,38 @@ Checks: '-*,
 
         # Cant fix due to missing LIB_EXT1 extensions. ,
        -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
-        # Cant fix due to missing LIB_EXT1 extensions. ,
        -clang-analyzer-security.insecureAPI.strcpy,
-
-    clang-diagnostic-error,
 
     # Explicitly list the tests that arent aliases. ,
     #cppcoreguidelines-*,
        -cppcoreguidelines-avoid-goto,
        -cppcoreguidelines-interfaces-global-init,
        -cppcoreguidelines-macro-usage,
+
         # Bunch of warnings.... ,
        -cppcoreguidelines-narrowing-conversions,
        -cppcoreguidelines-no-malloc,
+
         # No gsl. ,
        -cppcoreguidelines-owning-memory,
-        # No gsl. ,
+
+        # No gsl. Warning on every log message.
+        # "do not implicitly decay an array into a pointer; consider
+        #  using gsl::array_view or an explicit cast instead" ,
        -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
-        # No gsl. ,
+
+        # No gsl. Recommends gsl::at be used in 1611 places. ,
        -cppcoreguidelines-pro-bounds-constant-array-index,
+
         # Bunch of warnings.... ,
        -cppcoreguidelines-pro-bounds-pointer-arithmetic,
-        cppcoreguidelines-pro-type-const-cast,
+       -cppcoreguidelines-pro-type-const-cast,
         # Bunch of warnings.... ,
        -cppcoreguidelines-pro-type-cstyle-cast,
        -cppcoreguidelines-pro-type-member-init,
        -cppcoreguidelines-pro-type-reinterpret-cast,
+
+        # The qapplication.h header file includes a static_cast.
        -cppcoreguidelines-pro-type-static-cast-downcast,
 
         # Recommends using boost:: to access unions. ,
@@ -160,18 +145,8 @@ Checks: '-*,
         # Noisy!!!  foo(void) => foo()  ,
        -modernize-redundant-void-arg,
 
-        # Not investigated yet. ,
-       -modernize-use-auto,
-
-        # One weirdness in videooutput_xv.cpp.  Making the proposed
-        # change causes one of the programs to fail in the link stage. ,
-       -modernize-use-emplace,
-
         # Why would anyone want this? ,
        -modernize-use-trailing-return-type,
-
-        # Noisy. Needs work.,
-       -modernize-use-using,
 
         ## C++14 modernize-make-unique,
         ## C++14 modernize-use-transparent-functors,
@@ -188,95 +163,54 @@ Checks: '-*,
         # Not investigated yet. ,
        -readability-function-size,
 
-        # Will fix member names, but not any uses of the changed
-        # memeber names.
-        #
-        # Done for all but libmythtv and libmythui. ,
-       -readability-identifier-naming,
-
         # Wants to convert all "if (x)" pointer validity checks to be
         # "if (x != nullptr)".  These should be ignored as the
         # AllowPointerConditions key is set to "1", but tidy complains
         # anyway. ,
        -readability-implicit-bool-conversion,
 
-        # Has two issues:
-        #
-        #    function template specialization
-        #    CheckedSet<MythUIStateType> has a primary template
-        #    declaration with different parameter names
-        #
-        #    function ParentalLevelChangeCheckerPrivate::SigDone has a
-        #    definition with different parameter names
-        #    [readability-inconsistent-declaration-parameter-name]
-        #    void SigDone(bool passwordValid => _t1,
-        #    ParentalLevel::Level toLevel => _t2);       ,
-       -readability-inconsistent-declaration-parameter-name,
-
-        # Produces lots of changes.  Is this necessary? ,
-       -readability-isolate-declaration,
-
         # Lots of noise. Needs work. ,
        -readability-magic-numbers,
-
-        # Doesnt understand MMX assembly code. ,
-       -readability-non-const-parameter,
 
 '
 
 CheckOptions:
-  - key:      bugprone-suspicious-string-compare.WarnOnLogicalNotComparison
-    value:    '1'
+  - { key: bugprone-suspicious-string-compare.WarnOnLogicalNotComparison, value: '1' }
 
-  - key:      cppcoreguidelines-pro-type-member-init.IgnoreArrays
-    value:    '1'
+  - { key: cppcoreguidelines-pro-type-member-init.IgnoreArrays, value: '1' }
 
-  - key:      modernize-make-shared.IgnoreMacros
-    value:    '0'
-  - key:      modernize-make-unique.IgnoreMacros
-    value:    '0'
-  - key:      modernize-use-bool-literals.IgnoreMacros
-    value:    '1'
-  - key:      modernize-use-default-member-init.IgnoreMacros
-    value:    '0'
-  - key:      modernize-use-equals-default.IgnoreMacros
-    value:    '0'
-  - key:      modernize-use-using.IgnoreMacros
-    value:    '0'
+  - { key: modernize-make-shared.IgnoreMacros,             value: '0' }
+  - { key: modernize-make-unique.IgnoreMacros,             value: '0' }
+  - { key: modernize-use-bool-literals.IgnoreMacros,       value: '1' }
+  - { key: modernize-use-default-member-init.IgnoreMacros, value: '0' }
+  - { key: modernize-use-equals-default.IgnoreMacros,      value: '0' }
+  - { key: modernize-use-using.IgnoreMacros,               value: '0' }
 
-  - key:      performance-inefficient-vector-operation.VectorLikeClasses
-    value:    ::std::vector,QList,QByteArrayList,QItemSelection,QQueue,QStringList
+  - { key: performance-inefficient-vector-operation.VectorLikeClasses,
+    value: '::std::vector,QList,QByteArrayList,QItemSelection,QQueue,QStringList' }
 
-  - key:      readability-braces-around-statements.ShortStatementLines
-    value:    '2'
-  - key:      readability-implicit-bool-conversion.AllowPointerConditions
-    value:    '1'
-  - key:      readability-implicit-bool-conversion.AllowIntegerConditions
-    value:    '1'
-  - key:      readability-inconsistent-declaration-parameter-name.strict
-    value:    '1'
-  - key:      readability-redundant-declaration.IgnoreMacros
-    value:    '0'
-  - key:      readability-simplify-boolean-expr.chainedconditionalreturn
-    value:    '1'
-  - key:      readability-simplify-boolean-expr.chainedconditionalassignment
-    value:    '1'
-  - key:      readability-simplify-subscript-expr.Types
-    value:    '::std::basic_string;::std::basic_string_view;::std::vector;::std::array;QByteArray;QString'
-  - key:      readability-uppercase-literal-suffix.IgnoreMacros
-    value:    '0'
+  - { key: readability-braces-around-statements.ShortStatementLines,       value: '3' }
+  - { key: readability-implicit-bool-conversion.AllowPointerConditions,    value: '1' }
+  - { key: readability-implicit-bool-conversion.AllowIntegerConditions,    value: '1' }
+  - { key: readability-inconsistent-declaration-parameter-name.strict,     value: '1' }
+  - { key: readability-redundant-declaration.IgnoreMacros,                 value: '0' }
+  - { key: readability-simplify-boolean-expr.chainedconditionalreturn,     value: '1' }
+  - { key: readability-simplify-boolean-expr.chainedconditionalassignment, value: '1' }
+  - { key: readability-uppercase-literal-suffix.IgnoreMacros,              value: '0' }
+  - { key: readability-simplify-subscript-expr.Types,
+    value: '::std::basic_string;::std::basic_string_view;::std::vector;::std::array;QByteArray;QString' }
 
-  - key:      readability-identifier-naming.MemberCase
-    value:    'camelBack'
-  - key:      readability-identifier-naming.MemberPrefix
-    value:    'm_'
-  - key:      readability-identifier-naming.MethodCase
-    value:    'any_case'
-  - key:      readability-identifier-naming.StaticConstantCase
-    value:    'CamelCase'
-  - key:      readability-identifier-naming.StaticConstantPrefix
-    value:    'k'
-  - key:      readability-identifier-naming.StaticVariableCase
-    value:    'camelBack'
-  - key:      readability-identifier-naming.StaticVariablePrefix
-    value:    's_'
+  - { key: readability-identifier-naming.PrivateMethodCase,     value: 'aNy_CasE' }
+  - { key: readability-identifier-naming.PrivateMemberCase,     value: 'camelBack' }
+  - { key: readability-identifier-naming.PrivateMemberPrefix,   value: 'm_'}
+  - { key: readability-identifier-naming.ProtectedMethodCase,   value: 'aNy_CasE' }
+  - { key: readability-identifier-naming.ProtectedMemberCase,   value: 'camelBack_CasE' }
+  - { key: readability-identifier-naming.ProtectedMemberPrefix, value: 'm_'}
+  - { key: readability-identifier-naming.PuplicMethodCase,      value: 'aNy_CasE' }
+  - { key: readability-identifier-naming.PuplicMemberCase,      value: 'camelBack' }
+  - { key: readability-identifier-naming.PuplicMemberPrefix,    value: 'm_'}
+  - { key: readability-identifier-naming.ClassConstantCase,     value: 'Any_Case' }
+  - { key: readability-identifier-naming.ClassConstantPrefix,   value: 'k' }
+
+  - { key: google-runtime-int.SignedTypeSuffix,   value: '_t' }
+  - { key: google-runtime-int.UnsignedTypeSuffix, value: '_t' }

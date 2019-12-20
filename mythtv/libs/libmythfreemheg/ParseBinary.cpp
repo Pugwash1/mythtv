@@ -58,7 +58,7 @@ void MHParseBinary::ParseString(int endStr, MHOctetString &str)
     }
 
     int nLength = endStr - m_p;
-    unsigned char *stringValue = (unsigned char *)malloc(nLength + 1);
+    auto *stringValue = (unsigned char *)malloc(nLength + 1);
     if (stringValue == nullptr)
     {
         MHERROR("Out of memory");
@@ -98,6 +98,7 @@ int MHParseBinary::ParseInt(int endInt)
         }
 
         firstByte = false;
+        // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
         intVal = (intVal << 8) | ch;
     }
 
@@ -181,7 +182,7 @@ MHParseNode *MHParseBinary::DoParse()
 
     if (tagClass == Context)
     {
-        MHPTagged *pNode = new MHPTagged(tagNumber);
+        auto *pNode = new MHPTagged(tagNumber);
 
         try
         {
@@ -343,7 +344,7 @@ MHParseNode *MHParseBinary::DoParse()
     }
     case U_SEQUENCE: // Sequence
     {
-        MHParseSequence *pNode = new MHParseSequence();
+        auto *pNode = new MHParseSequence();
 
         if (endOfItem == INDEFINITE_LENGTH)
         {

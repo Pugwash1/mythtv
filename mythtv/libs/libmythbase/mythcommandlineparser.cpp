@@ -821,20 +821,19 @@ void CommandLineArg::SetBlocks(CommandLineArg *other, bool forward)
 
 /** \brief Mark a list of arguments as mutually exclusive
  */
-void CommandLineArg::AllowOneOf(QList<CommandLineArg*> args)
+void CommandLineArg::AllowOneOf(const QList<CommandLineArg*>& args)
 {
     // TODO: blocks do not get set properly if multiple dummy arguments
     //       are provided. since this method will not have access to the
     //       argument list, this issue will have to be resolved later in
     //       ReconcileLinks().
-    QList<CommandLineArg*>::const_iterator i1,i2;
 
     // loop through all but the last entry
-    for (i1 = args.begin(); i1 != args.end()-1; ++i1)
+    for (auto i1 = args.cbegin(); i1 != args.cend()-1; ++i1)
     {
         // loop through the next to the last entry
         // and block use with the current
-        for (i2 = i1+1; i2 != args.end(); ++i2)
+        for (auto i2 = i1+1; i2 != args.cend(); ++i2)
         {
             (*i1)->SetBlocks(*i2);
         }
@@ -2196,8 +2195,7 @@ void MythCommandLineParser::allowArgs(bool allow)
     else if (!allow)
         return;
 
-    CommandLineArg *arg = new CommandLineArg("_args", QVariant::StringList,
-                                             QStringList());
+    auto *arg = new CommandLineArg("_args", QVariant::StringList, QStringList());
     m_namedArgs["_args"] = arg;
 }
 
@@ -2215,7 +2213,7 @@ void MythCommandLineParser::allowExtras(bool allow)
         return;
 
     QMap<QString,QVariant> vmap;
-    CommandLineArg *arg = new CommandLineArg("_extra", QVariant::Map, vmap);
+    auto *arg = new CommandLineArg("_extra", QVariant::Map, vmap);
 
     m_namedArgs["_extra"] = arg;
 }
@@ -2233,7 +2231,7 @@ void MythCommandLineParser::allowPassthrough(bool allow)
     else if (!allow)
         return;
 
-    CommandLineArg *arg = new CommandLineArg("_passthrough",
+    auto *arg = new CommandLineArg("_passthrough",
                                     QVariant::StringList, QStringList());
     m_namedArgs["_passthrough"] = arg;
 }
@@ -2590,6 +2588,8 @@ int MythCommandLineParser::ConfigureLogging(const QString& mask, unsigned int pr
         .arg(MYTH_SOURCE_PATH).arg(MYTH_SOURCE_VERSION));
     LOG(VB_GENERAL, LOG_CRIT, QString("Qt version: compile: %1, runtime: %2")
         .arg(QT_VERSION_STR).arg(qVersion()));
+    LOG(VB_GENERAL, LOG_INFO, QString("%1 (%2)")
+        .arg(QSysInfo::prettyProductName()).arg(QSysInfo::currentCpuArchitecture()));
     LOG(VB_GENERAL, LOG_NOTICE,
         QString("Enabled verbose msgs: %1").arg(verboseString));
 

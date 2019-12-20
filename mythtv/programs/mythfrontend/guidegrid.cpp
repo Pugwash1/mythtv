@@ -472,10 +472,8 @@ void GuideGrid::RunProgramGuide(uint chanid, const QString &channum,
     }
 
     MythScreenStack *mainStack = GetMythMainWindow()->GetMainStack();
-    GuideGrid *gg = new GuideGrid(mainStack,
-                                  chanid, actualChannum, startTime,
-                                  player, embedVideo, allowFinder,
-                                  changrpid);
+    auto *gg = new GuideGrid(mainStack, chanid, actualChannum, startTime,
+                             player, embedVideo, allowFinder, changrpid);
 
     if (gg->Create())
         mainStack->AddScreen(gg, (player == nullptr));
@@ -872,7 +870,7 @@ bool GuideGrid::gestureEvent(MythGestureEvent *event)
                 if (!type)
                     return false;
 
-                MythUIStateType *object = dynamic_cast<MythUIStateType *>(type);
+                auto *object = dynamic_cast<MythUIStateType *>(type);
 
                 if (object)
                 {
@@ -881,7 +879,7 @@ bool GuideGrid::gestureEvent(MythGestureEvent *event)
 
                     if (name.startsWith("channellist"))
                     {
-                        MythUIButtonList* channelList = dynamic_cast<MythUIButtonList*>(object);
+                        auto* channelList = dynamic_cast<MythUIButtonList*>(object);
 
                         if (channelList)
                         {
@@ -891,7 +889,7 @@ bool GuideGrid::gestureEvent(MythGestureEvent *event)
                     }
                     else if (name.startsWith("guidegrid"))
                     {
-                        MythUIGuideGrid* guidegrid = dynamic_cast<MythUIGuideGrid*>(object);
+                        auto* guidegrid = dynamic_cast<MythUIGuideGrid*>(object);
 
                         if (guidegrid)
                         {
@@ -1060,8 +1058,7 @@ void GuideGrid::ShowMenu(void)
     QString label = tr("Guide Options");
 
     MythScreenStack *popupStack = GetMythMainWindow()->GetStack("popup stack");
-    MythDialogBox *menuPopup = new MythDialogBox(label, popupStack,
-                                                 "guideMenuPopup");
+    auto *menuPopup = new MythDialogBox(label, popupStack, "guideMenuPopup");
 
     if (menuPopup->Create())
     {
@@ -1107,8 +1104,7 @@ void GuideGrid::ShowRecordingMenu(void)
     QString label = tr("Recording Options");
 
     MythScreenStack *popupStack = GetMythMainWindow()->GetStack("popup stack");
-    MythDialogBox *menuPopup = new MythDialogBox(label, popupStack,
-                                                 "recMenuPopup");
+    auto *menuPopup = new MythDialogBox(label, popupStack, "recMenuPopup");
 
     if (menuPopup->Create())
     {
@@ -1193,8 +1189,8 @@ static ProgramList *CopyProglist(ProgramList *proglist)
 {
     if (!proglist)
         return nullptr;
-    ProgramList *result = new ProgramList();
-    for (ProgramList::iterator pi = proglist->begin();
+    auto *result = new ProgramList();
+    for (auto pi = proglist->begin();
          pi != proglist->end(); ++pi)
         result->push_back(new ProgramInfo(**pi));
     return result;
@@ -1223,7 +1219,7 @@ uint GuideGrid::GetAlternateChannelIndex(
         if (with_same_channum != same_channum)
             continue;
 
-        if (!m_player->IsTunable(ctx, ciinfo->m_chanid))
+        if (!TV::IsTunable(ctx, ciinfo->m_chanid))
             continue;
 
         if (with_same_channum)
@@ -1358,7 +1354,7 @@ void GuideGrid::fillChannelInfos(bool gotostartchannel)
                                          0,
                                          (m_changrpid < 0) ? 0 : m_changrpid);
 
-    typedef vector<uint> uint_list_t;
+    using uint_list_t = vector<uint>;
     QMap<QString,uint_list_t> channum_to_index_map;
     QMap<QString,uint_list_t> callsign_to_index_map;
 
@@ -1507,8 +1503,7 @@ void GuideGrid::fillTimeInfos()
 
             infomap["endtime"] = MythDate::toString(endtime, MythDate::kTime);
 
-            MythUIButtonListItem *item =
-                new MythUIButtonListItem(m_timeList, timeStr);
+            auto *item = new MythUIButtonListItem(m_timeList, timeStr);
 
             item->SetTextFromMap(infomap);
         }
@@ -1525,7 +1520,7 @@ void GuideGrid::fillProgramInfos(bool useExistingData)
 
 ProgramList *GuideGrid::getProgramListFromProgram(int chanNum)
 {
-    ProgramList *proglist = new ProgramList();
+    auto *proglist = new ProgramList();
 
     if (proglist)
     {
@@ -1609,8 +1604,7 @@ void GuideGrid::fillProgramRowInfos(int firstRow, bool useExistingData)
                    m_currentStartTime, m_currentEndTime, m_currentStartChannel,
                    m_currentRow, m_currentCol, m_channelCount, m_timeCount,
                    m_verticalLayout, m_firstTime, m_lastTime);
-    GuideUpdateProgramRow *updater =
-        new GuideUpdateProgramRow(this, gs, proglists);
+    auto *updater = new GuideUpdateProgramRow(this, gs, proglists);
     m_threadPool.start(new GuideHelper(this, updater), "GuideHelper");
 }
 
@@ -1643,7 +1637,7 @@ void GuideUpdateProgramRow::fillProgramRowInfosWith(int row,
 
     m_progPast = progPast;
 
-    ProgramList::iterator program = proglist->begin();
+    auto program = proglist->begin();
     vector<ProgramInfo*> unknownlist;
     bool unknown = false;
     ProgramInfo *proginfo = nullptr;
@@ -1698,14 +1692,15 @@ void GuideUpdateProgramRow::fillProgramRowInfosWith(int row,
         ts = ts.addSecs(5 * 60);
     }
 
-    vector<ProgramInfo*>::iterator it = unknownlist.begin();
+    auto it = unknownlist.begin();
     for (; it != unknownlist.end(); ++it)
         proglist->push_back(*it);
 
     MythRect programRect = m_ggProgramRect;
 
     /// use doubles to avoid large gaps at end..
-    double ydifference = 0.0, xdifference = 0.0;
+    double ydifference = 0.0;
+    double xdifference = 0.0;
 
     if (m_verticalLayout)
     {
@@ -1851,7 +1846,10 @@ void GuideGrid::customEvent(QEvent *event)
 {
     if (event->type() == MythEvent::MythEventMessage)
     {
-        MythEvent *me = static_cast<MythEvent *>(event);
+        auto *me = dynamic_cast<MythEvent *>(event);
+        if (me == nullptr)
+            return;
+
         const QString& message = me->Message();
 
         if (message == "SCHEDULE_CHANGE")
@@ -1871,7 +1869,7 @@ void GuideGrid::customEvent(QEvent *event)
     }
     else if (event->type() == DialogCompletionEvent::kEventType)
     {
-        DialogCompletionEvent *dce = (DialogCompletionEvent*)(event);
+        auto *dce = (DialogCompletionEvent*)(event);
 
         QString resultid   = dce->GetId();
         QString resulttext = dce->GetResultText();
@@ -1879,8 +1877,7 @@ void GuideGrid::customEvent(QEvent *event)
 
         if (resultid == "deleterule")
         {
-            RecordingRule *record =
-                dce->GetData().value<RecordingRule *>();
+            auto *record = dce->GetData().value<RecordingRule *>();
             if (record)
             {
                 if ((buttonnum > 0) && !record->Delete())
@@ -2010,8 +2007,8 @@ void GuideGrid::customEvent(QEvent *event)
     }
     else if (event->type() == UpdateGuideEvent::kEventType)
     {
-        UpdateGuideEvent *uge = static_cast<UpdateGuideEvent*>(event);
-        if (uge->m_updater)
+        auto *uge = dynamic_cast<UpdateGuideEvent*>(event);
+        if (uge && uge->m_updater)
         {
             uge->m_updater->ExecuteUI();
             delete uge->m_updater;
@@ -2066,8 +2063,7 @@ void GuideGrid::updateProgramsUI(unsigned int firstRow, unsigned int numRows,
 
 void GuideGrid::updateChannels(void)
 {
-    GuideUpdateChannels *updater =
-        new GuideUpdateChannels(this, m_currentStartChannel);
+    auto *updater = new GuideUpdateChannels(this, m_currentStartChannel);
     m_threadPool.start(new GuideHelper(this, updater), "GuideHelper");
 }
 
@@ -2086,14 +2082,15 @@ void GuideGrid::updateChannelsNonUI(QVector<ChannelInfo *> &chinfos,
 
         chinfo = GetChannelInfo(chanNumber);
 
-        bool unavailable = false, try_alt = false;
+        bool unavailable = false;
+        bool try_alt = false;
 
         if (m_player)
         {
             const PlayerContext *ctx = m_player->GetPlayerReadLock(
                 -1, __FILE__, __LINE__);
             if (ctx && chinfo)
-                try_alt = !m_player->IsTunable(ctx, chinfo->m_chanid);
+                try_alt = !TV::IsTunable(ctx, chinfo->m_chanid);
             m_player->ReturnPlayerLock(ctx);
         }
 
@@ -2131,9 +2128,8 @@ void GuideGrid::updateChannelsUI(const QVector<ChannelInfo *> &chinfos,
     {
         ChannelInfo *chinfo = chinfos[i];
         bool unavailable = unavailables[i];
-        MythUIButtonListItem *item =
-            new MythUIButtonListItem(m_channelList,
-                                     chinfo ? chinfo->GetFormatted(ChannelInfo::kChannelShort) : QString());
+        auto *item = new MythUIButtonListItem(m_channelList,
+            chinfo ? chinfo->GetFormatted(ChannelInfo::kChannelShort) : QString());
 
         QString state = "available";
         if (unavailable)
@@ -2261,8 +2257,7 @@ void GuideGrid::ChannelGroupMenu(int mode)
 
       MythScreenStack *popupStack = GetMythMainWindow()->GetStack("popup stack");
 
-      MythConfirmationDialog *okPopup = new MythConfirmationDialog(popupStack,
-                                                                   message, false);
+      auto *okPopup = new MythConfirmationDialog(popupStack, message, false);
       if (okPopup->Create())
           popupStack->AddScreen(okPopup);
       else
@@ -2274,7 +2269,7 @@ void GuideGrid::ChannelGroupMenu(int mode)
     QString label = tr("Select Channel Group");
 
     MythScreenStack *popupStack = GetMythMainWindow()->GetStack("popup stack");
-    MythDialogBox *menuPopup = new MythDialogBox(label, popupStack, "menuPopup");
+    auto *menuPopup = new MythDialogBox(label, popupStack, "menuPopup");
 
     if (menuPopup->Create())
     {
@@ -2548,7 +2543,7 @@ void GuideGrid::deleteRule()
     if (!pginfo || !pginfo->GetRecordingRuleID())
         return;
 
-    RecordingRule *record = new RecordingRule();
+    auto *record = new RecordingRule();
     if (!record->LoadByProgram(pginfo))
     {
         delete record;
@@ -2560,8 +2555,7 @@ void GuideGrid::deleteRule()
 
     MythScreenStack *popupStack = GetMythMainWindow()->GetStack("popup stack");
 
-    MythConfirmationDialog *okPopup = new MythConfirmationDialog(popupStack,
-                                                                 message, true);
+    auto *okPopup = new MythConfirmationDialog(popupStack, message, true);
 
     okPopup->SetReturnEvent(this, "deleterule");
     okPopup->SetData(qVariantFromValue(record));
@@ -2653,7 +2647,7 @@ void GuideGrid::HideTVWindow(void)
 
 void GuideGrid::EmbedTVWindow(void)
 {
-    MythEvent *me = new MythEvent("STOP_VIDEO_REFRESH_TIMER");
+    auto *me = new MythEvent("STOP_VIDEO_REFRESH_TIMER");
     qApp->postEvent(this, me);
 
     m_usingNullVideo = !m_player->StartEmbedding(m_videoRect);
@@ -2662,7 +2656,6 @@ void GuideGrid::EmbedTVWindow(void)
         QRegion r1 = QRegion(m_Area);
         QRegion r2 = QRegion(m_videoRect);
         GetMythMainWindow()->GetPaintWindow()->setMask(r1.xored(r2));
-        m_player->DrawUnusedRects();
     }
     else
     {
@@ -2702,8 +2695,7 @@ void GuideGrid::ShowJumpToTime(void)
                  MythTimeInputDialog::kHours);
 
     MythScreenStack *popupStack = GetMythMainWindow()->GetStack("popup stack");
-    MythTimeInputDialog *timedlg = new MythTimeInputDialog(popupStack, message,
-                                                           flags);
+    auto *timedlg = new MythTimeInputDialog(popupStack, message, flags);
 
     if (timedlg->Create())
     {

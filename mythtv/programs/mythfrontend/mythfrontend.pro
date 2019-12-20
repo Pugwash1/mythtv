@@ -2,16 +2,16 @@ include ( ../../settings.pro )
 include ( ../../version.pro )
 include ( ../programs-libs.pro )
 
-QT += network xml sql script
+QT += network xml sql script widgets
 mingw | win32-msvc* {
    # script debugger currently only enabled for WIN32 builds
    QT += scripttools
 }
 using_qtwebkit {
-    QT += widgets webkitwidgets
-    using_qtdbus: QT += dbus
+    QT += webkitwidgets
     android: QT += androidextras
 }
+using_qtdbus: QT += dbus
 
 TEMPLATE = app
 CONFIG += thread
@@ -110,21 +110,17 @@ win32 : !debug {
 }
 
 using_x11:DEFINES += USING_X11
-using_xv:DEFINES += USING_XV
 using_xrandr:DEFINES += USING_XRANDR
-using_opengl:QT += opengl
 using_opengl:DEFINES += USING_OPENGL
-using_opengl_video:DEFINES += USING_OPENGL_VIDEO
 using_vdpau:DEFINES += USING_VDPAU
-using_vaapi:using_opengl_video:DEFINES += USING_GLVAAPI
-using_vaapi2:DEFINES += USING_VAAPI2
+using_vaapi:using_opengl:DEFINES += USING_VAAPI
+using_mmal:DEFINES += USING_MMAL
 
 using_pulse:DEFINES += USING_PULSE
 using_pulseoutput: DEFINES += USING_PULSEOUTPUT
 using_alsa:DEFINES += USING_ALSA
 using_jack:DEFINES += USING_JACK
 using_oss: DEFINES += USING_OSS
-using_openmax: DEFINES += USING_OPENMAX
 using_libcec: DEFINES += USING_LIBCEC
 macx:      DEFINES += USING_COREAUDIO
 using_libdns_sd {
@@ -159,43 +155,4 @@ android {
     ANDROID_EXTRA_LIBS += $$(MYTHINSTALLLIB)libmythprotoserver-$$(MYTHLIBVERSION).so
 
     ANDROID_PACKAGE_SOURCE_DIR += $$(MYTHPACKAGEBASE)/android-package-source
-}
-
-using_openmax {
-    contains( HAVE_OPENMAX_BROADCOM, yes ) {
-        using_opengl {
-            # For raspberry Pi Raspbian Stretch
-            exists(/opt/vc/lib/libbrcmEGL.so) {
-                DEFINES += USING_OPENGLES
-                # For raspberry pi raspbian
-                QMAKE_RPATHDIR += $${RUNPREFIX}/share/mythtv/lib
-                createlinks.path = $${PREFIX}/share/mythtv/lib
-                createlinks.extra = ln -fs /opt/vc/lib/libbrcmEGL.so $(INSTALL_ROOT)/$${PREFIX}/share/mythtv/lib/libEGL.so.1.0.0 ;
-                createlinks.extra += ln -fs /opt/vc/lib/libbrcmEGL.so $(INSTALL_ROOT)/$${PREFIX}/share/mythtv/lib/libEGL.so.1 ;
-                createlinks.extra += ln -fs /opt/vc/lib/libbrcmEGL.so $(INSTALL_ROOT)/$${PREFIX}/share/mythtv/lib/libEGL.so ;
-                createlinks.extra += ln -fs /opt/vc/lib/libbrcmGLESv2.so $(INSTALL_ROOT)/$${PREFIX}/share/mythtv/lib/libGLESv2.so.2.0.0 ;
-                createlinks.extra += ln -fs /opt/vc/lib/libbrcmGLESv2.so $(INSTALL_ROOT)/$${PREFIX}/share/mythtv/lib/libGLESv2.so.2 ;
-                createlinks.extra += ln -fs /opt/vc/lib/libbrcmGLESv2.so $(INSTALL_ROOT)/$${PREFIX}/share/mythtv/lib/libGLESv2.so ;
-                INSTALLS += createlinks
-            } else {
-                # For raspberry Pi Raspbian pre-stretch
-                exists(/opt/vc/lib/libEGL.so) {
-                    DEFINES += USING_OPENGLES
-                    # For raspberry pi raspbian
-                    QMAKE_RPATHDIR += $${RUNPREFIX}/share/mythtv/lib
-                    createlinks.path = $${PREFIX}/share/mythtv/lib
-                    createlinks.extra = ln -fs /opt/vc/lib/libEGL.so $(INSTALL_ROOT)/$${PREFIX}/share/mythtv/lib/libEGL.so.1.0.0 ;
-                    createlinks.extra += ln -fs /opt/vc/lib/libEGL.so $(INSTALL_ROOT)/$${PREFIX}/share/mythtv/lib/libEGL.so.1 ;
-                    createlinks.extra += ln -fs /opt/vc/lib/libGLESv2.so $(INSTALL_ROOT)/$${PREFIX}/share/mythtv/lib/libGLESv2.so.2.0.0 ;
-                    createlinks.extra += ln -fs /opt/vc/lib/libGLESv2.so $(INSTALL_ROOT)/$${PREFIX}/share/mythtv/lib/libGLESv2.so.2 ;
-                    INSTALLS += createlinks
-                }
-            }
-        } else {
-            # For raspberry pi ubuntu
-            exists(/usr/lib/arm-linux-gnueabihf/mesa-egl/libEGL.so) {
-                QMAKE_RPATHDIR += /usr/lib/arm-linux-gnueabihf/mesa-egl
-            }
-        }
-    }
 }

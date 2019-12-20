@@ -77,6 +77,7 @@ static CardUtil::INPUT_TYPES get_cardtype(uint sourceid)
         "SELECT capturecard.cardid "
         "FROM  capturecard "
         "WHERE capturecard.sourceid = :SOURCEID AND "
+        "      capturecard.parentid = 0         AND "
         "      capturecard.hostname = :HOSTNAME");
     query.bindValue(":SOURCEID", sourceid);
     query.bindValue(":HOSTNAME", gCoreContext->GetHostName());
@@ -92,8 +93,8 @@ static CardUtil::INPUT_TYPES get_cardtype(uint sourceid)
     if (cardids.empty())
     {
         ShowOkPopup(QObject::tr(
-            "Sorry, the Transport Editor can only be used to "
-            "edit transports which are connected to a card input."));
+            "Sorry, the Transport Editor can only edit transports "
+            "of a video source that is connected to a capture card."));
 
         return CardUtil::ERROR_PROBE;
     }
@@ -129,24 +130,31 @@ static CardUtil::INPUT_TYPES get_cardtype(uint sourceid)
     if (cardtypes.empty())
         return CardUtil::ERROR_PROBE;
 
+    // If there are multiple cards connected to this video source
+    // check if they are the same type or compatible.
     for (size_t i = 1; i < cardtypes.size(); i++)
     {
         CardUtil::INPUT_TYPES typeA = cardtypes[i - 1];
-        typeA = (CardUtil::HDHOMERUN == typeA) ? CardUtil::ATSC : typeA;
-        typeA = (CardUtil::MPEG      == typeA) ? CardUtil::V4L  : typeA;
-
         CardUtil::INPUT_TYPES typeB = cardtypes[i + 0];
-        typeB = (CardUtil::HDHOMERUN == typeB) ? CardUtil::ATSC : typeB;
-        typeB = (CardUtil::MPEG      == typeB) ? CardUtil::V4L  : typeB;
+
+        // MPEG devices are seen as V4L (historical)
+        typeA = (CardUtil::MPEG == typeA) ? CardUtil::V4L  : typeA;
+        typeB = (CardUtil::MPEG == typeB) ? CardUtil::V4L  : typeB;
+
+        // HDHOMERUN devices can be DVBC, DVBT/T2, ATSC or a combination of those.
+        // If there are other non-HDHR devices connected to this videosource that
+        // have an explicit type then assume that the HDHOMERUN is also of that type.
+        typeA = (CardUtil::HDHOMERUN == typeA) ? typeB : typeA;
+        typeB = (CardUtil::HDHOMERUN == typeB) ? typeA : typeB;
 
         if (typeA == typeB)
             continue;
 
         ShowOkPopup(
             QObject::tr(
-                "The Video Sources to which this Transport is connected "
-                "are incompatible, please create separate video sources "
-                "for these cards. "));
+                "The capture cards connected to this transport's video source "
+                "are incompatible. Please create separate video sources "
+                "per capture card type."));
 
         return CardUtil::ERROR_PROBE;
     }
@@ -179,14 +187,13 @@ void TransportListEditor::SetSourceID(uint _sourceid)
 }
 
 TransportListEditor::TransportListEditor(uint sourceid) :
-    m_videosource(new VideoSourceSelector(sourceid, QString(), false))
+    m_videosource(new VideoSourceShow(sourceid))
 {
     setLabel(tr("Transport Editor"));
 
     addChild(m_videosource);
-    m_videosource->setEnabled(false);
 
-    ButtonStandardSetting *newTransport =
+    auto *newTransport =
         new ButtonStandardSetting("(" + tr("New Transport") + ")");
     connect(newTransport, SIGNAL(clicked()), SLOT(NewTransport(void)));
 
@@ -268,9 +275,8 @@ void TransportListEditor::Load()
                 .arg(mod).arg(query.value(2).toString())
                 .arg(hz).arg(rate).arg(netid).arg(tid).arg(type);
 
-            TransportSetting *transport =
-                new TransportSetting(txt, query.value(0).toUInt(), m_sourceid,
-                                    m_cardtype);
+            auto *transport = new TransportSetting(txt, query.value(0).toUInt(),
+                                                   m_sourceid, m_cardtype);
             connect(transport, &TransportSetting::deletePressed,
                     this, [transport, this] () { Delete(transport); });
             connect(transport, &TransportSetting::openMenu,
@@ -286,9 +292,8 @@ void TransportListEditor::Load()
 
 void TransportListEditor::NewTransport()
 {
-    TransportSetting *transport =
-        new TransportSetting(QString("New Transport"), 0,
-           m_sourceid, m_cardtype);
+    auto *transport = new TransportSetting(QString("New Transport"), 0,
+                                           m_sourceid, m_cardtype);
     addChild(transport);
     m_list.push_back(transport);
     emit settingsChanged(this);
@@ -325,16 +330,7 @@ void TransportListEditor::Delete(TransportSetting *transport)
                 MythDB::DBError("TransportEditor -- delete channels", query);
 
             removeChild(transport);
-            // m_list.removeAll(transport);
-            // Following for QT 5.3 which does not have the removeAll
-            // method in QVector
-            int ix;
-            do
-            {
-                ix = m_list.indexOf(transport);
-                if (ix != -1)
-                    m_list.remove(ix);
-            } while (ix != -1);
+            m_list.removeAll(transport);
         },
         true);
 }
@@ -344,13 +340,12 @@ void TransportListEditor::Menu(TransportSetting *transport)
     if (m_isLoading)
         return;
 
-    MythMenu *menu = new MythMenu(tr("Transport Menu"), this, "transportmenu");
+    auto *menu = new MythMenu(tr("Transport Menu"), this, "transportmenu");
     menu->AddItem(tr("Delete..."), [transport, this] () { Delete(transport); });
 
     MythScreenStack *popupStack = GetMythMainWindow()->GetStack("popup stack");
 
-    MythDialogBox *menuPopup = new MythDialogBox(menu, popupStack,
-                                                 "menudialog");
+    auto *menuPopup = new MythDialogBox(menu, popupStack, "menudialog");
     menuPopup->SetReturnEvent(this, "transportmenu");
 
     if (menuPopup->Create())
@@ -363,36 +358,36 @@ class MuxDBStorage : public SimpleDBStorage
 {
   protected:
     MuxDBStorage(StorageUser *_setting, const MultiplexID *_id, const QString& _name) :
-        SimpleDBStorage(_setting, "dtv_multiplex", _name), mplexid(_id)
+        SimpleDBStorage(_setting, "dtv_multiplex", _name), m_mplexId(_id)
     {
     }
 
     QString GetSetClause(MSqlBindings &bindings) const override; // SimpleDBStorage
     QString GetWhereClause(MSqlBindings &bindings) const override; // SimpleDBStorage
 
-    const MultiplexID *mplexid;
+    const MultiplexID *m_mplexId;
 };
 
 QString MuxDBStorage::GetWhereClause(MSqlBindings &bindings) const
 {
-    QString muxTag = ":WHERE" + mplexid->GetColumnName().toUpper();
+    QString muxTag = ":WHERE" + m_mplexId->GetColumnName().toUpper();
 
-    bindings.insert(muxTag, mplexid->getValue());
+    bindings.insert(muxTag, m_mplexId->getValue());
 
     // return query
-    return mplexid->GetColumnName() + " = " + muxTag;
+    return m_mplexId->GetColumnName() + " = " + muxTag;
 }
 
 QString MuxDBStorage::GetSetClause(MSqlBindings &bindings) const
 {
-    QString muxTag  = ":SET" + mplexid->GetColumnName().toUpper();
+    QString muxTag  = ":SET" + m_mplexId->GetColumnName().toUpper();
     QString nameTag = ":SET" + GetColumnName().toUpper();
 
-    bindings.insert(muxTag,  mplexid->getValue());
+    bindings.insert(muxTag,  m_mplexId->getValue());
     bindings.insert(nameTag, m_user->GetDBValue());
 
     // return query
-    return (mplexid->GetColumnName() + " = " + muxTag + ", " +
+    return (m_mplexId->GetColumnName() + " = " + muxTag + ", " +
             GetColumnName()   + " = " + nameTag);
 }
 

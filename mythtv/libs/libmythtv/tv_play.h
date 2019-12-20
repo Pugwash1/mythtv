@@ -31,7 +31,7 @@ using namespace std;
 #include "channelgroup.h"
 #include "mythtimer.h"
 #include "osd.h"
-#include "decoderbase.h"
+#include "decoders/decoderbase.h"
 
 class QEvent;
 class QKeyEvent;
@@ -51,10 +51,10 @@ class TV;
 class TVBrowseHelper;
 struct osdInfo;
 
-typedef void (*EMBEDRETURNVOID) (void *, bool);
-typedef void (*EMBEDRETURNVOIDEPG) (uint, const QString &, const QDateTime, TV *, bool, bool, int);
-typedef void (*EMBEDRETURNVOIDFINDER) (TV *, bool, bool);
-typedef void (*EMBEDRETURNVOIDSCHEDIT) (const ProgramInfo *, void *);
+using EMBEDRETURNVOID        = void (*) (void *, bool);
+using EMBEDRETURNVOIDEPG     = void (*) (uint, const QString &, const QDateTime, TV *, bool, bool, int);
+using EMBEDRETURNVOIDFINDER  = void (*) (TV *, bool, bool);
+using EMBEDRETURNVOIDSCHEDIT = void (*) (const ProgramInfo *, void *);
 
 // Locking order
 //
@@ -96,12 +96,12 @@ enum scheduleEditTypes {
 /**
  * Type of message displayed in ShowNoRecorderDialog()
  */
-typedef enum
+enum NoRecorderMsg
 {
     kNoRecorders = 0,  ///< No free recorders
     kNoCurrRec = 1,    ///< No current recordings
     kNoTuners = 2,     ///< No capture cards configured
-} NoRecorderMsg;
+};
 
 enum {
     kStartTVNoFlags          = 0x00,
@@ -115,21 +115,16 @@ enum {
 class AskProgramInfo
 {
   public:
-    AskProgramInfo() :
-        has_rec(false),                has_later(false),
-        is_in_same_input_group(false), is_conflicting(false),
-        info(nullptr) {}
+    AskProgramInfo() = default;
     AskProgramInfo(const QDateTime &e, bool r, bool l, ProgramInfo *i) :
-        expiry(e), has_rec(r), has_later(l),
-        is_in_same_input_group(false), is_conflicting(false),
-        info(i) {}
+        m_expiry(e), m_hasRec(r), m_hasLater(l), m_info(i) {}
 
-    QDateTime    expiry;
-    bool         has_rec;
-    bool         has_later;
-    bool         is_in_same_input_group;
-    bool         is_conflicting;
-    ProgramInfo *info;
+    QDateTime    m_expiry;
+    bool         m_hasRec             {false};
+    bool         m_hasLater           {false};
+    bool         m_isInSameInputGroup {false};
+    bool         m_isConflicting      {false};
+    ProgramInfo *m_info               {nullptr};
 };
 
 enum MenuCategory {
@@ -222,7 +217,7 @@ public:
 class MenuBase
 {
 public:
-    MenuBase() : m_document(nullptr), m_translationContext("") {}
+    MenuBase() = default;
     ~MenuBase();
     bool        LoadFromFile(const QString &filename,
                              const QString &menuname,
@@ -257,8 +252,8 @@ private:
                           const QString &keyBindingContext,
                           int includeLevel);
     void ProcessIncludes(QDomElement &root, int includeLevel);
-    QDomDocument *m_document;
-    const char   *m_translationContext;
+    QDomDocument *m_document           {nullptr};
+    const char   *m_translationContext {""};
     QString       m_menuName;
     QString       m_keyBindingContext;
 };
@@ -360,7 +355,7 @@ class MTV_PUBLIC TV : public QObject, public MenuItemDisplayer
     // Private initialisation
     bool Init(bool createWindow = true);
     void InitFromDB(void);
-    QList<QKeyEvent> ConvertScreenPressKeyMap(const QString& keyList);
+    static QList<QKeyEvent> ConvertScreenPressKeyMap(const QString& keyList);
 
     // Top level playback methods
     bool LiveTV(bool showDialogs, const ChannelInfoList &selection);
@@ -393,7 +388,7 @@ class MTV_PUBLIC TV : public QObject, public MenuItemDisplayer
                           const bool isDVD);
     bool TimeStretchHandleAction(PlayerContext*,
                                  const QStringList &actions);
-    bool DiscMenuHandleAction(PlayerContext*, const QStringList &actions);
+    static bool DiscMenuHandleAction(PlayerContext*, const QStringList &actions);
     bool Handle3D(PlayerContext *ctx, const QString &action);
 
     // Timers and timer events
@@ -419,10 +414,9 @@ class MTV_PUBLIC TV : public QObject, public MenuItemDisplayer
                       int editType = kScheduleProgramGuide);
     bool StartEmbedding(const QRect&);
     void StopEmbedding(void);
-    bool IsTunable(const PlayerContext*, uint chanid);
+    static bool IsTunable(const PlayerContext*, uint chanid);
     static QSet<uint> IsTunableOn(const PlayerContext*, uint chanid);
     void ChangeChannel(const PlayerContext*, const ChannelInfoList &options);
-    void DrawUnusedRects(void);
     void DoEditSchedule(int editType = kScheduleProgramGuide);
     QString GetRecordingGroup(int player_idx) const;
     void ChangeVolume(PlayerContext*, bool up, int newvolume = -1);
@@ -458,7 +452,7 @@ class MTV_PUBLIC TV : public QObject, public MenuItemDisplayer
     static bool StateIsLiveTV(TVState state);
 
     TVState GetState(int player_idx) const;
-    TVState GetState(const PlayerContext*) const;
+    static TVState GetState(const PlayerContext*);
     void HandleStateChange(PlayerContext *mctx, PlayerContext *ctx);
     void GetStatus(void);
     void ForceNextStateNone(PlayerContext*);
@@ -506,11 +500,11 @@ class MTV_PUBLIC TV : public QObject, public MenuItemDisplayer
     /// This is set if the user asked MythTV to jump to the previous
     /// recording in the playlist.
     bool getJumpToProgram(void)  const { return m_jumpToProgram; }
-    bool IsDeleteAllowed(const PlayerContext*) const;
+    static bool IsDeleteAllowed(const PlayerContext*);
 
     // Channels
-    void ToggleChannelFavorite(PlayerContext *ctx);
-    void ToggleChannelFavorite(PlayerContext*, const QString&);
+    static void ToggleChannelFavorite(PlayerContext *ctx);
+    static void ToggleChannelFavorite(PlayerContext*, const QString&);
     void ChangeChannel(PlayerContext*, ChannelChangeDirection direction);
     void ChangeChannel(PlayerContext*, uint chanid, const QString &channum);
 
@@ -548,7 +542,7 @@ class MTV_PUBLIC TV : public QObject, public MenuItemDisplayer
     void DoTogglePauseFinish(PlayerContext*, float time, bool showOSD);
     void DoTogglePause(PlayerContext*, bool showOSD);
     vector<bool> DoSetPauseState(PlayerContext *lctx, const vector<bool>&);
-    bool ContextIsPaused(PlayerContext *ctx, const char *file, int location);
+    static bool ContextIsPaused(PlayerContext *ctx, const char *file, int location);
 
     // Program jumping stuff
     void SetLastProgram(const ProgramInfo *rcinfo);
@@ -585,20 +579,20 @@ class MTV_PUBLIC TV : public QObject, public MenuItemDisplayer
     void EnableUpmix(PlayerContext*, bool enable, bool toggle = false);
     void ChangeAudioSync(PlayerContext*, int dir, int newsync = -9999);
     bool AudioSyncHandleAction(PlayerContext*, const QStringList &actions);
-    void PauseAudioUntilBuffered(PlayerContext *ctx);
+    static void PauseAudioUntilBuffered(PlayerContext *ctx);
 
     // Chapters, titles and angles
-    int  GetNumChapters(const PlayerContext*) const;
-    void GetChapterTimes(const PlayerContext*, QList<long long> &times) const;
-    int  GetCurrentChapter(const PlayerContext*) const;
-    int  GetNumTitles(const PlayerContext *ctx) const;
-    int  GetCurrentTitle(const PlayerContext *ctx) const;
-    int  GetTitleDuration(const PlayerContext *ctx, int title) const;
-    QString GetTitleName(const PlayerContext *ctx, int title) const;
+    static int  GetNumChapters(const PlayerContext*);
+    static void GetChapterTimes(const PlayerContext*, QList<long long> &times);
+    static int  GetCurrentChapter(const PlayerContext*);
+    static int  GetNumTitles(const PlayerContext *ctx);
+    static int  GetCurrentTitle(const PlayerContext *ctx);
+    static int  GetTitleDuration(const PlayerContext *ctx, int title);
+    static QString GetTitleName(const PlayerContext *ctx, int title);
     void DoSwitchTitle(PlayerContext*, int title);
-    int  GetNumAngles(const PlayerContext *ctx) const;
-    int  GetCurrentAngle(const PlayerContext *ctx) const;
-    QString GetAngleName(const PlayerContext *ctx, int angle) const;
+    static int  GetNumAngles(const PlayerContext *ctx);
+    static int  GetCurrentAngle(const PlayerContext *ctx);
+    static QString GetAngleName(const PlayerContext *ctx, int angle);
     void DoSwitchAngle(PlayerContext*, int angle);
     void DoJumpChapter(PlayerContext*, int chapter);
 
@@ -611,7 +605,7 @@ class MTV_PUBLIC TV : public QObject, public MenuItemDisplayer
     void DoQueueTranscode(PlayerContext*, const QString& profile);
 
     // Bookmarks
-    bool IsBookmarkAllowed(const PlayerContext*) const;
+    static bool IsBookmarkAllowed(const PlayerContext*);
     void SetBookmark(PlayerContext* ctx, bool clear = false);
 
     // OSD
@@ -630,7 +624,7 @@ class MTV_PUBLIC TV : public QObject, public MenuItemDisplayer
     void UpdateOSDSeekMessage(const PlayerContext*,
                               const QString &mesg, enum OSDTimeout timeout);
     void UpdateOSDInput(const PlayerContext*);
-    void UpdateOSDSignal(const PlayerContext*, const QStringList &strlist);
+    void UpdateOSDSignal(PlayerContext*, const QStringList &strlist);
     void UpdateOSDTimeoutMessage(PlayerContext*);
     void UpdateOSDAskAllowDialog(PlayerContext*);
     void SetUpdateOSDPosition(bool set_it);
@@ -655,7 +649,7 @@ class MTV_PUBLIC TV : public QObject, public MenuItemDisplayer
     void PxPToggleType(  PlayerContext *mctx, bool wantPBP);
     void PxPSwap(        PlayerContext *mctx, PlayerContext *pipctx);
     bool PIPAddPlayer(   PlayerContext *mctx, PlayerContext *ctx);
-    bool PIPRemovePlayer(PlayerContext *mctx, PlayerContext *ctx);
+    static bool PIPRemovePlayer(PlayerContext *mctx, PlayerContext *ctx);
     void PBPRestartMainPlayer(PlayerContext *mctx);
     void SetActive(PlayerContext *lctx, int index, bool osd_msg);
 
@@ -666,8 +660,7 @@ class MTV_PUBLIC TV : public QObject, public MenuItemDisplayer
                               AspectOverrideMode aspectMode = kAspect_Toggle);
     void ToggleAdjustFill(PlayerContext*,
                           AdjustFillMode adjustfillMode = kAdjustFill_Toggle);
-    void DoToggleStudioLevels(const PlayerContext *ctx);
-    void DoToggleNightMode(const PlayerContext*);
+    static void DoToggleNightMode(const PlayerContext*);
     void DoTogglePictureAttribute(const PlayerContext*,
                                   PictureAdjustType type);
     void DoChangePictureAttribute(
@@ -678,10 +671,10 @@ class MTV_PUBLIC TV : public QObject, public MenuItemDisplayer
                                       const QStringList &actions);
     static PictureAttribute NextPictureAdjustType(
         PictureAdjustType type, MythPlayer *mp, PictureAttribute attr);
-    void HandleDeinterlacer(PlayerContext* ctx, const QString &action);
+    static void HandleDeinterlacer(PlayerContext* ctx, const QString &action);
 
     // Sundry on screen
-    void ITVRestart(PlayerContext*, bool isLive);
+    static void ITVRestart(PlayerContext*, bool isLive);
     void EnableVisualisation(const PlayerContext*, bool enable, bool toggle = false,
                              const QString &action = QString(""));
 
@@ -693,8 +686,8 @@ class MTV_PUBLIC TV : public QObject, public MenuItemDisplayer
     // Channel editing support
     void StartChannelEditMode(PlayerContext*);
     bool HandleOSDChannelEdit(PlayerContext*, const QString& action);
-    void ChannelEditAutoFill(const PlayerContext*, InfoMap&) const;
-    void ChannelEditXDSFill(const PlayerContext*, InfoMap&) const;
+    static void ChannelEditAutoFill(const PlayerContext*, InfoMap&);
+    static void ChannelEditXDSFill(const PlayerContext*, InfoMap&);
 
     // General dialog handling
     bool DialogIsVisible(PlayerContext *ctx, const QString &dialog);
@@ -752,7 +745,7 @@ class MTV_PUBLIC TV : public QObject, public MenuItemDisplayer
     bool MenuItemDisplayCutlist(const MenuItemContext &c);
     void PlaybackMenuInit(const MenuBase &menu);
     void PlaybackMenuDeinit(const MenuBase &menu);
-    void MenuStrings(void) const;
+    static void MenuStrings(void);
     void MenuLazyInit(void *field);
 
     // LCD
@@ -771,7 +764,7 @@ class MTV_PUBLIC TV : public QObject, public MenuItemDisplayer
 
     // for temp debugging only..
     int find_player_index(const PlayerContext*) const;
-    QString GetLiveTVIndex(const PlayerContext*) const;
+    static QString GetLiveTVIndex(const PlayerContext*);
 
   private:
     // Configuration variables from database
@@ -784,10 +777,11 @@ class MTV_PUBLIC TV : public QObject, public MenuItemDisplayer
     bool              m_dbEndOfRecExitPrompt {false};
     bool              m_dbJumpPreferOsd {true};
     bool              m_dbUseGuiSizeForTv {false};
+    bool              m_dbUseVideoModes {false};
     bool              m_dbClearSavedPosition {false};
     bool              m_dbRunJobsOnRemote {false};
     bool              m_dbContinueEmbedded {false};
-    bool              m_dbUseFixedSize {true};
+    bool              m_dbRunFrontendInWindow {false};
     bool              m_dbBrowseAlways {false};
     bool              m_dbBrowseAllTuners {false};
     bool              m_dbUseChannelGroups {false};
@@ -930,8 +924,6 @@ class MTV_PUBLIC TV : public QObject, public MenuItemDisplayer
     QRect         m_savedGuiBounds;
     /// true if this instance disabled MythUI drawing.
     bool          m_weDisabledGUI {false};
-    /// true if video chromakey and frame should not be drawn
-    bool          m_disableDrawUnusedRects {false};
 
     // embedded and suspended status
     bool         m_isEmbedded {false};       ///< are we currently embedded
@@ -949,11 +941,11 @@ class MTV_PUBLIC TV : public QObject, public MenuItemDisplayer
     ChannelInfoList     m_channelGroupChannelList;
 
     // Network Control stuff
-    MythDeque<QString> networkControlCommands;
+    MythDeque<QString> m_networkControlCommands;
 
     // Timers
-    typedef QMap<int,PlayerContext*>       TimerContextMap;
-    typedef QMap<int,const PlayerContext*> TimerContextConstMap;
+    using TimerContextMap      = QMap<int,PlayerContext*>;
+    using TimerContextConstMap = QMap<int,const PlayerContext*>;
     mutable QMutex       m_timerIdLock;
     volatile int         m_lcdTimerId              {0};
     volatile int         m_lcdVolumeTimerId        {0};
@@ -999,20 +991,19 @@ class MTV_PUBLIC TV : public QObject, public MenuItemDisplayer
     QStringList m_tvmVisualisers;
 
     // Video
-    AspectOverrideMode m_tvmAspectOverride {kAspect_Off};
-    AdjustFillMode   m_tvmAdjustFill {kAdjustFill_Off};
-    bool             m_tvmFillAutoDetect {false};
-    uint             m_tvmSup {kPictureAttributeSupported_None};
-    bool             m_tvmStudioLevels {false};
-    bool             m_tvmStereoAllowed {false};
-    StereoscopicMode m_tvmStereoMode {kStereoscopicModeNone};
-    FrameScanType    m_tvmScanType {kScan_Ignore};
-    FrameScanType    m_tvmScanTypeUnlocked {kScan_Ignore};
-    bool             m_tvmScanTypeLocked {false};
-    QString          m_tvmCurMode;
-    QStringList      m_tvmDeinterlacers;
-    QString          m_tvmCurrentDeinterlacer;
-    bool             m_tvmDoubleRate {false};
+    AspectOverrideMode m_tvmAspectOverride    {kAspect_Off};
+    AdjustFillMode   m_tvmAdjustFill          {kAdjustFill_Off};
+    bool             m_tvmFillAutoDetect      {false};
+    uint             m_tvmSup                 {kPictureAttributeSupported_None};
+    bool             m_tvmStereoAllowed       {false};
+    StereoscopicMode m_tvmStereoMode          {kStereoscopicModeNone};
+    FrameScanType    m_tvmScanType            {kScan_Ignore};
+    FrameScanType    m_tvmScanTypeUnlocked    {kScan_Ignore};
+    bool             m_tvmScanTypeLocked      {false};
+    QString          m_tvmCurMode             {};
+    QStringList      m_tvmDeinterlacers       {};
+    QString          m_tvmCurrentDeinterlacer {};
+    bool             m_tvmDoubleRate          {false};
 
     // Playback
     int          m_tvmSpeedX100         {100};

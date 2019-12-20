@@ -183,7 +183,7 @@ void LyricsData::customEvent(QEvent *event)
 {
     if (event->type() == MythEvent::MythEventMessage)
     {
-        MythEvent *me = dynamic_cast<MythEvent*>(event);
+        auto *me = dynamic_cast<MythEvent*>(event);
         if (!me)
             return;
 
@@ -230,7 +230,8 @@ void LyricsData::loadLyrics(const QString &xmlData)
 {
     QDomDocument domDoc;
     QString errorMsg;
-    int errorLine = 0, errorColumn = 0;
+    int errorLine = 0;
+    int errorColumn = 0;
 
     if (!domDoc.setContent(xmlData, false, &errorMsg, &errorLine, &errorColumn))
     {
@@ -317,7 +318,7 @@ void LyricsData::setLyrics(const QStringList &lyrics)
     {
         QString lyric = lyrics.at(x);
 
-        LyricsLine *line = new LyricsLine;
+        auto *line = new LyricsLine;
 
         if (lyric.startsWith("[offset:"))
         {

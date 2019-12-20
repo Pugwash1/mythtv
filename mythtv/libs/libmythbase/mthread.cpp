@@ -109,7 +109,7 @@ MThread::MThread(const QString &objectName) :
 
 MThread::MThread(const QString &objectName, QRunnable *runnable) :
     m_thread(new MThreadInternal(*this)), m_runnable(runnable),
-    m_prolog_executed(false), m_epilog_executed(false)
+    m_prologExecuted(false), m_epilogExecuted(false)
 {
     m_thread->setObjectName(objectName);
     QMutexLocker locker(&s_all_threads_lock);
@@ -118,18 +118,18 @@ MThread::MThread(const QString &objectName, QRunnable *runnable) :
 
 MThread::~MThread()
 {
-    if (!m_prolog_executed)
+    if (!m_prologExecuted)
     {
-        LOG(VB_GENERAL, LOG_CRIT, "MThread prolog was never run!");
+        LOG(VB_GENERAL, LOG_CRIT, QString("'%1': MThread prolog was never run!").arg(objectName()));
     }
-    if (!m_epilog_executed)
+    if (!m_epilogExecuted)
     {
-        LOG(VB_GENERAL, LOG_CRIT, "MThread epilog was never run!");
+        LOG(VB_GENERAL, LOG_CRIT, QString("'%1': MThread epilog was never run! (%1)").arg(objectName()));
     }
     if (m_thread->isRunning())
     {
-        LOG(VB_GENERAL, LOG_CRIT,
-            "MThread destructor called while thread still running!");
+        LOG(VB_GENERAL, LOG_CRIT, QString("'%1': MThread destructor called while thread still running! (%1)")
+                                          .arg(objectName()));
         m_thread->wait();
     }
 
@@ -209,7 +209,7 @@ void MThread::RunProlog(void)
     }
     setTerminationEnabled(false);
     ThreadSetup(m_thread->objectName());
-    m_prolog_executed = true;
+    m_prologExecuted = true;
 }
 
 void MThread::RunEpilog(void)
@@ -221,7 +221,7 @@ void MThread::RunEpilog(void)
         return;
     }
     ThreadCleanup();
-    m_epilog_executed = true;
+    m_epilogExecuted = true;
 }
 
 void MThread::ThreadSetup(const QString &name)
@@ -293,8 +293,8 @@ void MThread::exit(int retcode)
 
 void MThread::start(QThread::Priority p)
 {
-    m_prolog_executed = false;
-    m_epilog_executed = false;
+    m_prologExecuted = false;
+    m_epilogExecuted = false;
     m_thread->start(p);
 }
 

@@ -38,20 +38,27 @@ class MTV_PUBLIC Vaapi2Context : public MythCodecContext
 {
   public:
     Vaapi2Context(void) = default;
-    ~Vaapi2Context();
-    static MythCodecID GetBestSupportedCodec(AVCodec **ppCodec,
-                                             const QString &decoder,
-                                             uint stream_type,
-                                             AVPixelFormat &pix_fmt);
-    int HwDecoderInit(AVCodecContext *ctx) override; // MythCodecContext
-    QString GetDeinterlaceFilter(void) override; // MythCodecContext
-    bool isValidDeinterlacer(QString /*name*/ ) override; // MythCodecContext
-    QStringList GetDeinterlacers(void) override; // MythCodecContext
+    ~Vaapi2Context() override;
+
+    virtual int FilteredReceiveFrame(AVCodecContext *ctx, AVFrame *frame) override;
 
   protected:
     int InitDeinterlaceFilter(AVCodecContext *ctx, AVFrame *frame) override; // MythCodecContext
     void CloseFilters();
 
+
+    virtual int InitDeinterlaceFilter(AVCodecContext *ctx, AVFrame *frame);
+    AVStream        *m_stream             {nullptr};
+    AVFilterContext *m_bufferSinkCtx      {nullptr};
+    AVFilterContext *m_bufferSrcCtx       {nullptr};
+    AVFilterGraph   *m_filterGraph        {nullptr};
+    bool             m_filtersInitialized {false};
+    AVBufferRef     *m_hwFramesCtx        {nullptr};
+    int64_t          m_priorPts[2]        {0,0};
+    int64_t          m_ptsUsed            {0};
+    int              m_width              {0};
+    int              m_height             {0};
+    bool             m_doubleRate         {false};
 };
 
 #endif // VAAPI2CONTEXT_H

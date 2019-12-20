@@ -77,13 +77,13 @@ static QHash<uint64_t, int64_t> logThreadTidHash;
 static bool                    logThreadFinished = false;
 static bool                    debugRegistration = false;
 
-typedef struct {
+struct LogPropagateOpts {
     bool    m_propagate;
     int     m_quiet;
     int     m_facility;
     bool    m_dblog;
     QString m_path;
-} LogPropagateOpts;
+};
 
 LogPropagateOpts        logPropagateOpts {false, 0, 0, true, ""};
 QString                 logPropagateArgs;
@@ -414,19 +414,20 @@ bool LoggerThread::logConsole(LoggingItem *item)
     char                line[MAX_STRING_LENGTH];
 
     if (item->m_type & kStandardIO)
-        snprintf( line, MAX_STRING_LENGTH, "%s", item->m_message );
+    {
+        snprintf(line, MAX_STRING_LENGTH, "%s", item->m_message);
+    }
     else
     {
-        char   usPart[9];
-        char   timestamp[TIMESTAMP_MAX];
+        char usPart[9];
+        char timestamp[TIMESTAMP_MAX];
         time_t epoch = item->epoch();
         struct tm tm {};
         localtime_r(&epoch, &tm);
-
-        strftime( timestamp, TIMESTAMP_MAX-8, "%Y-%m-%d %H:%M:%S",
-                  (const struct tm *)&tm );
-        snprintf( usPart, 9, ".%06d", (int)(item->m_usec) );
-        strcat( timestamp, usPart );
+        strftime(timestamp, TIMESTAMP_MAX-8, "%Y-%m-%d %H:%M:%S",
+                 static_cast<const struct tm *>(&tm));
+        snprintf(usPart, 9, ".%06d", static_cast<int>(item->m_usec));
+        strcat(timestamp, usPart);
         char shortname = '-';
 
         {
@@ -437,16 +438,25 @@ bool LoggerThread::logConsole(LoggingItem *item)
         }
 
 #if CONFIG_DEBUGTYPE
-        snprintf( line, MAX_STRING_LENGTH, "%s %c  %s:%d:%s  %s\n", timestamp,
-                  shortname, item->m_file, item->m_line, item->m_function, item->m_message );
+        if(item->tid())
+        {
+            snprintf(line, MAX_STRING_LENGTH, "%s %c [%d/%" PREFIX64 "d] %s %s:%d:%s  %s\n", timestamp,
+                     shortname, item->pid(), item->tid(), item->rawThreadName(),
+                     item->m_file, item->m_line, item->m_function, item->m_message);
+        }
+        else
+        {
+            snprintf(line, MAX_STRING_LENGTH, "%s %c [%d] %s %s:%d:%s  %s\n", timestamp,
+                     shortname, item->pid(), item->rawThreadName(),
+                     item->m_file, item->m_line, item->m_function, item->m_message);
+        }
 #else
-        snprintf( line, MAX_STRING_LENGTH, "%s %c  %s\n", timestamp,
-                  shortname, item->m_message );
+        snprintf(line, MAX_STRING_LENGTH, "%s %c  %s\n", timestamp,
+                  shortname, item->m_message);
 #endif
     }
 
-    int result = write( 1, line, strlen(line) );
-    (void)result;
+    (void)write(1, line, strlen(line));
 
 #else // Q_OS_ANDROID
 
@@ -543,7 +553,7 @@ LoggingItem *LoggingItem::create(const char *_file,
                                  int _line, LogLevel_t _level,
                                  LoggingType _type)
 {
-    LoggingItem *item = new LoggingItem(_file, _function, _line, _level, _type);
+    auto *item = new LoggingItem(_file, _function, _line, _level, _type);
 
     return item;
 }
@@ -553,7 +563,7 @@ LoggingItem *LoggingItem::create(QByteArray &buf)
     // Deserialize buffer
     QVariant variant = QJsonWrapper::parseJson(buf);
 
-    LoggingItem *item = new LoggingItem;
+    auto *item = new LoggingItem;
     QJsonWrapper::qvariant2qobject(variant.toMap(), item);
 
     return item;
@@ -866,7 +876,7 @@ QString logLevelGetName(LogLevel_t level)
 /// \param  helptext    Descriptive text for --verbose help output
 void verboseAdd(uint64_t mask, QString name, bool additive, QString helptext)
 {
-    VerboseDef *item = new VerboseDef;
+    auto *item = new VerboseDef;
 
     item->mask = mask;
     // VB_GENERAL -> general
@@ -886,7 +896,7 @@ void verboseAdd(uint64_t mask, QString name, bool additive, QString helptext)
 /// \param  shortname   one-letter short name for output into logs
 void loglevelAdd(int value, QString name, char shortname)
 {
-    LoglevelDef *item = new LoglevelDef;
+    auto *item = new LoglevelDef;
 
     item->value = value;
     // LOG_CRIT -> crit

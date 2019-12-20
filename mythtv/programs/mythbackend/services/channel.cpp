@@ -70,15 +70,15 @@ DTC::ChannelInfoList* Channel::GetChannelInfoList( uint nSourceID,
     // Build Response
     // ----------------------------------------------------------------------
 
-    DTC::ChannelInfoList *pChannelInfos = new DTC::ChannelInfoList();
+    auto *pChannelInfos = new DTC::ChannelInfoList();
 
     nStartIndex = (nStartIndex > 0) ? min( nStartIndex, nTotalAvailable ) : 0;
     nCount      = (nCount > 0) ? min(nCount, (nTotalAvailable - nStartIndex)) :
                                              (nTotalAvailable - nStartIndex);
 
     ChannelInfoList::iterator chanIt;
-    ChannelInfoList::iterator chanItBegin = chanList.begin() + nStartIndex;
-    ChannelInfoList::iterator chanItEnd   = chanItBegin      + nCount;
+    auto chanItBegin = chanList.begin() + nStartIndex;
+    auto chanItEnd   = chanItBegin      + nCount;
 
     for( chanIt = chanItBegin; chanIt < chanItEnd; ++chanIt )
     {
@@ -94,7 +94,8 @@ DTC::ChannelInfoList* Channel::GetChannelInfoList( uint nSourceID,
         }
     }
 
-    int nCurPage = 0, nTotalPages = 0;
+    int nCurPage = 0;
+    int nTotalPages = 0;
     if (nCount == 0)
         nTotalPages = 1;
     else
@@ -128,7 +129,7 @@ DTC::ChannelInfo* Channel::GetChannelInfo( uint nChanID )
     if (nChanID == 0)
         throw( QString("Channel ID appears invalid."));
 
-    DTC::ChannelInfo *pChannelInfo = new DTC::ChannelInfo();
+    auto *pChannelInfo = new DTC::ChannelInfo();
 
     if (!FillChannelInfo(pChannelInfo, nChanID, true))
     {
@@ -231,7 +232,7 @@ DTC::VideoSourceList* Channel::GetVideoSourceList()
     // return the results of the query
     // ----------------------------------------------------------------------
 
-    DTC::VideoSourceList* pList = new DTC::VideoSourceList();
+    auto* pList = new DTC::VideoSourceList();
 
     while (query.next())
     {
@@ -290,7 +291,7 @@ DTC::VideoSource* Channel::GetVideoSource( uint nSourceID )
     // return the results of the query
     // ----------------------------------------------------------------------
 
-    DTC::VideoSource *pVideoSource = new DTC::VideoSource();
+    auto *pVideoSource = new DTC::VideoSource();
 
     if (query.next())
     {
@@ -316,7 +317,7 @@ DTC::VideoSource* Channel::GetVideoSource( uint nSourceID )
 //
 /////////////////////////////////////////////////////////////////////////////
 
-bool Channel::UpdateVideoSource( uint nSourceId,
+bool Channel::UpdateVideoSource( uint          nSourceId,
                                  const QString &sSourceName,
                                  const QString &sGrabber,
                                  const QString &sUserId,
@@ -330,11 +331,97 @@ bool Channel::UpdateVideoSource( uint nSourceId,
                                  uint          nRegionId,
                                  uint          nScanFrequency )
 {
-    bool bResult = SourceUtil::UpdateSource(nSourceId, sSourceName, sGrabber, sUserId, sFreqTable,
-                                       sLineupId, sPassword, bUseEIT, sConfigPath,
-                                       nNITId, nBouquetId, nRegionId, nScanFrequency);
 
-    return bResult;
+    if (!HAS_PARAM("sourceid"))
+    {
+        LOG(VB_GENERAL, LOG_ERR, "SourceId is required");
+        return false;
+    }
+
+    if (!SourceUtil::IsSourceIDValid(nSourceId))
+    {
+        LOG(VB_GENERAL, LOG_ERR, QString("SourceId %1 doesn't exist")
+            .arg(nSourceId));
+        return false;
+    }
+
+    if (m_parsedParams.size() < 2 )
+    {
+        LOG(VB_GENERAL, LOG_ERR, QString("SourceId=%1 was the only parameter")
+            .arg(nSourceId));
+        return false;
+    }
+
+    MSqlBindings bindings;
+    MSqlBindings::const_iterator it;
+    QString settings;
+
+    if ( HAS_PARAM("sourcename") )
+        ADD_SQL(settings, bindings, "name", "SourceName", sSourceName)
+
+    if ( HAS_PARAM("grabber") )
+        ADD_SQL(settings, bindings, "xmltvgrabber", "Grabber", sGrabber)
+
+    if ( HAS_PARAM("userid") )
+        ADD_SQL(settings, bindings, "userid", "UserId", sUserId)
+
+    if ( HAS_PARAM("freqtable") )
+        ADD_SQL(settings, bindings, "freqtable", "FreqTable", sFreqTable)
+
+    if ( HAS_PARAM("lineupid") )
+        ADD_SQL(settings, bindings, "lineupid", "LineupId", sLineupId)
+
+    if ( HAS_PARAM("password") )
+        ADD_SQL(settings, bindings, "password", "Password", sPassword)
+
+    if ( HAS_PARAM("useeit") )
+        ADD_SQL(settings, bindings, "useeit", "UseEIT", bUseEIT)
+
+    if (HAS_PARAM("configpath"))
+    {
+        if (sConfigPath.isEmpty())
+            settings += "configpath=NULL, "; // mythfilldatabase grabber requirement
+        else
+            ADD_SQL(settings, bindings, "configpath", "ConfigPath", sConfigPath)
+    }
+
+    if ( HAS_PARAM("nitid") )
+        ADD_SQL(settings, bindings, "dvb_nit_id", "NITId", nNITId)
+
+    if ( HAS_PARAM("bouquetid") )
+        ADD_SQL(settings, bindings, "bouquet_id", "BouquetId", nBouquetId)
+
+    if ( HAS_PARAM("regionid") )
+        ADD_SQL(settings, bindings, "region_id", "RegionId", nRegionId)
+
+    if ( HAS_PARAM("scanfrequency") )
+        ADD_SQL(settings, bindings, "scanfrequency", "ScanFrequency", nScanFrequency)
+
+    if ( settings.isEmpty() )
+    {
+        LOG(VB_GENERAL, LOG_ERR, "No valid parameters were passed");
+        return false;
+    }
+
+    settings.chop(2);
+
+    MSqlQuery query(MSqlQuery::InitCon());
+
+    query.prepare(QString("UPDATE videosource SET %1 WHERE sourceid=:SOURCEID")
+                  .arg(settings));
+    bindings[":SOURCEID"] = nSourceId;
+
+    for (it = bindings.begin(); it != bindings.end(); ++it)
+        query.bindValue(it.key(), it.value());
+
+    if (!query.exec())
+    {
+        MythDB::DBError("MythAPI::UpdateVideoSource()", query);
+
+        throw( QString( "Database Error executing query." ));
+    }
+
+    return true;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -380,7 +467,7 @@ DTC::LineupList* Channel::GetDDLineupList( const QString &/*sSource*/,
                                            const QString &/*sUserId*/,
                                            const QString &/*sPassword*/ )
 {
-    DTC::LineupList *pLineups = new DTC::LineupList();
+    auto *pLineups = new DTC::LineupList();
     return pLineups;
 }
 
@@ -449,7 +536,7 @@ DTC::VideoMultiplexList* Channel::GetVideoMultiplexList( uint nSourceID,
     // Build Response
     // ----------------------------------------------------------------------
 
-    DTC::VideoMultiplexList *pVideoMultiplexes = new DTC::VideoMultiplexList();
+    auto *pVideoMultiplexes = new DTC::VideoMultiplexList();
 
     nStartIndex   = (nStartIndex > 0) ? min( nStartIndex, muxCount ) : 0;
     nCount        = (nCount > 0) ? min( nCount, muxCount ) : muxCount;
@@ -489,7 +576,8 @@ DTC::VideoMultiplexList* Channel::GetVideoMultiplexList( uint nSourceID,
         }
     }
 
-    int curPage = 0, totalPages = 0;
+    int curPage = 0;
+    int totalPages = 0;
     if (nCount == 0)
         totalPages = 1;
     else
@@ -538,7 +626,7 @@ DTC::VideoMultiplex* Channel::GetVideoMultiplex( uint nMplexID )
         throw( QString( "Database Error executing query." ));
     }
 
-    DTC::VideoMultiplex *pVideoMultiplex = new DTC::VideoMultiplex();
+    auto *pVideoMultiplex = new DTC::VideoMultiplex();
 
     if (query.next())
     {

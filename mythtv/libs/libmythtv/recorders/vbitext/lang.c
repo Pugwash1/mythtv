@@ -17,7 +17,7 @@ static unsigned char lang_char[256];
 
 
 
-static struct mark { const char *g0, *latin1, *latin2; } marks[16] =
+static struct mark { const char *m_g0, *m_latin1, *m_latin2; } marks[16] =
 {
     /* none */         { "#",
                          "\xA4", /* ¤ */
@@ -143,12 +143,11 @@ void
 do_enhancements(struct enhance *eh, struct vt_page *vtp)
 {
     int row = 0;
-    unsigned int *p, *e;
 
     if (eh->next_des < 1)
        return;
 
-    for (p = eh->trip, e = p + eh->next_des * 13; p < e; p++)
+    for (unsigned int *p = eh->trip, *e = p + eh->next_des * 13; p < e; p++)
        if (*p % 2048 != 2047)
        {
            int adr = *p % 64;
@@ -176,12 +175,12 @@ do_enhancements(struct enhance *eh, struct vt_page *vtp)
                            struct mark *mark = marks + (mode - 16);
                            char *x;
 
-                           if ((x = strchr(mark->g0, data)))
+                           if ((x = strchr(mark->m_g0, data)))
                            {
                                if (latin1)
-                                   data = mark->latin1[x - mark->g0];
+                                   data = mark->m_latin1[x - mark->m_g0];
                                else
-                                   data = mark->latin2[x - mark->g0];
+                                   data = mark->m_latin2[x - mark->m_g0];
                            }
                            vtp->data[row][adr] = data;
                        }

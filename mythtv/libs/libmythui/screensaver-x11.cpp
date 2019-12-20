@@ -46,10 +46,11 @@ class ScreenSaverX11Private
                 LOG(VB_GENERAL, LOG_INFO, LOC + "XScreenSaver support enabled");
         }
 
-        m_display = OpenMythXDisplay();
+        m_display = OpenMythXDisplay(false);
         if (m_display)
         {
-            int dummy0 = 0, dummy1 = 0;
+            int dummy0 = 0;
+            int dummy1 = 0;
             m_dpmsaware = DPMSQueryExtension(m_display->GetDisplay(),
                                             &dummy0, &dummy1);
         }
@@ -159,24 +160,24 @@ class ScreenSaverX11Private
 
     void SaveScreenSaver(void)
     {
-        if (!m_state.saved && m_display)
+        if (!m_state.m_saved && m_display)
         {
-            XGetScreenSaver(m_display->GetDisplay(), &m_state.timeout,
-                            &m_state.interval, &m_state.preferblank,
-                            &m_state.allowexposure);
-            m_state.saved = true;
+            XGetScreenSaver(m_display->GetDisplay(), &m_state.m_timeout,
+                            &m_state.m_interval, &m_state.m_preferblank,
+                            &m_state.m_allowexposure);
+            m_state.m_saved = true;
         }
     }
 
     void RestoreScreenSaver(void)
     {
-        if (m_state.saved && m_display)
+        if (m_state.m_saved && m_display)
         {
-            XSetScreenSaver(m_display->GetDisplay(), m_state.timeout,
-                            m_state.interval, m_state.preferblank,
-                            m_state.allowexposure);
+            XSetScreenSaver(m_display->GetDisplay(), m_state.m_timeout,
+                            m_state.m_interval, m_state.m_preferblank,
+                            m_state.m_allowexposure);
             m_display->Sync();
-            m_state.saved = false;
+            m_state.m_saved = false;
         }
     }
 
@@ -186,8 +187,8 @@ class ScreenSaverX11Private
             return;
 
         QDateTime current_time = MythDate::current();
-        if ((!m_last_deactivated.isValid()) ||
-            (m_last_deactivated.secsTo(current_time) > 30))
+        if ((!m_lastDeactivated.isValid()) ||
+            (m_lastDeactivated.secsTo(current_time) > 30))
         {
             if (m_xscreensaverRunning)
             {
@@ -198,7 +199,7 @@ class ScreenSaverX11Private
                             kMSDontDisableDrawing |
                             kMSRunBackground);
             }
-            m_last_deactivated = current_time;
+            m_lastDeactivated = current_time;
         }
     }
 
@@ -207,11 +208,11 @@ class ScreenSaverX11Private
     {
       public:
         ScreenSaverState() = default;
-        bool saved        {false};
-        int timeout       {-1};
-        int interval      {-1};
-        int preferblank   {-1};
-        int allowexposure {-1};
+        bool m_saved         {false};
+        int  m_timeout       {-1};
+        int  m_interval      {-1};
+        int  m_preferblank   {-1};
+        int  m_allowexposure {-1};
     };
 
   private:
@@ -223,7 +224,7 @@ class ScreenSaverX11Private
     int m_timeoutInterval      {-1};
     QTimer *m_resetTimer       {nullptr};
 
-    QDateTime m_last_deactivated;
+    QDateTime m_lastDeactivated;
 
     ScreenSaverState m_state;
     MythXDisplay *m_display    {nullptr};

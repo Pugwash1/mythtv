@@ -24,11 +24,11 @@ static GrabberList     grabberList;
 static QMutex          grabberLock;
 static QDateTime       grabberAge;
 
-typedef struct GrabberOpts {
+struct GrabberOpts {
     QString     m_path;
     QString     m_setting;
     QString     m_def;
-} GrabberOpts;
+};
 
 // TODO
 // it would be nice to statically compile these, but I can't manage to get it
@@ -104,7 +104,8 @@ GrabberList MetaGrabberScript::GetList(GrabberType type,
 {
     InitializeStaticMaps();
 
-    GrabberList tmpGrabberList, retGrabberList;
+    GrabberList tmpGrabberList;
+    GrabberList retGrabberList;
     {
         QMutexLocker listLock(&grabberLock);
         QDateTime now = MythDate::current();

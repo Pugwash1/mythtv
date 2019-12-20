@@ -136,7 +136,7 @@ void InfoList::CreateButton(const QString& name, const QString& value)
     if (value.isEmpty())
         return;
 
-    MythUIButtonListItem *item = new MythUIButtonListItem(m_btnList, "");
+    auto *item = new MythUIButtonListItem(m_btnList, "");
 
     InfoMap infoMap;
     infoMap.insert("name", name);
@@ -152,7 +152,10 @@ void InfoList::CreateButton(const QString& name, const QString& value)
 */
 void InfoList::CreateCount(ImageItemK &im)
 {
-    int dirCount = 0, imageCount = 0, videoCount = 0, size = 0;
+    int dirCount = 0;
+    int imageCount = 0;
+    int videoCount = 0;
+    int size = 0;
     m_mgr.GetDescendantCount(im.m_id, dirCount, imageCount, videoCount, size);
 
     QStringList report;
@@ -169,7 +172,8 @@ void InfoList::CreateCount(ImageItemK &im)
     if (im.IsDevice() && im.IsLocal())
     {
         // Returns KiB
-        int64_t total = 0, used = 0;
+        int64_t total = 0;
+        int64_t used = 0;
         int64_t free = getDiskSpace(im.m_filePath, total, used);
         if (total > 0)
             CreateButton(tr("Free space"), tr("%L1 (%L2\%) Used: %L3 / %L4")
@@ -269,7 +273,7 @@ void InfoList::Display(ImageItemK &im, const QStringList &tagStrings)
         foreach (const QString &group, tags.uniqueKeys())
         {
             // Iterate earliest->latest to preserve tag order
-            typedef QList<QStringList> TagList;
+            using TagList = QList<QStringList>;
             TagList tagList = tags.values(group);
             TagList::const_iterator i = tagList.constEnd();
 

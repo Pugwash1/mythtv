@@ -7,8 +7,6 @@
 
 #include <unistd.h> // for usleep()
 
-using std::vector;
-
 void ProgramInfoUpdater::insert(
     uint     recordedid, PIAction action, uint64_t filesize)
 {
@@ -55,7 +53,7 @@ void ProgramInfoUpdater::run(void)
         m_lock.lock();
 
         // send adds and deletes in the order they were queued
-        vector<PIKeyAction>::iterator ita = m_needsAddDelete.begin();
+        auto ita = m_needsAddDelete.begin();
         for (; ita != m_needsAddDelete.end(); ++ita)
         {
             if (kPIAdd != (*ita).m_action && kPIDelete != (*ita).m_action)

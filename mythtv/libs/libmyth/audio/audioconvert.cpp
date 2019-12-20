@@ -388,7 +388,8 @@ static int fromFloat32(AudioFormat format, int* out, const float* in, int len)
 #if ARCH_X86
     if (sse_check() && len >= 16)
     {
-        float o = 0.99999995, mo = -1;
+        float o = 0.99999995;
+        float mo = -1;
         int loops = len >> 4;
         i = loops << 4;
 
@@ -469,7 +470,8 @@ static int fromFloatFLT(float* out, const float* in, int len)
     if (sse_check() && len >= 16)
     {
         int loops = len >> 4;
-        float o = 1, mo = -1;
+        float o = 1;
+        float mo = -1;
         i = loops << 4;
 
         __asm__ volatile (
@@ -682,7 +684,7 @@ int AudioConvert::Process(void* out, const void* in, int bytes, bool noclip)
 
         // cppcheck-suppress unassignedVariable
         uint8_t     buffer[65536+15];
-        uint8_t*    tmp = (uint8_t*)(((long)buffer + 15) & ~0xf);
+        auto*       tmp = (uint8_t*)(((long)buffer + 15) & ~0xf);
         int left        = bytes;
 
         while (left > 0)
@@ -720,8 +722,8 @@ int AudioConvert::Process(void* out, const void* in, int bytes, bool noclip)
  */
 void AudioConvert::MonoToStereo(void* dst, const void* src, int samples)
 {
-    float* d = (float*)dst;
-    float* s = (float*)src;
+    auto* d = (float*)dst;
+    auto* s = (float*)src;
     for (int i = 0; i < samples; i++)
     {
         *d++ = *s;

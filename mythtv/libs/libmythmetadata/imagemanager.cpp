@@ -315,8 +315,7 @@ QStringList ImageAdapterBase::SupportedVideos()
     QStringList formats;
     const FileAssociations::association_list faList =
         FileAssociations::getFileAssociation().getList();
-    for (FileAssociations::association_list::const_iterator p =
-        faList.begin(); p != faList.end(); ++p)
+    for (auto p = faList.cbegin(); p != faList.cend(); ++p)
     {
         if (!p->use_default && p->playcommand == "Internal")
             formats << QString(p->extension);
@@ -336,7 +335,7 @@ QStringList ImageAdapterBase::SupportedVideos()
 ImageItem *ImageAdapterLocal::CreateItem(const QFileInfo &fi, int parentId,
                                          int devId, const QString & /*base*/) const
 {
-    ImageItem *im = new ImageItem();
+    auto *im = new ImageItem();
 
     im->m_parentId  = parentId;
     im->m_device    = devId;
@@ -411,7 +410,7 @@ void ImageAdapterLocal::Notify(const QString &mesg,
 ImageItem *ImageAdapterSg::CreateItem(const QFileInfo &fi, int parentId,
                                       int /*devId*/, const QString &base) const
 {
-    ImageItem *im = new ImageItem();
+    auto *im = new ImageItem();
 
     im->m_device    = 0;
     im->m_parentId  = parentId;
@@ -513,7 +512,7 @@ QString ImageAdapterSg::GetAbsFilePath(const ImagePtrK &im) const
 template <class FS>
 ImageItem *ImageDb<FS>::CreateImage(const MSqlQuery &query) const
 {
-    ImageItem *im = new ImageItem(FS::ImageId(query.value(0).toInt()));
+    auto *im = new ImageItem(FS::ImageId(query.value(0).toInt()));
 
     // Ordered as per DB_COLUMNS
     im->m_filePath      = query.value(1).toString();
@@ -1130,7 +1129,8 @@ public:
     void run() override // QRunnable
     {
         QStringList tags;
-        QString     orientation, size;
+        QString     orientation;
+        QString     size;
 
         // Read metadata for files only
         if (m_im->IsFile())
@@ -1180,7 +1180,8 @@ template <class DBFS>
 QStringList ImageHandler<DBFS>::HandleGetMetadata(const QString &id) const
 {
     // Find image in DB
-    ImageList files, dirs;
+    ImageList files;
+    ImageList dirs;
     if (DBFS::GetImages(id, files, dirs) != 1)
         RESULT_ERR("Image not found", QString("Unknown image %1").arg(id))
 
@@ -1191,7 +1192,7 @@ QStringList ImageHandler<DBFS>::HandleGetMetadata(const QString &id) const
         RESULT_ERR("Image not found",
                    QString("File %1 not found").arg(im->m_filePath))
 
-    ReadMetaThread *worker = new ReadMetaThread(im, absPath);
+    auto *worker = new ReadMetaThread(im, absPath);
 
     MThreadPool::globalInstance()->start(worker, "ImageMetaData");
 
@@ -1215,7 +1216,8 @@ QStringList ImageHandler<DBFS>::HandleRename(const QString &id,
         RESULT_ERR("Invalid name", QString("Invalid name %1").arg(newBase))
 
     // Find image in DB
-    ImageList files, dirs;
+    ImageList files;
+    ImageList dirs;
     if (DBFS::GetImages(id, files, dirs) != 1)
         RESULT_ERR("Image not found", QString("Image %1 not in Db").arg(id))
 
@@ -1285,7 +1287,8 @@ template <class DBFS>
 QStringList ImageHandler<DBFS>::HandleDelete(const QString &ids) const
 {
     // Get subtree of all files
-    ImageList files, dirs;
+    ImageList files;
+    ImageList dirs;
     // Dirs will be in depth-first order, (subdirs after parent)
     DBFS::GetDescendants(ids, files, dirs);
 
@@ -1392,7 +1395,9 @@ QStringList ImageHandler<DBFS>::HandleDbMove(const QString &ids,
         RESULT_ERR("Invalid path", QString("Invalid path %1").arg(destPath))
 
     // Get subtrees of renamed files
-    ImageList images, dirs, files;
+    ImageList images;
+    ImageList dirs;
+    ImageList files;
     bool ok = DBFS::GetDescendants(ids, files, dirs);
     images << dirs << files;
 
@@ -1476,7 +1481,8 @@ QStringList ImageHandler<DBFS>::HandleTransform(int transform,
     if (transform < kResetToExif || transform > kFlipVertical)
         RESULT_ERR("Transform failed", QString("Bad transform %1").arg(transform))
 
-    ImageList files, dirs;
+    ImageList files;
+    ImageList dirs;
     if (DBFS::GetImages(ids, files, dirs) < 1 || files.isEmpty())
         RESULT_ERR("Image not found", QString("Images %1 not in Db").arg(ids))
 
@@ -1521,7 +1527,8 @@ QStringList ImageHandler<DBFS>::HandleDirs(const QString &destId,
                                            const QStringList &relPaths) const
 {
     // Find image in DB
-    ImageList files, dirs;
+    ImageList files;
+    ImageList dirs;
     if (DBFS::GetImages(destId, files, dirs) != 1 || dirs.isEmpty())
         RESULT_ERR("Destination not found",
                    QString("Image %1 not in Db").arg(destId))
@@ -1670,7 +1677,8 @@ QStringList ImageHandler<DBFS>::HandleCreateThumbnails
                 ? kDirRequestPriority : kPicRequestPriority;
 
     // get specific image details from db
-    ImageList files, dirs;
+    ImageList files;
+    ImageList dirs;
     DBFS::GetImages(message.at(1), files, dirs);
 
     foreach (const ImagePtrK &im, files)
@@ -2390,7 +2398,8 @@ QString ImageManagerFe::CrumbName(ImageItemK &im, bool getPath) const
     if (!getPath)
         return im.m_baseName;
 
-    QString dev, path(im.m_filePath);
+    QString dev;
+    QString path(im.m_filePath);
 
     if (im.IsLocal())
     {
@@ -2500,7 +2509,7 @@ void ImageManagerFe::DeviceEvent(MythMediaEvent *event)
 
 QString ImageManagerFe::CreateImport()
 {
-    QTemporaryDir *tmp = new QTemporaryDir(QDir::tempPath() % "/" IMPORTDIR "-XXXXXX");
+    auto *tmp = new QTemporaryDir(QDir::tempPath() % "/" IMPORTDIR "-XXXXXX");
     if (!tmp->isValid())
     {
         delete tmp;

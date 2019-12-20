@@ -89,13 +89,13 @@ QString SourceUtil::GetChannelSeparator(uint sourceid)
         }
         QString sep = "_";
         uint max = counts["_"];
-        static const char *spacers[6] = { "", "-", "#", ".", "0", nullptr };
-        for (uint i=0; (spacers[i] != nullptr); ++i)
+        static const char *s_spacers[6] = { "", "-", "#", ".", "0", nullptr };
+        for (uint i=0; (s_spacers[i] != nullptr); ++i)
         {
-            if (counts[spacers[i]] > max)
+            if (counts[s_spacers[i]] > max)
             {
-                max = counts[spacers[i]];
-                sep = spacers[i];
+                max = counts[s_spacers[i]];
+                sep = s_spacers[i];
             }
         }
         return sep;
@@ -333,7 +333,7 @@ bool SourceUtil::IsCableCardPresent(uint sourceid)
 {
     bool ccpresent = false;
     vector<uint> inputs = CardUtil::GetInputIDs(sourceid);
-    vector<uint>::iterator it = inputs.begin();
+    auto it = inputs.begin();
     for (; it != inputs.end(); ++it)
     {
         if (CardUtil::IsCableCardPresent(*it, CardUtil::GetRawInputType(*it))
@@ -362,6 +362,22 @@ bool SourceUtil::IsAnySourceScanable(void)
     }
 
     return false;
+}
+
+bool SourceUtil::IsSourceIDValid(uint sourceid)
+{
+    MSqlQuery query(MSqlQuery::InitCon());
+    query.prepare(
+        "SELECT sourceid FROM videosource WHERE sourceid = :SOURCEID");
+    query.bindValue(":SOURCEID", sourceid);
+
+    if (!query.exec() || !query.isActive())
+    {
+        MythDB::DBError("SourceUtil::IsSourceIDValid", query);
+        return false;
+    }
+
+    return query.next();
 }
 
 bool SourceUtil::UpdateChannelsFromListings(uint sourceid, const QString& inputtype, bool wait)
@@ -427,7 +443,7 @@ bool SourceUtil::UpdateSource( uint sourceid, const QString& sourcename,
     query.bindValue(":LINEUPID", lineupid);
     query.bindValue(":PASSWORD", password);
     query.bindValue(":USEEIT", useeit);
-    query.bindValue(":CONFIGPATH", configpath);
+    query.bindValue(":CONFIGPATH", configpath.isEmpty() ? nullptr : configpath);
     query.bindValue(":NITID", nitid);
     query.bindValue(":BOUQUETID", bouquetid);
     query.bindValue(":REGIONID", regionid);
@@ -464,7 +480,7 @@ int SourceUtil::CreateSource( const QString& sourcename,
     query.bindValue(":LINEUPID", lineupid);
     query.bindValue(":PASSWORD", password);
     query.bindValue(":USEEIT", useeit);
-    query.bindValue(":CONFIGPATH", configpath);
+    query.bindValue(":CONFIGPATH", configpath.isEmpty() ? nullptr : configpath);
     query.bindValue(":NITID", nitid);
     query.bindValue(":BOUQUETID", bouquetid);
     query.bindValue(":REGIONID", regionid);

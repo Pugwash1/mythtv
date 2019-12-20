@@ -36,19 +36,19 @@ struct osdInfo
     QHash<QString,int>  values;
 };
 
-typedef enum
+enum PseudoState
 {
     kPseudoNormalLiveTV  = 0,
     kPseudoChangeChannel = 1,
     kPseudoRecording     = 2,
-} PseudoState;
+};
 
-typedef deque<QString>         StringDeque;
+using StringDeque = deque<QString>;
 
 class MTV_PUBLIC PlayerContext
 {
   public:
-    explicit PlayerContext(const QString &inUseID = QString("Unknown"));
+    explicit PlayerContext(QString inUseID = QString("Unknown"));
     ~PlayerContext();
 
     // Actions
@@ -135,8 +135,6 @@ class MTV_PUBLIC PlayerContext
     bool IsEmbedding(void) const;
     bool HasPlayer(void) const;
     bool IsPlayerErrored(void) const;
-    bool IsPlayerRecoverable(void) const;
-    bool IsPlayerDecoderErrored(void) const;
     bool IsPlayerPlaying(void) const;
     bool IsRecorderErrored(void) const;
     bool InStateChange(void) const;

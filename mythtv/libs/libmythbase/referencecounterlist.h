@@ -35,7 +35,7 @@ public:
     const T *operator->() const { return r; }
 
 private:
-    T *r;
+    T *r; //NOLINT(readability-identifier-naming)
 };
 
 /** \brief General purpose reference counted list.
@@ -171,6 +171,6 @@ public:
     RefCountedList<T>(const RefCountedList<T>&) = default;
 };
 
-typedef RefCountedList<ReferenceCounter> ReferenceCounterList;
+using ReferenceCounterList = RefCountedList<ReferenceCounter>;
 
 #endif /* defined(__MythTV__referencecounterlist__) */

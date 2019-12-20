@@ -460,7 +460,7 @@ int MPEG2fixup::FindMPEG2Header(const uint8_t *buf, int size, uint8_t code)
 // concurrently
 static int fill_buffers(void *r, int finish)
 {
-    MPEG2replex *rx = (MPEG2replex *)r;
+    auto *rx = (MPEG2replex *)r;
 
     if (finish)
         return 0;
@@ -518,7 +518,7 @@ int MPEG2replex::WaitBuffers()
 void *MPEG2fixup::ReplexStart(void *data)
 {
     MThread::ThreadSetup("MPEG2Replex");
-    MPEG2fixup *m2f = static_cast<MPEG2fixup *>(data);
+    auto *m2f = static_cast<MPEG2fixup *>(data);
     if (!m2f)
         return nullptr;
     m2f->m_rx.Start();
@@ -541,7 +541,8 @@ void MPEG2replex::Start()
     // seq header comes which is different, we are screwed.
 
 
-    int video_delay = 0, audio_delay = 0;
+    int video_delay = 0;
+    int audio_delay = 0;
 
     memset(&mx, 0, sizeof(mx));
     memset(ext_ok, 0, sizeof(ext_ok));
@@ -599,7 +600,8 @@ void MPEG2fixup::InitReplex()
 
     memset(m_rx.m_exttype, 0, sizeof(m_rx.m_exttype));
     memset(m_rx.m_exttypcnt, 0, sizeof(m_rx.m_exttypcnt));
-    int mp2_count = 0, ac3_count = 0;
+    int mp2_count = 0;
+    int ac3_count = 0;
     for (auto it = m_aFrame.begin(); it != m_aFrame.end(); it++)
     {
         if (it.key() < 0)
@@ -659,7 +661,8 @@ void MPEG2fixup::FrameInfo(MPEG2frame *f)
 int MPEG2fixup::AddFrame(MPEG2frame *f)
 {
     index_unit iu;
-    ringbuffer *rb = nullptr, *rbi = nullptr;
+    ringbuffer *rb = nullptr;
+    ringbuffer *rbi = nullptr;
     int id = f->m_pkt.stream_index;
 
     memset(&iu, 0, sizeof(index_unit));
@@ -905,7 +908,7 @@ int MPEG2fixup::ProcessVideo(MPEG2frame *vf, mpeg2dec_t *dec)
         vf->m_isGop = false;
     }
 
-    mpeg2_info_t *info = (mpeg2_info_t *)mpeg2_info(dec);
+    auto *info = (mpeg2_info_t *)mpeg2_info(dec);
 
     mpeg2_buffer(dec, vf->m_pkt.data, vf->m_pkt.data + vf->m_pkt.size);
 
@@ -1047,7 +1050,7 @@ void MPEG2fixup::WriteFrame(const QString& filename, AVPacket *pkt)
     WriteData(fname, pkt->data, pkt->size);
 
     mpeg2dec_t *tmp_decoder = mpeg2_init();
-    mpeg2_info_t *info = (mpeg2_info_t *)mpeg2_info(tmp_decoder);
+    auto *info = (mpeg2_info_t *)mpeg2_info(tmp_decoder);
 
     while (!info->display_picture)
     {
@@ -2002,14 +2005,18 @@ int MPEG2fixup::Start()
 {
     // NOTE: expectedvPTS/DTS are in units of SCR (300*PTS) to allow for better
     // accounting of rounding errors (still won't be right, but better)
-    int64_t lastPTS = 0, deltaPTS = 0;
+    int64_t lastPTS = 0;
+    int64_t deltaPTS = 0;
     int64_t origaPTS[N_AUDIO];
-    int64_t cutStartPTS = 0, cutEndPTS = 0;
+    int64_t cutStartPTS = 0;
+    int64_t cutEndPTS = 0;
     uint64_t frame_count = 0;
     int new_discard_state = 0;
-    QMap<int, int> af_dlta_cnt, cutState;
+    QMap<int, int> af_dlta_cnt;
+    QMap<int, int> cutState;
 
-    AVPacket pkt, lastRealvPkt;
+    AVPacket pkt;
+    AVPacket lastRealvPkt;
 
     av_init_packet(&pkt);
     av_init_packet(&lastRealvPkt);
@@ -2114,7 +2121,8 @@ int MPEG2fixup::Start()
                 bool ptsorder_eq_dtsorder = false;
                 int64_t PTSdiscrep = 0;
                 FrameList Lreorder;
-                MPEG2frame *markedFrame = nullptr, *markedFrameP = nullptr;
+                MPEG2frame *markedFrame = nullptr;
+                MPEG2frame *markedFrameP = nullptr;
 
                 if (expectedvPTS != expectedDTS + m_ptsIncrement * 300)
                 {

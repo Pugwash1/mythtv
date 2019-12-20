@@ -12,8 +12,9 @@ void VideoVisualCircles::DrawPriv(MythPainter *painter, QPaintDevice* device)
     if (!painter)
         return;
 
-    static const QBrush nobrush(Qt::NoBrush);
-    int red = 0, green = 200;
+    static const QBrush kNobrush(Qt::NoBrush);
+    int red = 0;
+    int green = 200;
     QPen pen(QColor(red, green, 0, 255));
     int count = m_scale.range();
     int incr = 200 / count;
@@ -27,7 +28,7 @@ void VideoVisualCircles::DrawPriv(MythPainter *painter, QPaintDevice* device)
         if (mag > 1.0)
         {
             pen.setWidth((int)mag);
-            painter->DrawRoundRect(circ, rad, nobrush, pen, 200);
+            painter->DrawRoundRect(circ, rad, kNobrush, pen, 200);
         }
         circ.adjust(-m_range, -m_range, m_range, m_range);
         pen.setColor(QColor(red, green, 0, 255));
@@ -52,8 +53,8 @@ static class VideoVisualCirclesFactory : public VideoVisualFactory
   public:
     const QString &name(void) const override // VideoVisualFactory
     {
-        static QString name("Circles");
-        return name;
+        static QString s_name("Circles");
+        return s_name;
     }
 
     VideoVisual *Create(AudioPlayer *audio,
@@ -64,7 +65,6 @@ static class VideoVisualCirclesFactory : public VideoVisualFactory
 
     bool SupportedRenderer(RenderType type) override // VideoVisualFactory
     {
-        return (type == kRenderOpenGL2 ||
-                type == kRenderOpenGL2ES);
+        return (type == kRenderOpenGL);
     }
 } VideoVisualCirclesFactory;

@@ -1,4 +1,5 @@
 #include <cmath>
+#include <utility>
 
 #include <QPainter>
 
@@ -26,8 +27,8 @@
 const uint PlayerContext::kSMExitTimeout     = 2000;
 const uint PlayerContext::kMaxChannelHistory = 30;
 
-PlayerContext::PlayerContext(const QString &inUseID) :
-    m_recUsage(inUseID)
+PlayerContext::PlayerContext(QString inUseID) :
+    m_recUsage(std::move(inUseID))
 {
     m_lastSignalMsgTime.start();
     m_lastSignalMsgTime.addMSecs(-2 * (int)kSMExitTimeout);
@@ -106,7 +107,7 @@ bool PlayerContext::IsPIPSupported(void) const
     QMutexLocker locker(&m_deletePlayerLock);
     if (m_player)
     {
-        const VideoOutput *vid = m_player->GetVideoOutput();
+        const MythVideoOutput *vid = m_player->GetVideoOutput();
         if (vid)
             supported = vid->IsPIPSupported();
     }
@@ -124,7 +125,7 @@ bool PlayerContext::IsPBPSupported(void) const
     QMutexLocker locker(&m_deletePlayerLock);
     if (m_player)
     {
-        const VideoOutput *vid = m_player->GetVideoOutput();
+        const MythVideoOutput *vid = m_player->GetVideoOutput();
         if (vid)
             supported = vid->IsPBPSupported();
     }
@@ -292,18 +293,6 @@ bool PlayerContext::IsPlayerErrored(void) const
     return m_player && m_player->IsErrored();
 }
 
-bool PlayerContext::IsPlayerRecoverable(void) const
-{
-    QMutexLocker locker(&m_deletePlayerLock);
-    return m_player && m_player->IsErrorRecoverable();
-}
-
-bool PlayerContext::IsPlayerDecoderErrored(void) const
-{
-    QMutexLocker locker(&m_deletePlayerLock);
-    return m_player && m_player->IsDecoderErrored();
-}
-
 bool PlayerContext::IsPlayerPlaying(void) const
 {
     QMutexLocker locker(&m_deletePlayerLock);
@@ -392,8 +381,6 @@ bool PlayerContext::CreatePlayer(TV *tv, QWidget *widget,
 
     player->AdjustAudioTimecodeOffset(
                 0, gCoreContext->GetNumSetting("AudioSyncOffset", 0));
-
-    player->SetVideoFilters((m_useNullVideo) ? "onefield" : "");
 
     bool isWatchingRecording = (desiredState == kState_WatchingRecording);
     player->SetWatchingRecording(isWatchingRecording);

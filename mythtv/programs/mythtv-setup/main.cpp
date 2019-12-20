@@ -44,9 +44,6 @@
 #include "signalhandling.h"
 #include "mythmiscutil.h"
 #include "ssdp.h"
-#if CONFIG_DARWIN
-#include "mythuidefines.h"
-#endif
 #include "cleanupguard.h"
 
 using namespace std;
@@ -76,9 +73,8 @@ static void SetupMenuCallback(void* /* data */, QString& selection)
     if (sel == "general")
     {
         MythScreenStack *mainStack = GetMythMainWindow()->GetMainStack();
-        StandardSettingDialog *ssd =
-            new StandardSettingDialog(mainStack, "generalsettings",
-                                      new BackendSettings());
+        auto *ssd = new StandardSettingDialog(mainStack, "generalsettings",
+                                              new BackendSettings());
 
         if (ssd->Create())
             mainStack->AddScreen(ssd);
@@ -88,9 +84,8 @@ static void SetupMenuCallback(void* /* data */, QString& selection)
     else if (sel == "capture cards")
     {
         MythScreenStack *mainStack = GetMythMainWindow()->GetMainStack();
-        StandardSettingDialog *ssd =
-            new StandardSettingDialog(mainStack, "capturecardeditor",
-                                      new CaptureCardEditor());
+        auto *ssd = new StandardSettingDialog(mainStack, "capturecardeditor",
+                                              new CaptureCardEditor());
 
         if (ssd->Create())
             mainStack->AddScreen(ssd);
@@ -100,8 +95,7 @@ static void SetupMenuCallback(void* /* data */, QString& selection)
     else if (sel == "video sources")
     {
         MythScreenStack *mainStack = GetMythMainWindow()->GetMainStack();
-        StandardSettingDialog *ssd =
-            new StandardSettingDialog(mainStack, "videosourceeditor",
+        auto *ssd = new StandardSettingDialog(mainStack, "videosourceeditor",
                new VideoSourceEditor());
         if (ssd->Create())
             mainStack->AddScreen(ssd);
@@ -111,9 +105,8 @@ static void SetupMenuCallback(void* /* data */, QString& selection)
     else if (sel == "card inputs")
     {
         MythScreenStack *mainStack = GetMythMainWindow()->GetMainStack();
-        StandardSettingDialog *ssd =
-            new StandardSettingDialog(mainStack, "cardinputeditor",
-                                      new CardInputEditor());
+        auto *ssd = new StandardSettingDialog(mainStack, "cardinputeditor",
+                                              new CardInputEditor());
 
         if (ssd->Create())
             mainStack->AddScreen(ssd);
@@ -123,9 +116,8 @@ static void SetupMenuCallback(void* /* data */, QString& selection)
     else if (sel == "recording profile")
     {
         MythScreenStack *mainStack = GetMythMainWindow()->GetMainStack();
-        StandardSettingDialog *ssd =
-            new StandardSettingDialog(mainStack, "recordingprofileeditor",
-                                      new ProfileGroupEditor());
+        auto *ssd = new StandardSettingDialog(mainStack, "recordingprofileeditor",
+                                              new ProfileGroupEditor());
 
         if (ssd->Create())
             mainStack->AddScreen(ssd);
@@ -136,7 +128,7 @@ static void SetupMenuCallback(void* /* data */, QString& selection)
     {
         MythScreenStack *mainStack = GetMythMainWindow()->GetMainStack();
 
-        ChannelEditor *chanedit = new ChannelEditor(mainStack);
+        auto *chanedit = new ChannelEditor(mainStack);
 
         if (chanedit->Create())
             mainStack->AddScreen(chanedit);
@@ -146,9 +138,8 @@ static void SetupMenuCallback(void* /* data */, QString& selection)
     else if (sel == "storage groups")
     {
         MythScreenStack *mainStack = GetMythMainWindow()->GetMainStack();
-        StandardSettingDialog *ssd =
-            new StandardSettingDialog(mainStack, "storagegroupeditor",
-                                      new StorageGroupListEditor());
+        auto *ssd = new StandardSettingDialog(mainStack, "storagegroupeditor",
+                                              new StorageGroupListEditor());
 
         if (ssd->Create())
             mainStack->AddScreen(ssd);
@@ -159,8 +150,7 @@ static void SetupMenuCallback(void* /* data */, QString& selection)
     {
         MythScreenStack *mainStack = GetMythMainWindow()->GetMainStack();
 
-        MythSystemEventEditor *msee = new MythSystemEventEditor(
-                                    mainStack, "System Event Editor");
+        auto *msee = new MythSystemEventEditor(mainStack, "System Event Editor");
 
         if (msee->Create())
             mainStack->AddScreen(msee);
@@ -216,11 +206,7 @@ static bool resetTheme(QString themedir, const QString &badtheme)
 
     MythTranslation::reload();
     GetMythUI()->LoadQtConfig();
-#if CONFIG_DARWIN
-    GetMythMainWindow()->Init(QT_PAINTER);
-#else
     GetMythMainWindow()->Init();
-#endif
     GetMythMainWindow()->ReinitDone();
 
     return RunMenu(themedir, themename);
@@ -247,14 +233,8 @@ static int reloadTheme(void)
     {
         menu->Close();
     }
-#if CONFIG_DARWIN
-    GetMythMainWindow()->Init(QT_PAINTER);
-#else
     GetMythMainWindow()->Init();
-#endif
-
     GetMythMainWindow()->ReinitDone();
-
     GetMythMainWindow()->SetEffectsEnabled(true);
 
     if (!RunMenu(themedir, themename) && !resetTheme(themedir, themename))
@@ -285,10 +265,6 @@ int main(int argc, char *argv[])
     QString region = "us";
     QString scanInputName = "";
 
-#if CONFIG_OMX_RPI
-    setenv("QT_XCB_GL_INTEGRATION","none",0);
-#endif
-
     MythTVSetupCommandLineParser cmdline;
     if (!cmdline.Parse(argc, argv))
     {
@@ -308,7 +284,8 @@ int main(int argc, char *argv[])
         return GENERIC_EXIT_OK;
     }
 
-    bool quiet = false, use_display = true;
+    bool quiet = false;
+    bool use_display = true;
     if (cmdline.toBool("scan"))
     {
         quiet = true;
@@ -584,11 +561,7 @@ int main(int argc, char *argv[])
     }
 
     MythMainWindow *mainWindow = GetMythMainWindow();
-#if CONFIG_DARWIN
-    mainWindow->Init(QT_PAINTER);
-#else
     mainWindow->Init();
-#endif
     mainWindow->setWindowTitle(QObject::tr("MythTV Setup"));
 
     // We must reload the translation after a language change and this

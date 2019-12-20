@@ -120,8 +120,10 @@ bool AVFormatWriter::Init(void)
     if (m_container == "mpegts")
         m_ctx->packet_size = 2324;
 
-    snprintf(m_ctx->filename, sizeof(m_ctx->filename), "%s",
-             m_filename.toLatin1().constData());
+    QByteArray filename = m_filename.toLatin1();
+    auto size = static_cast<size_t>(filename.size());
+    m_ctx->url = static_cast<char*>(av_malloc(size));
+    memcpy(m_ctx->url, filename.constData(), size);
 
     if (m_fmt.video_codec != AV_CODEC_ID_NONE)
         m_videoStream = AddVideoStream();
@@ -167,7 +169,7 @@ bool AVFormatWriter::OpenFile(void)
     }
 
     m_avfRingBuffer     = new AVFRingBuffer(m_ringBuffer);
-    URLContext *uc      = (URLContext *)m_ctx->pb->opaque;
+    auto *uc            = (URLContext *)m_ctx->pb->opaque;
     uc->prot            = AVFRingBuffer::GetRingBufferURLProtocol();
     uc->priv_data       = (void *)m_avfRingBuffer;
 
@@ -621,6 +623,7 @@ AVStream* AVFormatWriter::AddAudioStream(void)
     c->bit_rate     = m_audioBitrate;
     c->sample_rate  = m_audioFrameRate;
     c->channels     = m_audioChannels;
+    c->channel_layout = static_cast<uint64_t>(av_get_default_channel_layout(m_audioChannels));
 
     // c->flags |= CODEC_FLAG_QSCALE; // VBR
     // c->global_quality = blah;

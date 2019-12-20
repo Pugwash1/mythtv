@@ -21,7 +21,7 @@ extern "C" {
 }
 #include "eldutils.h"
 
-typedef enum {
+enum AudioFormat {
     FORMAT_NONE = 0,
     FORMAT_U8,
     FORMAT_S16,
@@ -29,9 +29,9 @@ typedef enum {
     FORMAT_S24,
     FORMAT_S32,
     FORMAT_FLT
-} AudioFormat;
+};
 
-typedef enum {
+enum DigitalFeature {
     FEATURE_NONE   = 0,
     FEATURE_AC3    = 1 << 0,
     FEATURE_DTS    = 1 << 1,
@@ -40,7 +40,7 @@ typedef enum {
     FEATURE_TRUEHD = 1 << 4,
     FEATURE_DTSHD  = 1 << 5,
     FEATURE_AAC    = 1 << 6,
-} DigitalFeature;
+};
 
 static const int srs[] = { 5512, 8000,  11025, 16000, 22050, 32000,  44100,
                            48000, 88200, 96000, 176400, 192000 };
@@ -204,13 +204,13 @@ class MPUBLIC AudioOutputSettings
              * processing capabilities of the device connected to the audio card
              * ELD is usually retrieved from EDID CEA-861-E extension.
              */
-        bool         m_has_eld     {false};
+        bool         m_hasEld      {false};
         ELD          m_eld;
 
         std::vector<int> m_sr, m_rates, m_channels;
         std::vector<AudioFormat> m_sf, m_formats;
-        std::vector<int>::iterator m_sr_it;
-        std::vector<AudioFormat>::iterator m_sf_it;
+        std::vector<int>::iterator m_srIt;
+        std::vector<AudioFormat>::iterator m_sfIt;
 };
 
 #endif // _AUDIO_OUTPUT_SETTINGS_H_

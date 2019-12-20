@@ -37,20 +37,12 @@
 #include "mythcontext.h"
 #include "mythmainwindow.h"
 
-#ifdef USING_VDPAU
-#include "videoout_vdpau.h"
-#endif
-
-#ifdef USING_XV
-#include "videoout_xv.h"
-#endif
-
 #ifdef __linux__
 #include <linux/rtc.h>
 #endif
 
 using namespace std;
-#include "videooutbase.h"
+#include "mythvideoout.h"
 #include "vsync.h"
 
 bool tryingVideoSync = false;
@@ -74,7 +66,7 @@ int VideoSync::s_forceskip = 0;
 /** \fn VideoSync::BestMethod(VideoOutput*,uint)
  *  \brief Returns the most sophisticated video sync method available.
  */
-VideoSync *VideoSync::BestMethod(VideoOutput *video_output,
+VideoSync *VideoSync::BestMethod(MythVideoOutput *video_output,
                                  uint refresh_interval)
 {
     VideoSync *trial = nullptr;
@@ -92,9 +84,6 @@ VideoSync *VideoSync::BestMethod(VideoOutput *video_output,
         s_forceskip = 0;
     }
 
-#ifdef USING_VDPAU
-//    TESTVIDEOSYNC(VDPAUVideoSync);
-#endif
 #ifndef _WIN32
     TESTVIDEOSYNC(DRMVideoSync);
 #endif // _WIN32
@@ -112,7 +101,7 @@ VideoSync *VideoSync::BestMethod(VideoOutput *video_output,
  *  \brief Used by BestMethod(VideoOutput*,uint) to initialize
  *         video synchronization method.
  */
-VideoSync::VideoSync(VideoOutput *video_output, int refreshint) :
+VideoSync::VideoSync(MythVideoOutput *video_output, int refreshint) :
     m_video_output(video_output), m_refresh_interval(refreshint)
 {
 }
@@ -177,22 +166,22 @@ int VideoSync::CalcDelay(int nominal_frame_interval)
 #define DRM_VBLANK_RELATIVE 0x1;
 
 struct drm_wait_vblank_request {
-    int type;
-    unsigned int sequence;
-    unsigned long signal;
+    int           m_type;
+    unsigned int  m_sequence;
+    unsigned long m_signal;
 };
 
 struct drm_wait_vblank_reply {
-    int type;
-    unsigned int sequence;
-    long tval_sec;
-    long tval_usec;
+    int          m_type;
+    unsigned int m_sequence;
+    long         m_tvalSec;
+    long         m_tvalUsec;
 };
 
-typedef union drm_wait_vblank {
-    struct drm_wait_vblank_request request;
-    struct drm_wait_vblank_reply reply;
-} drm_wait_vblank_t;
+using drm_wait_vblank_t = union drm_wait_vblank {
+    struct drm_wait_vblank_request m_request;
+    struct drm_wait_vblank_reply   m_reply;
+};
 
 #define DRM_IOCTL_BASE                  'd'
 #define DRM_IOWR(nr,type)               _IOWR(DRM_IOCTL_BASE,nr,type)
@@ -205,43 +194,43 @@ static int drmWaitVBlank(int fd, drm_wait_vblank_t *vbl)
 
     do {
        ret = ioctl(fd, DRM_IOCTL_WAIT_VBLANK, vbl);
-       vbl->request.type &= ~DRM_VBLANK_RELATIVE;
+       vbl->m_request.m_type &= ~DRM_VBLANK_RELATIVE;
     } while (ret && errno == EINTR);
 
     return ret;
 }
 
-const char *DRMVideoSync::s_dri_dev = "/dev/dri/card0";
+const char *DRMVideoSync::s_driDev = "/dev/dri/card0";
 
-DRMVideoSync::DRMVideoSync(VideoOutput *vo, int refresh_interval) :
+DRMVideoSync::DRMVideoSync(MythVideoOutput *vo, int refresh_interval) :
     VideoSync(vo, refresh_interval)
 {
-    m_dri_fd = -1;
+    m_driFd = -1;
 }
 
 DRMVideoSync::~DRMVideoSync()
 {
-    if (m_dri_fd >= 0)
-        close(m_dri_fd);
-    m_dri_fd = -1;
+    if (m_driFd >= 0)
+        close(m_driFd);
+    m_driFd = -1;
 }
 
 bool DRMVideoSync::TryInit(void)
 {
     drm_wait_vblank_t blank;
 
-    m_dri_fd = open(s_dri_dev, O_RDWR);
-    if (m_dri_fd < 0)
+    m_driFd = open(s_driDev, O_RDWR);
+    if (m_driFd < 0)
     {
         LOG(VB_PLAYBACK, LOG_INFO, LOC +
             QString("DRMVideoSync: Could not open device %1, %2")
-                .arg(s_dri_dev).arg(strerror(errno)));
+                .arg(s_driDev).arg(strerror(errno)));
         return false; // couldn't open device
     }
 
-    blank.request.type = DRM_VBLANK_RELATIVE;
-    blank.request.sequence = 1;
-    if (drmWaitVBlank(m_dri_fd, &blank))
+    blank.m_request.m_type = DRM_VBLANK_RELATIVE;
+    blank.m_request.m_sequence = 1;
+    if (drmWaitVBlank(m_driFd, &blank))
     {
         LOG(VB_PLAYBACK, LOG_ERR, LOC +
             QString("DRMVideoSync: VBlank ioctl did not"
@@ -256,9 +245,9 @@ void DRMVideoSync::Start(void)
 {
     // Wait for a refresh so we start out synched
     drm_wait_vblank_t blank;
-    blank.request.type = DRM_VBLANK_RELATIVE;
-    blank.request.sequence = 1;
-    drmWaitVBlank(m_dri_fd, &blank);
+    blank.m_request.m_type = DRM_VBLANK_RELATIVE;
+    blank.m_request.m_sequence = 1;
+    drmWaitVBlank(m_driFd, &blank);
     VideoSync::Start();
 }
 
@@ -276,9 +265,9 @@ int DRMVideoSync::WaitForFrame(int nominal_frame_interval, int extra_delay)
     if (m_delay > -(m_refresh_interval/2))
     {
         drm_wait_vblank_t blank;
-        blank.request.type = DRM_VBLANK_RELATIVE;
-        blank.request.sequence = 1;
-        drmWaitVBlank(m_dri_fd, &blank);
+        blank.m_request.m_type = DRM_VBLANK_RELATIVE;
+        blank.m_request.m_sequence = 1;
+        drmWaitVBlank(m_driFd, &blank);
         m_delay = CalcDelay(nominal_frame_interval);
 #if 0
         LOG(VB_GENERAL, LOG_DEBUG, QString("Delay at sync: %1").arg(m_delay));
@@ -291,9 +280,9 @@ int DRMVideoSync::WaitForFrame(int nominal_frame_interval, int extra_delay)
         int n = (m_delay + m_refresh_interval - 1) / m_refresh_interval;
 
         drm_wait_vblank_t blank;
-        blank.request.type = DRM_VBLANK_RELATIVE;
-        blank.request.sequence = n;
-        drmWaitVBlank(m_dri_fd, &blank);
+        blank.m_request.m_type = DRM_VBLANK_RELATIVE;
+        blank.m_request.m_sequence = n;
+        drmWaitVBlank(m_driFd, &blank);
         m_delay = CalcDelay(nominal_frame_interval);
 #if 0
         LOG(VB_GENERAL, LOG_DEBUG,
@@ -308,7 +297,7 @@ int DRMVideoSync::WaitForFrame(int nominal_frame_interval, int extra_delay)
 
 #ifdef __linux__
 #define RTCRATE 1024
-RTCVideoSync::RTCVideoSync(VideoOutput *vo, int refresh_interval) :
+RTCVideoSync::RTCVideoSync(MythVideoOutput *vo, int refresh_interval) :
     VideoSync(vo, refresh_interval)
 {
     m_rtcfd = -1;

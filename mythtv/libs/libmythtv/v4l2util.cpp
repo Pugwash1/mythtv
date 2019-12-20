@@ -201,7 +201,7 @@ void V4L2util::log_qctrl(struct v4l2_queryctrl& queryctrl,
     drv_opt.m_minimum       = queryctrl.minimum;
     drv_opt.m_maximum       = queryctrl.maximum;
     drv_opt.m_step          = queryctrl.step;
-    drv_opt.m_default_value = queryctrl.default_value;;
+    drv_opt.m_defaultValue  = queryctrl.default_value;;
 
     if (nameStr == "Stream Type")
         drv_opt.m_category = DriverOption::STREAM_TYPE;
@@ -432,9 +432,9 @@ void V4L2util::SetDefaultOptions(DriverOption::Options& options)
         DriverOption drv_opt;
         drv_opt.m_category = DriverOption::VIDEO_ENCODING;
         drv_opt.m_name = "Video Encoding";
-        drv_opt.m_minimum = drv_opt.m_maximum = drv_opt.m_default_value =
+        drv_opt.m_minimum = drv_opt.m_maximum = drv_opt.m_defaultValue =
                           V4L2_MPEG_VIDEO_ENCODING_MPEG_2;
-        drv_opt.m_menu[drv_opt.m_default_value] = "MPEG-2 Video";
+        drv_opt.m_menu[drv_opt.m_defaultValue] = "MPEG-2 Video";
         options[drv_opt.m_category] = drv_opt;
     }
 
@@ -445,32 +445,32 @@ void V4L2util::SetDefaultOptions(DriverOption::Options& options)
         // V4L2_CID_MPEG_AUDIO_ENCODING
         drv_opt.m_category = DriverOption::AUDIO_ENCODING;
         drv_opt.m_name = "Audio Encoding";
-        drv_opt.m_minimum = drv_opt.m_maximum = drv_opt.m_default_value =
+        drv_opt.m_minimum = drv_opt.m_maximum = drv_opt.m_defaultValue =
                           V4L2_MPEG_AUDIO_ENCODING_LAYER_2;
-        drv_opt.m_menu[drv_opt.m_default_value] = "MPEG-1/2 Layer II encoding";
+        drv_opt.m_menu[drv_opt.m_defaultValue] = "MPEG-1/2 Layer II encoding";
         options[drv_opt.m_category] = drv_opt;
 
         drv_opt.m_category = DriverOption::AUDIO_BITRATE;
         drv_opt.m_name = "Audio Bitrate";
-        drv_opt.m_minimum = drv_opt.m_maximum = drv_opt.m_default_value =
+        drv_opt.m_minimum = drv_opt.m_maximum = drv_opt.m_defaultValue =
                           V4L2_MPEG_AUDIO_ENCODING_LAYER_2;
-        drv_opt.m_menu[drv_opt.m_default_value] = "MPEG-1/2 Layer II encoding";
+        drv_opt.m_menu[drv_opt.m_defaultValue] = "MPEG-1/2 Layer II encoding";
         options[drv_opt.m_category] = drv_opt;
 
         // V4L2_CID_MPEG_AUDIO_SAMPLING_FREQ
         drv_opt.m_category = DriverOption::AUDIO_SAMPLERATE;
         drv_opt.m_name = "MPEG Audio sampling frequency";
-        drv_opt.m_minimum = drv_opt.m_maximum = drv_opt.m_default_value =
+        drv_opt.m_minimum = drv_opt.m_maximum = drv_opt.m_defaultValue =
                           V4L2_MPEG_AUDIO_SAMPLING_FREQ_48000;
-        drv_opt.m_menu[drv_opt.m_default_value] = "48 kHz";
+        drv_opt.m_menu[drv_opt.m_defaultValue] = "48 kHz";
         options[drv_opt.m_category] = drv_opt;
 
         // VIDIOC_S_TUNER
         drv_opt.m_category = DriverOption::AUDIO_LANGUAGE;
         drv_opt.m_name = "Tuner Audio Modes";
-        drv_opt.m_minimum = drv_opt.m_maximum = drv_opt.m_default_value =
+        drv_opt.m_minimum = drv_opt.m_maximum = drv_opt.m_defaultValue =
                           V4L2_TUNER_MODE_STEREO;
-        drv_opt.m_menu[drv_opt.m_default_value] = "Play stereo audio";
+        drv_opt.m_menu[drv_opt.m_defaultValue] = "Play stereo audio";
         options[drv_opt.m_category] = drv_opt;
     }
 
@@ -669,6 +669,21 @@ bool V4L2util::GetResolution(int& width, int& height) const
     LOG(VB_CHANNEL, LOG_INFO, LOC +
         QString("Resolution: %1x%2").arg(width).arg(height));
     return true;
+}
+
+uint32_t V4L2util::GetCapabilities(void) const
+{
+    return m_capabilities;
+}
+
+QString V4L2util::GetDeviceName(void) const
+{
+    return m_deviceName;
+}
+
+QString V4L2util::GetDriverName(void) const
+{
+    return m_driverName;
 }
 
 bool V4L2util::HasTuner(void) const

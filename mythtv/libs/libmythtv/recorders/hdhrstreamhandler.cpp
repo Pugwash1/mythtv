@@ -38,8 +38,7 @@ HDHRStreamHandler *HDHRStreamHandler::Get(const QString &devname,
 
     if (it == s_handlers.end())
     {
-        HDHRStreamHandler *newhandler = new HDHRStreamHandler(devname, inputid,
-                                                              majorid);
+        auto *newhandler = new HDHRStreamHandler(devname, inputid, majorid);
         newhandler->Open();
         s_handlers[majorid] = newhandler;
         s_handlers_refcnt[majorid] = 1;
@@ -113,16 +112,20 @@ void HDHRStreamHandler::run(void)
 {
     RunProlog();
 
-    /* Create TS socket. */
-    if (!hdhomerun_device_stream_start(m_hdhomerun_device))
     {
-        LOG(VB_GENERAL, LOG_ERR, LOC +
-            "Starting recording (set target failed). Aborting.");
-        m_bError = true;
-        RunEpilog();
-        return;
+        QMutexLocker locker(&m_hdhr_lock);
+
+        /* Create TS socket. */
+        if (!hdhomerun_device_stream_start(m_hdhomerun_device))
+        {
+            LOG(VB_GENERAL, LOG_ERR, LOC +
+                "Starting recording (set target failed). Aborting.");
+            m_bError = true;
+            RunEpilog();
+            return;
+        }
+        hdhomerun_device_stream_flush(m_hdhomerun_device);
     }
-    hdhomerun_device_stream_flush(m_hdhomerun_device);
 
     SetRunning(true, false, false);
 
@@ -184,7 +187,10 @@ void HDHRStreamHandler::run(void)
 
     RemoveAllPIDFilters();
 
-    hdhomerun_device_stream_stop(m_hdhomerun_device);
+    {
+        QMutexLocker locker(&m_hdhr_lock);
+        hdhomerun_device_stream_stop(m_hdhomerun_device);
+    }
 
     if (VERBOSE_LEVEL_CHECK(VB_RECORD, LOG_INFO))
     {
@@ -480,6 +486,8 @@ QString HDHRStreamHandler::TunerSet(
 
 void HDHRStreamHandler::GetTunerStatus(struct hdhomerun_tuner_status_t *status)
 {
+    QMutexLocker locker(&m_hdhr_lock);
+
     hdhomerun_device_get_tuner_status(m_hdhomerun_device, nullptr, status);
 }
 

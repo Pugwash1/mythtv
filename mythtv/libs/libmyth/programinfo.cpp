@@ -47,7 +47,7 @@ ProgramInfoUpdater *ProgramInfo::s_updater;
 int force_init = pginfo_init_statics();
 bool ProgramInfo::s_usingProgIDAuth = true;
 
-const static uint kInvalidDateTime = (uint)-1;
+const static uint kInvalidDateTime = UINT_MAX;
 
 
 const QString ProgramInfo::kFromRecordedQuery =
@@ -589,8 +589,8 @@ ProgramInfo::ProgramInfo(
     if (m_originalAirDate.isValid() && m_originalAirDate < QDate(1940, 1, 1))
         m_originalAirDate = QDate();
 
-    ProgramList::const_iterator it = schedList.begin();
-    for (; it != schedList.end(); ++it)
+    auto it = schedList.cbegin();
+    for (; it != schedList.cend(); ++it)
     {
         // If this showing is scheduled to be recorded, then we need to copy
         // some of the information from the scheduler
@@ -830,6 +830,9 @@ ProgramInfo::ProgramInfo(const QString &_title, uint _chanid,
  */
 ProgramInfo &ProgramInfo::operator=(const ProgramInfo &other)
 {
+    if (this == &other)
+        return *this;
+
     clone(other);
     return *this;
 }
@@ -1440,7 +1443,9 @@ bool ProgramInfo::FromStringList(QStringList::const_iterator &it,
     INT_FROM_LIST(m_recpriority2);      // 39
     INT_FROM_LIST(m_parentid);          // 40
     STR_FROM_LIST(m_storagegroup);      // 41
-    uint audioproperties = 0, videoproperties = 0, subtitleType = 0;
+    uint audioproperties = 0;
+    uint videoproperties = 0;
+    uint subtitleType = 0;
     INT_FROM_LIST(audioproperties);   // 42
     INT_FROM_LIST(videoproperties);   // 43
     INT_FROM_LIST(subtitleType);      // 44
@@ -2348,12 +2353,12 @@ static ProgramInfoType discover_program_info_type(
     return pit;
 }
 
-void ProgramInfo::SetPathname(const QString &pn) const
+void ProgramInfo::SetPathname(const QString &pn)
 {
     m_pathname = pn;
 
     ProgramInfoType pit = discover_program_info_type(m_chanid, m_pathname, false);
-    const_cast<ProgramInfo*>(this)->SetProgramInfoType(pit);
+    SetProgramInfoType(pit);
 }
 
 ProgramInfoType ProgramInfo::DiscoverProgramInfoType(void) const
@@ -2457,7 +2462,7 @@ QString ProgramInfo::QueryBasename(void) const
  *        call and so should not be called from the UI thread.
  */
 QString ProgramInfo::GetPlaybackURL(
-    bool checkMaster, bool forceCheckLocal) const
+    bool checkMaster, bool forceCheckLocal)
 {
         // return the original path if BD or DVD URI
     if (IsVideoBD() || IsVideoDVD())
@@ -3033,7 +3038,8 @@ bool ProgramInfo::QueryIsInUse(QStringList &byWho) const
     byWho.clear();
     if (query.exec() && query.size() > 0)
     {
-        QString usageStr, recusage;
+        QString usageStr;
+        QString recusage;
         while (query.next())
         {
             usageStr = QObject::tr("Unknown");
@@ -3106,7 +3112,9 @@ bool ProgramInfo::QueryIsDeleteCandidate(bool one_playback_allowed) const
     QStringList byWho;
     if (QueryIsInUse(byWho) && !byWho.isEmpty())
     {
-        uint play_cnt = 0, ft_cnt = 0, jq_cnt = 0;
+        uint play_cnt = 0;
+        uint ft_cnt = 0;
+        uint jq_cnt = 0;
         for (uint i = 0; (i+2 < (uint)byWho.size()) && ok; i+=3)
         {
             play_cnt += byWho[i].contains(kPlayerInUseID) ? 1 : 0;
@@ -3689,9 +3697,8 @@ void ProgramInfo::SavePositionMap(
 
         if ((min_frame >= 0) || (max_frame >= 0))
         {
-            frm_pos_map_t::const_iterator it, it_end;
-            it     = m_positionMapDBReplacement->map[type].begin();
-            it_end = m_positionMapDBReplacement->map[type].end();
+            auto it     = m_positionMapDBReplacement->map[type].begin();
+            auto it_end = m_positionMapDBReplacement->map[type].end();
 
             frm_pos_map_t new_map;
             for (; it != it_end; ++it)
@@ -4743,7 +4750,7 @@ void ProgramInfo::SaveInetRef(const QString &inet)
  *        call and so should not be called from the UI thread.
  *  \return true iff file is readable
  */
-bool ProgramInfo::IsFileReadable(void) const
+bool ProgramInfo::IsFileReadable(void)
 {
     if (IsLocal() && QFileInfo(m_pathname).isReadable())
         return true;
@@ -4813,7 +4820,7 @@ uint ProgramInfo::QueryTranscoderID(void) const
  *  \note This method sometimes initiates a QUERY_CHECKFILE MythProto
  *        call and so should not be called from the UI thread.
  */
-QString ProgramInfo::DiscoverRecordingDirectory(void) const
+QString ProgramInfo::DiscoverRecordingDirectory(void)
 {
     if (!IsLocal())
     {

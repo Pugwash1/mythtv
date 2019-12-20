@@ -7,25 +7,25 @@
 #include <QObject>
 #include <QSize>
 
-typedef enum PIPState
+enum PIPState
 {
     kPIPOff = 0,
     kPIPonTV,
     kPIPStandAlone,
     kPBPLeft,
     kPBPRight,
-} PIPState;
+};
 
-typedef enum PIPLocation
+enum PIPLocation
 {
     kPIPTopLeft = 0,
     kPIPBottomLeft,
     kPIPTopRight,
     kPIPBottomRight,
     kPIP_END
-} PIPLocation;
+};
 
-typedef enum ZoomDirection
+enum ZoomDirection
 {
     kZoomHome = 0,
     kZoomIn,
@@ -41,9 +41,9 @@ typedef enum ZoomDirection
     kZoomAspectUp,
     kZoomAspectDown,
     kZoom_END
-} ZoomDirection;
+};
 
-typedef enum AspectOverrideMode
+enum AspectOverrideMode
 {
     kAspect_Toggle = -1,
     kAspect_Off = 0,
@@ -52,9 +52,9 @@ typedef enum AspectOverrideMode
     kAspect_14_9, // added after 16:9 so as not to upset existing setups.
     kAspect_2_35_1,
     kAspect_END
-} AspectOverrideMode;
+};
 
-typedef enum AdjustFillMode
+enum AdjustFillMode
 {
     kAdjustFill_Toggle = -1,
     kAdjustFill_Off = 0,
@@ -67,26 +67,26 @@ typedef enum AdjustFillMode
     kAdjustFill_END,
     kAdjustFill_AutoDetect_DefaultOff,
     kAdjustFill_AutoDetect_DefaultHalf,
-} AdjustFillMode;
+};
 
-typedef enum LetterBoxColour
+enum LetterBoxColour
 {
     kLetterBoxColour_Toggle = -1,
     kLetterBoxColour_Black = 0,
     kLetterBoxColour_Gray25,
     kLetterBoxColour_END
-} LetterBoxColour;
+};
 
-typedef enum FrameScanType
+enum FrameScanType
 {
     kScan_Ignore       = -1,
     kScan_Detect       =  0,
     kScan_Interlaced   =  1,
     kScan_Intr2ndField =  2,
     kScan_Progressive  =  3,
-} FrameScanType;
+};
 
-typedef enum PictureAttribute
+enum PictureAttribute
 {
     kPictureAttribute_None = 0,
     kPictureAttribute_MIN = 0,
@@ -94,30 +94,44 @@ typedef enum PictureAttribute
     kPictureAttribute_Contrast,
     kPictureAttribute_Colour,
     kPictureAttribute_Hue,
-    kPictureAttribute_StudioLevels,
+    kPictureAttribute_Range,
     kPictureAttribute_Volume,
     kPictureAttribute_MAX
-} PictureAttribute;
+};
 
-typedef enum PictureAttributeSupported
+enum PictureAttributeSupported
 {
-    kPictureAttributeSupported_None         = 0x00,
-    kPictureAttributeSupported_Brightness   = 0x01,
-    kPictureAttributeSupported_Contrast     = 0x02,
-    kPictureAttributeSupported_Colour       = 0x04,
-    kPictureAttributeSupported_Hue          = 0x08,
-    kPictureAttributeSupported_StudioLevels = 0x10,
-    kPictureAttributeSupported_Volume       = 0x20,
-} PictureAttributeSupported;
+    kPictureAttributeSupported_None       = 0x00,
+    kPictureAttributeSupported_Brightness = 0x01,
+    kPictureAttributeSupported_Contrast   = 0x02,
+    kPictureAttributeSupported_Colour     = 0x04,
+    kPictureAttributeSupported_Hue        = 0x08,
+    kPictureAttributeSupported_Range      = 0x10,
+    kPictureAttributeSupported_Volume     = 0x20,
+};
 
-typedef enum StereoscopicMode
+#define ALL_PICTURE_ATTRIBUTES static_cast<PictureAttributeSupported> \
+    (kPictureAttributeSupported_Brightness | \
+     kPictureAttributeSupported_Contrast | \
+     kPictureAttributeSupported_Colour | \
+     kPictureAttributeSupported_Hue | \
+     kPictureAttributeSupported_Range)
+
+enum StereoscopicMode
 {
     kStereoscopicModeNone,
     kStereoscopicModeSideBySide,
     kStereoscopicModeSideBySideDiscard,
     kStereoscopicModeTopAndBottom,
     kStereoscopicModeTopAndBottomDiscard,
-} StereoscopicMode;
+};
+
+enum PrimariesMode
+{
+    PrimariesDisabled = 0,
+    PrimariesAuto,
+    PrimariesAlways
+};
 
 inline QString StereoscopictoString(StereoscopicMode mode)
 {
@@ -137,13 +151,11 @@ inline QString StereoscopictoString(StereoscopicMode mode)
     return QObject::tr("Unknown");
 }
 
-typedef enum VideoErrorState
+enum VideoErrorState
 {
     kError_None            = 0x00,
     kError_Unknown         = 0x01,
-    kError_Decode          = 0x02, // VDPAU decoder error
-    kError_Switch_Renderer = 0x04, // Current renderer is not preferred choice
-} VideoErrorState;
+};
 
 inline bool is_interlaced(FrameScanType scan)
 {
@@ -185,6 +197,19 @@ inline QString toString(FrameScanType scan, bool brief = false)
     return ret;
 }
 
+inline QString toString(PIPState State)
+{
+    switch (State)
+    {
+    case kPIPOff: return QString("Pip Off");
+    case kPIPonTV: return QString("Pip on TV");
+    case kPIPStandAlone: return QString("Pip Standalone");
+    case kPBPLeft: return QString("PBP Left");
+    case kPBPRight: return QString("PBP Right");
+    }
+    return QString("Unknown");
+}
+
 inline QString toString(PIPLocation location)
 {
     QString ret;
@@ -223,20 +248,6 @@ inline QString toString(LetterBoxColour letterboxcolour)
     switch (letterboxcolour)
     {
         case kLetterBoxColour_Gray25: ret = QObject::tr("Gray"); break;
-        case kLetterBoxColour_Black:
-        case kLetterBoxColour_Toggle:
-        case kLetterBoxColour_END: break;
-    }
-
-    return ret;
-}
-
-inline QString toXString(LetterBoxColour letterboxcolour)
-{
-    QString ret = "gray0";
-    switch (letterboxcolour)
-    {
-        case kLetterBoxColour_Gray25: ret = "gray25"; break;
         case kLetterBoxColour_Black:
         case kLetterBoxColour_Toggle:
         case kLetterBoxColour_END: break;
@@ -304,8 +315,8 @@ inline QString toString(PictureAttribute pictureattribute)
           ret = QObject::tr("Color");         break;
       case kPictureAttribute_Hue:
           ret = QObject::tr("Hue");           break;
-      case kPictureAttribute_StudioLevels:
-          ret = QObject::tr("Studio Levels"); break;
+      case kPictureAttribute_Range:
+          ret = QObject::tr("Range"); break;
       case kPictureAttribute_Volume:
           ret = QObject::tr("Volume");        break;
       case kPictureAttribute_MAX:
@@ -329,8 +340,7 @@ inline QString toDBString(PictureAttribute pictureattribute)
           ret = "colour";          break;
       case kPictureAttribute_Hue:
           ret = "hue";             break;
-      case kPictureAttribute_StudioLevels:
-          ret = "studiolevels";    break;
+      case kPictureAttribute_Range:
       case kPictureAttribute_Volume:
       case kPictureAttribute_MAX:  break;
     }
@@ -338,47 +348,23 @@ inline QString toDBString(PictureAttribute pictureattribute)
     return ret;
 }
 
-inline QString toXVString(PictureAttribute pictureattribute)
-{
-    QString ret;
-    switch (pictureattribute)
-    {
-      case kPictureAttribute_None: break;
-      case kPictureAttribute_Brightness:
-          ret = "XV_BRIGHTNESS"; break;
-      case kPictureAttribute_Contrast:
-          ret = "XV_CONTRAST";   break;
-      case kPictureAttribute_Colour:
-          ret = "XV_SATURATION"; break;
-      case kPictureAttribute_Hue:
-          ret = "XV_HUE";        break;
-      case kPictureAttribute_StudioLevels:
-      case kPictureAttribute_Volume:
-      case kPictureAttribute_MAX:
-      default:
-          break;
-    }
-
-    return ret;
-}
-
 inline QString toString(PictureAttributeSupported supported)
 {
-    QString ret = "";
+    QStringList list;
 
     if (kPictureAttributeSupported_Brightness & supported)
-        ret += "Brightness, ";
+        list += "Brightness";
     if (kPictureAttributeSupported_Contrast & supported)
-        ret += "Contrast, ";
+        list += "Contrast";
     if (kPictureAttributeSupported_Colour & supported)
-        ret += "Colour, ";
+        list += "Colour";
     if (kPictureAttributeSupported_Hue & supported)
-        ret += "Hue, ";
-    if (kPictureAttributeSupported_StudioLevels & supported)
-        ret += "Studio Levels, ";
+        list += "Hue";
+    if (kPictureAttributeSupported_Range & supported)
+        list += "Range";
     if (kPictureAttributeSupported_Volume & supported)
-        ret += "Volume, ";
-    return ret;
+        list += "Volume";
+    return list.join(",");
 }
 
 inline PictureAttributeSupported toMask(PictureAttribute pictureattribute)
@@ -395,8 +381,8 @@ inline PictureAttributeSupported toMask(PictureAttribute pictureattribute)
             ret = kPictureAttributeSupported_Colour; break;
         case kPictureAttribute_Hue:
             ret = kPictureAttributeSupported_Hue; break;
-        case kPictureAttribute_StudioLevels:
-            ret = kPictureAttributeSupported_StudioLevels; break;
+        case kPictureAttribute_Range:
+            ret = kPictureAttributeSupported_Range; break;
         case kPictureAttribute_Volume:
             ret = kPictureAttributeSupported_Volume; break;
         case kPictureAttribute_MAX: break;

@@ -44,6 +44,9 @@ ImageProperties::ImageProperties(const ImageProperties& other)
 
 ImageProperties &ImageProperties::operator=(const ImageProperties &other)
 {
+    if (this == &other)
+        return *this;
+
     Copy(other);
 
     return *this;
@@ -391,9 +394,8 @@ class ImageLoader
         QString frameFilename;
         int imageCount = 1;
 
-        MythImageReader *imageReader = new MythImageReader(imProps.m_filename);
-
-        AnimationFrames *images = new AnimationFrames();
+        auto *imageReader = new MythImageReader(imProps.m_filename);
+        auto *images = new AnimationFrames();
 
         while (imageReader->canRead() && !aborted)
         {
@@ -478,7 +480,7 @@ QEvent::Type ImageLoadEvent::kEventType =
 class ImageLoadThread : public QRunnable
 {
   public:
-    ImageLoadThread(const MythUIImage *parent, MythPainter *painter,
+    ImageLoadThread(MythUIImage *parent, MythPainter *painter,
                     const ImageProperties &imProps, QString basefile,
                     int number, ImageCacheMode mode) :
         m_parent(parent), m_painter(painter), m_imageProperties(imProps),
@@ -503,11 +505,10 @@ class ImageLoadThread : public QRunnable
 
              if (frames && frames->count() > 1)
              {
-                ImageLoadEvent *le = new ImageLoadEvent(m_parent, frames,
-                                                        m_basefile,
-                                                        m_imageProperties.m_filename,
-                                                        aborted);
-                QCoreApplication::postEvent(const_cast<MythUIImage*>(m_parent), le);
+                auto *le = new ImageLoadEvent(m_parent, frames, m_basefile,
+                                              m_imageProperties.m_filename,
+                                              aborted);
+                QCoreApplication::postEvent(m_parent, le);
 
                 return;
              }
@@ -519,14 +520,14 @@ class ImageLoadThread : public QRunnable
                                                     m_cacheMode, m_parent,
                                                     aborted);
 
-        ImageLoadEvent *le = new ImageLoadEvent(m_parent, image, m_basefile,
-                                                m_imageProperties.m_filename,
-                                                m_number, aborted);
-        QCoreApplication::postEvent(const_cast<MythUIImage*>(m_parent), le);
+        auto *le = new ImageLoadEvent(m_parent, image, m_basefile,
+                                      m_imageProperties.m_filename,
+                                      m_number, aborted);
+        QCoreApplication::postEvent(m_parent, le);
     }
 
 private:
-    const MythUIImage *m_parent  {nullptr};
+    MythUIImage       *m_parent  {nullptr};
     MythPainter       *m_painter {nullptr};
     ImageProperties m_imageProperties;
     QString         m_basefile;
@@ -544,7 +545,7 @@ public:
 
     MythUIImage *m_parent       {nullptr};
 
-    QReadWriteLock m_UpdateLock {QReadWriteLock::Recursive};
+    QReadWriteLock m_updateLock {QReadWriteLock::Recursive};
 };
 
 /////////////////////////////////////////////////////////////////
@@ -612,7 +613,7 @@ MythUIImage::~MythUIImage()
  */
 void MythUIImage::Clear(void)
 {
-    QWriteLocker updateLocker(&d->m_UpdateLock);
+    QWriteLocker updateLocker(&d->m_updateLock);
     QMutexLocker locker(&m_ImagesLock);
 
     while (!m_Images.isEmpty())
@@ -640,7 +641,7 @@ void MythUIImage::Clear(void)
  */
 void MythUIImage::Reset(void)
 {
-    d->m_UpdateLock.lockForWrite();
+    d->m_updateLock.lockForWrite();
 
     SetMinArea(MythRect());
 
@@ -657,11 +658,11 @@ void MythUIImage::Reset(void)
         }
         emit DependChanged(true);
 
-        d->m_UpdateLock.unlock();
+        d->m_updateLock.unlock();
         Load();
     }
     else
-        d->m_UpdateLock.unlock();
+        d->m_updateLock.unlock();
 
     MythUIType::Reset();
 }
@@ -671,7 +672,7 @@ void MythUIImage::Reset(void)
  */
 void MythUIImage::SetFilename(const QString &filename)
 {
-    QWriteLocker updateLocker(&d->m_UpdateLock);
+    QWriteLocker updateLocker(&d->m_updateLock);
     m_imageProperties.m_isThemeImage = false;
     m_imageProperties.m_filename = filename;
     if (filename == m_OrigFilename)
@@ -687,7 +688,7 @@ void MythUIImage::SetFilename(const QString &filename)
 void MythUIImage::SetFilepattern(const QString &filepattern, int low,
                                  int high)
 {
-    QWriteLocker updateLocker(&d->m_UpdateLock);
+    QWriteLocker updateLocker(&d->m_updateLock);
     m_imageProperties.m_isThemeImage = false;
     m_imageProperties.m_filename = filepattern;
     m_LowNum = low;
@@ -703,7 +704,7 @@ void MythUIImage::SetFilepattern(const QString &filepattern, int low,
  */
 void MythUIImage::SetImageCount(int low, int high)
 {
-    QWriteLocker updateLocker(&d->m_UpdateLock);
+    QWriteLocker updateLocker(&d->m_updateLock);
     m_LowNum = low;
     m_HighNum = high;
 }
@@ -713,7 +714,7 @@ void MythUIImage::SetImageCount(int low, int high)
  */
 void MythUIImage::SetDelay(int delayms)
 {
-    QWriteLocker updateLocker(&d->m_UpdateLock);
+    QWriteLocker updateLocker(&d->m_updateLock);
     m_Delay = delayms;
     m_LastDisplay = QTime::currentTime();
     m_CurPos = 0;
@@ -724,7 +725,7 @@ void MythUIImage::SetDelay(int delayms)
  */
 void MythUIImage::SetDelays(QVector<int> delays)
 {
-    QWriteLocker updateLocker(&d->m_UpdateLock);
+    QWriteLocker updateLocker(&d->m_updateLock);
     QMutexLocker imageLocker(&m_ImagesLock);
 
     for (auto it = delays.begin(); it != delays.end(); ++it)
@@ -743,11 +744,11 @@ void MythUIImage::SetDelays(QVector<int> delays)
  */
 void MythUIImage::SetImage(MythImage *img)
 {
-    d->m_UpdateLock.lockForWrite();
+    d->m_updateLock.lockForWrite();
 
     if (!img)
     {
-        d->m_UpdateLock.unlock();
+        d->m_updateLock.unlock();
         Reset();
         return;
     }
@@ -793,7 +794,7 @@ void MythUIImage::SetImage(MythImage *img)
     m_Initiator = m_EnableInitiator;
     SetRedraw();
 
-    d->m_UpdateLock.unlock();
+    d->m_updateLock.unlock();
 }
 
 /**
@@ -805,7 +806,7 @@ void MythUIImage::SetImages(QVector<MythImage *> *images)
 {
     Clear();
 
-    QWriteLocker updateLocker(&d->m_UpdateLock);
+    QWriteLocker updateLocker(&d->m_updateLock);
     QSize aSize = GetFullArea().size();
 
     m_imageProperties.m_isThemeImage = false;
@@ -897,9 +898,9 @@ void MythUIImage::ForceSize(const QSize &size)
     if (m_imageProperties.m_forceSize == size)
         return;
 
-    d->m_UpdateLock.lockForWrite();
+    d->m_updateLock.lockForWrite();
     m_imageProperties.m_forceSize = size;
-    d->m_UpdateLock.unlock();
+    d->m_updateLock.unlock();
 
     if (size.isEmpty())
         return;
@@ -931,7 +932,7 @@ void MythUIImage::SetSize(int width, int height)
  */
 void MythUIImage::SetSize(const QSize &size)
 {
-    QWriteLocker updateLocker(&d->m_UpdateLock);
+    QWriteLocker updateLocker(&d->m_updateLock);
     MythUIType::SetSize(size);
     m_NeedLoad = true;
 }
@@ -951,7 +952,7 @@ void MythUIImage::SetCropRect(int x, int y, int width, int height)
  */
 void MythUIImage::SetCropRect(const MythRect &rect)
 {
-    QWriteLocker updateLocker(&d->m_UpdateLock);
+    QWriteLocker updateLocker(&d->m_updateLock);
     m_imageProperties.m_cropRect = rect;
     SetRedraw();
 }
@@ -961,13 +962,13 @@ void MythUIImage::SetCropRect(const MythRect &rect)
  */
 bool MythUIImage::Load(bool allowLoadInBackground, bool forceStat)
 {
-    d->m_UpdateLock.lockForRead();
+    d->m_updateLock.lockForRead();
 
     m_Initiator = m_EnableInitiator;
 
     QString bFilename = m_imageProperties.m_filename;
 
-    d->m_UpdateLock.unlock();
+    d->m_updateLock.unlock();
 
     QString filename = bFilename;
 
@@ -1038,8 +1039,7 @@ bool MythUIImage::Load(bool allowLoadInBackground, bool forceStat)
                 QString("Load(), spawning thread to load '%1'").arg(filename));
 
             m_runningThreads++;
-            ImageLoadThread *bImgThread =
-                new ImageLoadThread(this, GetPainter(),
+            auto *bImgThread = new ImageLoadThread(this, GetPainter(),
                                     imProps, bFilename, i,
                                     static_cast<ImageCacheMode>(cacheMode2));
             GetMythUI()->GetImageThreadPool()->start(bImgThread, "ImageLoad");
@@ -1100,9 +1100,9 @@ bool MythUIImage::Load(bool allowLoadInBackground, bool forceStat)
                     m_ImagesLock.unlock();
 
                     SetRedraw();
-                    d->m_UpdateLock.lockForWrite();
+                    d->m_updateLock.lockForWrite();
                     m_LastDisplay = QTime::currentTime();
-                    d->m_UpdateLock.unlock();
+                    d->m_updateLock.unlock();
                 }
                 else
                 {
@@ -1132,7 +1132,7 @@ bool MythUIImage::Load(bool allowLoadInBackground, bool forceStat)
  */
 void MythUIImage::Pulse(void)
 {
-    d->m_UpdateLock.lockForWrite();
+    d->m_updateLock.lockForWrite();
 
     int delay = -1;
 
@@ -1147,9 +1147,9 @@ void MythUIImage::Pulse(void)
         if (m_showingRandomImage)
         {
             FindRandomImage();
-            d->m_UpdateLock.unlock();
+            d->m_updateLock.unlock();
             Load();
-            d->m_UpdateLock.lockForWrite();
+            d->m_updateLock.lockForWrite();
         }
         else
         {
@@ -1189,7 +1189,7 @@ void MythUIImage::Pulse(void)
 
     MythUIType::Pulse();
 
-    d->m_UpdateLock.unlock();
+    d->m_updateLock.unlock();
 }
 
 /**
@@ -1202,7 +1202,7 @@ void MythUIImage::DrawSelf(MythPainter *p, int xoffset, int yoffset,
 
     if (!m_Images.empty())
     {
-        d->m_UpdateLock.lockForWrite();
+        d->m_updateLock.lockForWrite();
 
         if (m_CurPos >= (uint)m_Images.size())
             m_CurPos = 0;
@@ -1232,12 +1232,12 @@ void MythUIImage::DrawSelf(MythPainter *p, int xoffset, int yoffset,
             currentImage->IncrRef();
 
         m_ImagesLock.unlock();
-        d->m_UpdateLock.unlock();
+        d->m_updateLock.unlock();
 
         if (!currentImage)
             return;
 
-        d->m_UpdateLock.lockForRead();
+        d->m_updateLock.lockForRead();
 
         QRect currentImageArea = currentImage->rect();
 
@@ -1245,7 +1245,8 @@ void MythUIImage::DrawSelf(MythPainter *p, int xoffset, int yoffset,
             area.setSize(area.size().expandedTo(currentImage->size()));
 
         // Centre image in available space, accounting for zoom
-        int x = 0, y = 0;
+        int x = 0;
+        int y = 0;
         QRect visibleImage = m_Effects.GetExtent(currentImageArea.size());
 
         if (area.width() > visibleImage.width())
@@ -1268,7 +1269,7 @@ void MythUIImage::DrawSelf(MythPainter *p, int xoffset, int yoffset,
         p->SetClipRect(clipRect);
         p->DrawImage(area, currentImage, srcRect, alpha);
         currentImage->DecrRef();
-        d->m_UpdateLock.unlock();
+        d->m_updateLock.unlock();
     }
     else
         m_ImagesLock.unlock();
@@ -1280,7 +1281,7 @@ void MythUIImage::DrawSelf(MythPainter *p, int xoffset, int yoffset,
 bool MythUIImage::ParseElement(
     const QString &filename, QDomElement &element, bool showWarnings)
 {
-    QWriteLocker updateLocker(&d->m_UpdateLock);
+    QWriteLocker updateLocker(&d->m_updateLock);
 
     if (element.tagName() == "filename")
     {
@@ -1420,16 +1421,15 @@ bool MythUIImage::ParseElement(
  */
 void MythUIImage::CopyFrom(MythUIType *base)
 {
-    d->m_UpdateLock.lockForWrite();
-    MythUIImage *im = dynamic_cast<MythUIImage *>(base);
-
+    d->m_updateLock.lockForWrite();
+    auto *im = dynamic_cast<MythUIImage *>(base);
     if (!im)
     {
         LOG(VB_GENERAL, LOG_ERR,
             QString("'%1' (%2) ERROR, bad parsing '%3' (%4)")
             .arg(objectName()).arg(GetXMLLocation())
             .arg(base->objectName()).arg(base->GetXMLLocation()));
-        d->m_UpdateLock.unlock();
+        d->m_updateLock.unlock();
         return;
     }
 
@@ -1459,17 +1459,17 @@ void MythUIImage::CopyFrom(MythUIType *base)
 
     m_NeedLoad = im->m_NeedLoad;
 
-    d->m_UpdateLock.unlock();
+    d->m_updateLock.unlock();
 
-    d->m_UpdateLock.lockForRead();
+    d->m_updateLock.lockForRead();
 
     if (m_NeedLoad)
     {
-        d->m_UpdateLock.unlock();
+        d->m_updateLock.unlock();
         Load();
     }
     else
-        d->m_UpdateLock.unlock();
+        d->m_updateLock.unlock();
 }
 
 /**
@@ -1477,8 +1477,8 @@ void MythUIImage::CopyFrom(MythUIType *base)
  */
 void MythUIImage::CreateCopy(MythUIType *parent)
 {
-    QReadLocker updateLocker(&d->m_UpdateLock);
-    MythUIImage *im = new MythUIImage(parent, objectName());
+    QReadLocker updateLocker(&d->m_updateLock);
+    auto *im = new MythUIImage(parent, objectName());
     im->CopyFrom(this);
 }
 
@@ -1487,15 +1487,15 @@ void MythUIImage::CreateCopy(MythUIType *parent)
  */
 void MythUIImage::Finalize(void)
 {
-    d->m_UpdateLock.lockForRead();
+    d->m_updateLock.lockForRead();
 
     if (m_NeedLoad)
     {
-        d->m_UpdateLock.unlock();
+        d->m_updateLock.unlock();
         Load();
     }
     else
-        d->m_UpdateLock.unlock();
+        d->m_updateLock.unlock();
 
     MythUIType::Finalize();
 }
@@ -1505,16 +1505,16 @@ void MythUIImage::Finalize(void)
  */
 void MythUIImage::LoadNow(void)
 {
-    d->m_UpdateLock.lockForWrite();
+    d->m_updateLock.lockForWrite();
 
     if (m_NeedLoad)
     {
-        d->m_UpdateLock.unlock();
+        d->m_updateLock.unlock();
         return;
     }
 
     m_NeedLoad = true;
-    d->m_UpdateLock.unlock();
+    d->m_updateLock.unlock();
 
     Load(false);
 
@@ -1528,8 +1528,7 @@ void MythUIImage::customEvent(QEvent *event)
 {
     if (event->type() == ImageLoadEvent::kEventType)
     {
-        ImageLoadEvent *le = static_cast<ImageLoadEvent *>(event);
-
+        auto *le = static_cast<ImageLoadEvent *>(event);
         if (le->GetParent() != this)
             return;
 
@@ -1541,9 +1540,9 @@ void MythUIImage::customEvent(QEvent *event)
 
         m_runningThreads--;
 
-        d->m_UpdateLock.lockForRead();
+        d->m_updateLock.lockForRead();
         QString propFilename = m_imageProperties.m_filename;
-        d->m_UpdateLock.unlock();
+        d->m_updateLock.unlock();
 
         // 1) We aborted loading the image for some reason (e.g. two requests
         //    for same image)
@@ -1587,7 +1586,7 @@ void MythUIImage::customEvent(QEvent *event)
             if ((m_HighNum == m_LowNum) && !m_animatedImage)
                 Clear();
 
-            d->m_UpdateLock.lockForWrite();
+            d->m_updateLock.lockForWrite();
 
             if (m_imageProperties.m_forceSize.isNull())
                 SetSize(image->size());
@@ -1596,7 +1595,7 @@ void MythUIImage::customEvent(QEvent *event)
             rect.setSize(image->size());
             SetMinArea(rect);
 
-            d->m_UpdateLock.unlock();
+            d->m_updateLock.unlock();
 
             m_ImagesLock.lock();
 
@@ -1613,9 +1612,9 @@ void MythUIImage::customEvent(QEvent *event)
 
             SetRedraw();
 
-            d->m_UpdateLock.lockForWrite();
+            d->m_updateLock.lockForWrite();
             m_LastDisplay = QTime::currentTime();
-            d->m_UpdateLock.unlock();
+            d->m_updateLock.unlock();
         }
         else
         {
@@ -1635,7 +1634,7 @@ void MythUIImage::FindRandomImage(void)
     if (!imageDir.exists())
     {
         QString themeDir = GetMythUI()->GetThemeDir() + '/';
-        imageDir = themeDir + m_imageDirectory;
+        imageDir.setPath(themeDir + m_imageDirectory);
     }
 
     QStringList imageTypes;

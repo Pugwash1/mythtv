@@ -15,7 +15,7 @@ namespace {
     {
         uint port = gCoreContext->GetBackendServerPort(host);
 
-        return gCoreContext->GenMythURL(host, port, path,
+        return MythCoreContext::GenMythURL(host, port, path,
                                         StorageGroup::GetGroupToUse(host, storage_group));
     }
 }
@@ -134,7 +134,9 @@ bool SetArtwork(const QString &inetref,
     if (inetref.isEmpty())
         return false;
 
-    QString coverart, fanart, banner;
+    QString coverart;
+    QString fanart;
+    QString banner;
 
     QUrl coverurl(map.value(kArtworkCoverart).url);
     if (!coverurl.path().isEmpty())

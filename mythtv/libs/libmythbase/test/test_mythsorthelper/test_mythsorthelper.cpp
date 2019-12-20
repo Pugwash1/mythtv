@@ -21,12 +21,11 @@
 
 void TestSortHelper::Singleton(void)
 {
-    std::shared_ptr<MythSortHelper>sh1, sh2, sh3;
-    sh1 = getMythSortHelper();
+    auto sh1 = getMythSortHelper();
     QVERIFY(sh1.use_count() == 2);
-    sh2 = getMythSortHelper();
+    auto sh2 = getMythSortHelper();
     QVERIFY(sh2.use_count() == 3);
-    sh3 = getMythSortHelper();
+    auto sh3 = getMythSortHelper();
     QVERIFY(sh3.use_count() == 4);
     sh2 = nullptr;
     QVERIFY(sh3.use_count() == 3);
@@ -56,10 +55,8 @@ void TestSortHelper::titles_timing(void)
     QFETCH(int, sensitive);
     QFETCH(int, disposition);
     QFETCH(QString, exclusions);
-    MythSortHelper *sh =
-        new MythSortHelper(static_cast<Qt::CaseSensitivity>(sensitive),
-                           static_cast<SortPrefixMode>(disposition),
-                           "");
+    auto *sh = new MythSortHelper(static_cast<Qt::CaseSensitivity>(sensitive),
+                                  static_cast<SortPrefixMode>(disposition), "");
     QBENCHMARK {
         QString title = sh->doTitle("The Flash");
     }
@@ -77,10 +74,8 @@ void TestSortHelper::pathnames_timing(void)
     QFETCH(int, disposition);
     QFETCH(QString, exclusions);
 
-    MythSortHelper *sh =
-        new MythSortHelper(static_cast<Qt::CaseSensitivity>(sensitive),
-                           static_cast<SortPrefixMode>(disposition),
-                           "");
+    auto *sh = new MythSortHelper(static_cast<Qt::CaseSensitivity>(sensitive),
+                                  static_cast<SortPrefixMode>(disposition), "");
     QBENCHMARK {
         QString title = sh->doPathname("dvds/The Flash/Season 2/The Flash - S02E01.ts");
     }

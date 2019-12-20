@@ -400,7 +400,7 @@ std::string PictureMetaData::GetTag(const QString &key, bool *exists)
         return value;
 
     Exiv2::ExifKey exifKey = Exiv2::ExifKey(key.toStdString());
-    Exiv2::ExifData::iterator exifIt = m_exifData.findKey(exifKey);
+    auto exifIt = m_exifData.findKey(exifKey);
 
     if (exifIt == m_exifData.end())
         return value;
@@ -449,7 +449,8 @@ QDateTime PictureMetaData::GetOriginalDateTime(bool *exists)
 QString PictureMetaData::GetComment(bool *exists)
 {
     // Use User Comment or else Image Description
-    bool comExists = false, desExists = false;
+    bool comExists = false;
+    bool desExists = false;
 
     std::string comment = GetTag(EXIF_TAG_USERCOMMENT, &comExists);
 

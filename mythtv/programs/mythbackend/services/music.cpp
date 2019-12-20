@@ -25,7 +25,7 @@
 DTC::MusicMetadataInfoList* Music::GetTrackList(int nStartIndex,
                                                 int nCount)
 {
-    AllMusic *all_music = new AllMusic();
+    auto *all_music = new AllMusic();
 
     while (!all_music->doneLoading())
     {
@@ -39,7 +39,7 @@ DTC::MusicMetadataInfoList* Music::GetTrackList(int nStartIndex,
     // Build Response
     // ----------------------------------------------------------------------
 
-    DTC::MusicMetadataInfoList *pMusicMetadataInfos = new DTC::MusicMetadataInfoList();
+    auto *pMusicMetadataInfos = new DTC::MusicMetadataInfoList();
 
     nStartIndex   = (nStartIndex > 0) ? min( nStartIndex, musicList->count() ) : 0;
     nCount        = (nCount > 0) ? min( nCount, musicList->count() ) : musicList->count();
@@ -55,7 +55,8 @@ DTC::MusicMetadataInfoList* Music::GetTrackList(int nStartIndex,
             FillMusicMetadataInfo ( pMusicMetadataInfo, metadata, true );
     }
 
-    int curPage = 0, totalPages = 0;
+    int curPage = 0;
+    int totalPages = 0;
     if (nCount == 0)
         totalPages = 1;
     else
@@ -88,7 +89,7 @@ DTC::MusicMetadataInfoList* Music::GetTrackList(int nStartIndex,
 
 DTC::MusicMetadataInfo* Music::GetTrack(int Id)
 {
-    AllMusic *all_music = new AllMusic();
+    auto *all_music = new AllMusic();
 
     while (!all_music->doneLoading())
     {
@@ -104,7 +105,7 @@ DTC::MusicMetadataInfo* Music::GetTrack(int Id)
         throw(QString("No metadata found for selected ID!."));
     }
 
-    DTC::MusicMetadataInfo *pMusicMetadataInfo = new DTC::MusicMetadataInfo();
+    auto *pMusicMetadataInfo = new DTC::MusicMetadataInfo();
 
     FillMusicMetadataInfo(pMusicMetadataInfo, metadata, true);
 

@@ -359,9 +359,8 @@ bool HLSReader::ParseM3U8(const QByteArray& buffer, HLSRecStream* stream)
                         if (!M3U::ParseStreamInformation(line, url, StreamURL(),
                                                          id, bandwidth))
                             break;
-                        HLSRecStream *hls =
-                            new HLSRecStream(id, bandwidth, url, m_segment_base);
-
+                        auto *hls = new HLSRecStream(id, bandwidth, url,
+                                                     m_segment_base);
                         if (hls)
                         {
                             LOG(VB_RECORD, LOG_INFO, LOC +
@@ -471,7 +470,8 @@ bool HLSReader::ParseM3U8(const QByteArray& buffer, HLSRecStream* stream)
             else if (line.startsWith(QLatin1String("#EXT-X-KEY")))
             {
 #ifdef USING_LIBCRYPTO
-                QString path, iv;
+                QString path;
+                QString iv;
                 if (!M3U::ParseKey(hls->Version(), line, m_aesmsg,  StreamURL(),
                                    path, iv))
                     return false;

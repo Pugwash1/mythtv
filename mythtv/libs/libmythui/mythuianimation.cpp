@@ -6,7 +6,8 @@
 
 QRect UIEffects::GetExtent(const QSize &size)
 {
-    int x = 0, y = 0;
+    int x = 0;
+    int y = 0;
     int zoomedWidth = size.width() * m_hzoom;
     int zoomedHeight = size.height() * m_vzoom;
 
@@ -268,7 +269,7 @@ void MythUIAnimation::ParseSection(const QDomElement &element,
         else
             continue;
 
-        MythUIAnimation* a = new MythUIAnimation(parent, trigger, type);
+        auto* a = new MythUIAnimation(parent, trigger, type);
         a->setStartValue(start);
         a->setEndValue(end);
         a->setDuration(effectduration);

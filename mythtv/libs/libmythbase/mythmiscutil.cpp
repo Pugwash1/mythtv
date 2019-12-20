@@ -262,7 +262,7 @@ bool ping(const QString &host, int timeout)
  */
 bool telnet(const QString &host, int port)
 {
-    MythSocket *s = new MythSocket();
+    auto *s = new MythSocket();
 
     bool connected = s->ConnectToHost(host, port);
     s->DecrRef();
@@ -295,7 +295,8 @@ long long copy(QFile &dst, QFile &src, uint block_size)
 {
     uint buflen = (block_size < 1024) ? (16 * 1024) : block_size;
     char *buf = new char[buflen];
-    bool odst = false, osrc = false;
+    bool odst = false;
+    bool osrc = false;
 
     if (!buf)
         return -1LL;

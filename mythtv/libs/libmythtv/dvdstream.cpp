@@ -22,7 +22,8 @@ extern "C" {
 // A range of block numbers
 class DVDStream::BlockRange
 {
-    uint32_t m_start, m_end;
+    uint32_t m_start;
+    uint32_t m_end;
     int m_title;
 
 public:
@@ -96,7 +97,7 @@ bool DVDStream::OpenFile(const QString &filename, uint /*retry_ms*/)
     {
         // Locate the start block of the requested title
         uint32_t len;
-        m_start = UDFFindFile(m_reader, const_cast<char*>(qPrintable(path)), &len);
+        m_start = UDFFindFile(m_reader, qPrintable(path), &len);
         if (m_start == 0)
         {
             LOG(VB_GENERAL, LOG_ERR, QString("DVDStream(%1) UDFFindFile(%2) failed").
@@ -111,11 +112,11 @@ bool DVDStream::OpenFile(const QString &filename, uint /*retry_ms*/)
     else
     {
         // Create a list of the possibly encrypted files
-        uint32_t len, start;
+        uint32_t len;
 
         // Root menu
         char name[64] = "VIDEO_TS/VIDEO_TS.VOB";
-        start = UDFFindFile(m_reader, name, &len);
+        uint32_t start = UDFFindFile(m_reader, name, &len);
         if( start != 0 && len != 0 )
             m_list.append(BlockRange(start, Len2Blocks(len), 0));
 

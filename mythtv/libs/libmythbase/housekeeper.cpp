@@ -395,6 +395,9 @@ bool PeriodicHouseKeeperTask::DoCheckRun(QDateTime now)
     // remember, this is computing the probability that up to this point, one
     //      of these tests has returned positive, so each individual test has
     //      a necessarily low probability
+    //
+    // Pseudo-random is good enough. Don't need a true random.
+    // NOLINTNEXTLINE(cert-msc30-c,cert-msc50-cpp)
     bool res = (rand() > (int)(prob2 * static_cast<float>(RAND_MAX)));
     m_currentProb = prob;
 //  if (res)
@@ -791,7 +794,7 @@ void HouseKeeper::StartThread(void)
         // we're running for the first time
         // start up a new thread
         LOG(VB_GENERAL, LOG_DEBUG, "Running initial HouseKeepingThread.");
-        HouseKeepingThread *thread = new HouseKeepingThread(this);
+        auto *thread = new HouseKeepingThread(this);
         m_threadList.append(thread);
         thread->start();
     }
@@ -806,7 +809,7 @@ void HouseKeeper::StartThread(void)
                     "spawning replacement. Current count %1.")
                             .arg(m_threadList.size()));
         m_threadList.first()->Discard();
-        HouseKeepingThread *thread = new HouseKeepingThread(this);
+        auto *thread = new HouseKeepingThread(this);
         m_threadList.prepend(thread);
         thread->start();
     }
@@ -823,7 +826,7 @@ void HouseKeeper::customEvent(QEvent *e)
 {
     if (e->type() == MythEvent::MythEventMessage)
     {
-        MythEvent *me = dynamic_cast<MythEvent*>(e);
+        auto *me = dynamic_cast<MythEvent*>(e);
         if (me == nullptr)
             return;
         if ((me->Message().left(20) == "HOUSE_KEEPER_RUNNING") ||

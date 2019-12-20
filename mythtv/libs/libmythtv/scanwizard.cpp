@@ -48,7 +48,7 @@ ScanWizard::ScanWizard(uint           default_sourceid,
     m_scannerPane(new ChannelScannerGUI())
 {
     SetupConfig(default_sourceid, default_cardid, default_inputname);
-    ButtonStandardSetting *scanButton = new ButtonStandardSetting(tr("Scan"));
+    auto *scanButton = new ButtonStandardSetting(tr("Scan"));
     connect(scanButton, SIGNAL(clicked()), SLOT(Scan()));
     addChild(scanButton);
 }
@@ -174,7 +174,8 @@ void ScanWizard::Scan()
 
     if (do_scan)
     {
-        QString table_start, table_end;
+        QString table_start;
+        QString table_end;
         GetFrequencyTableRange(table_start, table_end);
 
         m_scannerPane->Scan(

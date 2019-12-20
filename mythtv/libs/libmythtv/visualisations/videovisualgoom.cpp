@@ -3,11 +3,7 @@
 #include "mythmainwindow.h"
 
 #ifdef USING_OPENGL
-#include "mythrender_opengl.h"
-#endif
-
-#ifdef USING_VDPAU
-#include "mythrender_vdpau.h"
+#include "opengl/mythrenderopengl.h"
 #endif
 
 extern "C" {
@@ -18,7 +14,10 @@ extern "C" {
 #include "videovisualgoom.h"
 
 VideoVisualGoom::VideoVisualGoom(AudioPlayer *audio, MythRender *render, bool hd)
-  : VideoVisual(audio, render), m_hd(hd)
+  : VideoVisual(audio, render),
+    m_buffer(nullptr),
+    m_glSurface(nullptr),
+    m_hd(hd)
 {
     int max_width  = m_hd ? 1200 : 600;
     int max_height = m_hd ? 800  : 400;
@@ -35,28 +34,12 @@ VideoVisualGoom::VideoVisualGoom(AudioPlayer *audio, MythRender *render, bool hd
 VideoVisualGoom::~VideoVisualGoom()
 {
 #ifdef USING_OPENGL
-    if (m_surface && m_render &&
-       (m_render->Type() == kRenderOpenGL1 ||
-        m_render->Type() == kRenderOpenGL2 ||
-        m_render->Type() == kRenderOpenGL2ES))
+    if (m_glSurface && m_render && (m_render->Type() == kRenderOpenGL))
     {
-        MythRenderOpenGL *glrender =
-                    dynamic_cast<MythRenderOpenGL*>(m_render);
+        auto *glrender = static_cast<MythRenderOpenGL*>(m_render);
         if (glrender)
-            glrender->DeleteTexture(m_surface);
-        m_surface = 0;
-    }
-#endif
-
-#ifdef USING_VDPAU
-    if (m_surface && m_render &&
-       (m_render->Type() == kRenderVDPAU))
-    {
-        MythRenderVDPAU *render =
-                    dynamic_cast<MythRenderVDPAU*>(m_render);
-        if (render)
-            render->DestroyBitmapSurface(m_surface);
-        m_surface = 0;
+            glrender->DeleteTexture(m_glSurface);
+        m_glSurface = nullptr;
     }
 #endif
 
@@ -96,56 +79,31 @@ void VideoVisualGoom::Draw(const QRect &area, MythPainter */*painter*/,
     }
 
 #ifdef USING_OPENGL
-    if ((m_render->Type() == kRenderOpenGL1) ||
-        (m_render->Type() == kRenderOpenGL2) ||
-        (m_render->Type() == kRenderOpenGL2ES))
+    if ((m_render->Type() == kRenderOpenGL))
     {
-        MythRenderOpenGL *glrender =
-                    dynamic_cast<MythRenderOpenGL*>(m_render);
-        if (!m_surface && glrender && m_buffer)
+        auto *glrender = dynamic_cast<MythRenderOpenGL*>(m_render);
+        if (glrender && m_buffer)
         {
-            m_surface = glrender->CreateTexture(m_area.size(),
-                                  (glrender->GetFeatures() & kGLExtPBufObj) != 0U, 0,
-                                  GL_UNSIGNED_BYTE, GL_RGBA, GL_RGBA8,
-                                  GL_LINEAR_MIPMAP_LINEAR);
-        }
+            glrender->makeCurrent();
 
-        if (m_surface && glrender && m_buffer)
-        {
-            if (m_buffer != last)
+            if (!m_glSurface)
             {
-                bool copy = (glrender->GetFeatures() & kGLExtPBufObj) != 0U;
-                void* buf = glrender->GetTextureBuffer(m_surface, copy);
-                if (copy)
-                    memcpy(buf, m_buffer, m_area.width() * m_area.height() * 4);
-                glrender->UpdateTexture(m_surface, (void*)m_buffer);
+                QImage image(m_area.size(), QImage::Format_ARGB32);
+                m_glSurface = glrender->CreateTextureFromQImage(&image);
             }
-            QRectF src(m_area);
-            QRectF dst(area);
-            glrender->DrawBitmap(&m_surface, 1, 0, &src, &dst, 0);
-        }
-        return;
-    }
-#endif
 
-#ifdef USING_VDPAU
-    if (m_render->Type() == kRenderVDPAU)
-    {
-        MythRenderVDPAU *render =
-                    dynamic_cast<MythRenderVDPAU*>(m_render);
-
-        if (!m_surface && render)
-            m_surface = render->CreateBitmapSurface(m_area.size());
-
-        if (m_surface && render && m_buffer)
-        {
-            if (m_buffer != last)
+            if (m_glSurface)
             {
-                void    *plane[1] = { m_buffer };
-                uint32_t pitch[1] = { static_cast<uint32_t>(m_area.width() * 4) };
-                render->UploadBitmap(m_surface, plane, pitch);
+                m_glSurface->m_crop = false;
+                if (m_buffer != last)
+                    m_glSurface->m_texture->setData(m_glSurface->m_pixelFormat, m_glSurface->m_pixelType, m_buffer);
+                // goom doesn't render properly due to changes in video alpha blending
+                // so turn blend off
+                glrender->SetBlend(false);
+                glrender->DrawBitmap(&m_glSurface, 1, nullptr, m_area, area, nullptr, 0);
+                glrender->SetBlend(true);
             }
-            render->DrawBitmap(m_surface, 0, nullptr, nullptr, kVDPBlendNull, 255, 255, 255, 255);
+            glrender->doneCurrent();
         }
         return;
     }
@@ -157,8 +115,8 @@ static class VideoVisualGoomFactory : public VideoVisualFactory
   public:
     const QString &name(void) const override // VideoVisualFactory
     {
-        static QString name("Goom");
-        return name;
+        static QString s_name("Goom");
+        return s_name;
     }
 
     VideoVisual *Create(AudioPlayer *audio,
@@ -169,10 +127,7 @@ static class VideoVisualGoomFactory : public VideoVisualFactory
 
     bool SupportedRenderer(RenderType type) override // VideoVisualFactory
     {
-        return (type == kRenderVDPAU   ||
-                type == kRenderOpenGL1 ||
-                type == kRenderOpenGL2 ||
-                type == kRenderOpenGL2ES);
+        return (type == kRenderOpenGL);
     }
 } VideoVisualGoomFactory;
 
@@ -181,8 +136,8 @@ static class VideoVisualGoomHDFactory : public VideoVisualFactory
   public:
     const QString &name(void) const override // VideoVisualFactory
     {
-        static QString name("Goom HD");
-        return name;
+        static QString s_name("Goom HD");
+        return s_name;
     }
 
     VideoVisual *Create(AudioPlayer *audio,
@@ -193,9 +148,6 @@ static class VideoVisualGoomHDFactory : public VideoVisualFactory
 
     bool SupportedRenderer(RenderType type) override // VideoVisualFactory
     {
-        return (type == kRenderVDPAU   ||
-                type == kRenderOpenGL1 ||
-                type == kRenderOpenGL2 ||
-                type == kRenderOpenGL2ES);
+        return (type == kRenderOpenGL);
     }
 } VideoVisualGoomHDFactory;

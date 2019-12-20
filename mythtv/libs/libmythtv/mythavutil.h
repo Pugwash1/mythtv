@@ -72,7 +72,7 @@ public:
     }
 
 private:
-    AVFrame *m_frame;
+    AVFrame *m_frame {nullptr};
 };
 
 /**
@@ -88,7 +88,7 @@ private:
 class MTV_PUBLIC MythCodecMap
 {
   public:
-    MythCodecMap();
+    MythCodecMap() = default;
     ~MythCodecMap();
     static MythCodecMap *getInstance();
     AVCodecContext *getCodecContext(const AVStream*,
@@ -97,8 +97,8 @@ class MTV_PUBLIC MythCodecMap
     void freeCodecContext(const AVStream*);
     void freeAllCodecContexts();
   protected:
-    QMap<const AVStream*, AVCodecContext*> streamMap;
-    QMutex mapLock;
+    QMap<const AVStream*, AVCodecContext*> m_streamMap;
+    QMutex m_mapLock {QMutex::Recursive};
 };
 
 /// This global variable contains the MythCodecMap instance for the app
@@ -141,11 +141,11 @@ public:
              int width, int height);
 
 private:
-    void FillFrame(VideoFrame *frame, const AVFrame *pic, int pitch,
-                   int width, int height, AVPixelFormat pix_fmt);
+    static void FillFrame(VideoFrame *frame, const AVFrame *pic, int pitch,
+                          int width, int height, AVPixelFormat pix_fmt);
     MythAVCopy(const MythAVCopy &) = delete;            // not copyable
     MythAVCopy &operator=(const MythAVCopy &) = delete; // not copyable
-    MythAVCopyPrivate *d;
+    MythAVCopyPrivate *d {nullptr}; // NOLINT(readability-identifier-naming)
 };
 
 /**
@@ -161,6 +161,12 @@ int MTV_PUBLIC AVPictureFill(AVFrame *pic, const VideoFrame *frame,
  */
 MTV_PUBLIC AVPixelFormat FrameTypeToPixelFormat(VideoFrameType type);
 MTV_PUBLIC VideoFrameType PixelFormatToFrameType(AVPixelFormat fmt);
+
+/*! \brief Return a user friendly description of the given deinterlacer
+*/
+MTV_PUBLIC QString DeinterlacerName(MythDeintType Deint, bool DoubleRate, VideoFrameType Format = FMT_NONE);
+
+MTV_PUBLIC QString DeinterlacerPref(MythDeintType Deint);
 
 /**
  * MythPictureDeinterlacer
@@ -182,14 +188,14 @@ public:
     // Flush and reset the deinterlacer.
     int Flush();
 private:
-    AVFilterGraph*      m_filter_graph;
-    MythAVFrame         m_filter_frame;
-    AVFilterContext*    m_buffersink_ctx;
-    AVFilterContext*    m_buffersrc_ctx;
-    AVPixelFormat       m_pixfmt;
-    int                 m_width;
-    int                 m_height;
+    AVFilterGraph*      m_filterGraph   {nullptr};
+    MythAVFrame         m_filterFrame;
+    AVFilterContext*    m_bufferSinkCtx {nullptr};
+    AVFilterContext*    m_bufferSrcCtx  {nullptr};
+    AVPixelFormat       m_pixfmt        {AV_PIX_FMT_NONE};
+    int                 m_width         {0};
+    int                 m_height        {0};
     float               m_ar;
-    bool                m_errored;
+    bool                m_errored       {false};
 };
 #endif

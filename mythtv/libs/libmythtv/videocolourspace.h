@@ -1,74 +1,99 @@
 #ifndef VIDEOCOLOURSPACE_H
 #define VIDEOCOLOURSPACE_H
 
+// Qt
 #include <QMap>
+#include <QObject>
+#include <QMatrix4x4>
+
+// MythTV
+#include "mythframe.h"
 #include "videoouttypes.h"
+#include "referencecounter.h"
 
-class Matrix
+// FFmpeg
+#include "libavutil/pixfmt.h" // For AVCOL_xxx defines
+
+class VideoColourSpace : public QObject, public QMatrix4x4, public ReferenceCounter
 {
+    Q_OBJECT
+
+    friend class MythVideoOutput;
+
   public:
-    Matrix(float m11, float m12, float m13, float m14,
-           float m21, float m22, float m23, float m24,
-           float m31, float m32, float m33, float m34);
-    Matrix();
+    explicit VideoColourSpace(VideoColourSpace *Parent = nullptr);
 
-    void setToIdentity(void);
-    void scale(float val1, float val2, float val3);
-    void translate(float val1, float val2, float val3);
-    Matrix & operator*=(const Matrix &r);
-    void product(int row, const Matrix &r);
-    void debug(void);
-    float m[4][4];
-};
+    bool          UpdateColourSpace(const VideoFrame *Frame);
+    PictureAttributeSupported SupportedAttributes(void) const;
+    void          SetSupportedAttributes(PictureAttributeSupported Supported);
+    int           GetPictureAttribute(PictureAttribute Attribute);
+    void          SetAlpha(int Value);
+    QMatrix4x4    GetPrimaryMatrix(void);
+    QStringList   GetColourMappingDefines(void);
+    float         GetColourGamma(void);
+    float         GetDisplayGamma(void);
+    PrimariesMode GetPrimariesMode(void);
 
-typedef enum VideoCStd
-{
-    kCSTD_Unknown = 0,
-    kCSTD_ITUR_BT_601,
-    kCSTD_ITUR_BT_709,
-    kCSTD_SMPTE_240M,
-} VideoCStd;
+    struct ColourPrimaries
+    {
+        float primaries[3][2];
+        float whitepoint[2];
+    };
 
-class VideoColourSpace
-{
-  public:
-    explicit VideoColourSpace(VideoCStd colour_std = kCSTD_ITUR_BT_601);
-   ~VideoColourSpace() = default;
+    static const ColourPrimaries kBT709;
+    static const ColourPrimaries kBT610_525;
+    static const ColourPrimaries kBT610_625;
+    static const ColourPrimaries kBT2020;
 
-    PictureAttributeSupported SupportedAttributes(void) const
-        { return m_supported_attributes; }
-    void  SetSupportedAttributes(PictureAttributeSupported supported);
+  public slots:
+    int   SetPictureAttribute(PictureAttribute Attribute, int Value);
+    void  SetPrimariesMode(PrimariesMode Mode);
 
-    void* GetMatrix(void)  { return &m_matrix.m; }
-    bool  HasChanged(void) const { return m_changed;   }
+  signals:
+    void  Updated(bool PrimariesChanged);
+    void  PictureAttributeChanged(PictureAttribute Attribute, int Value);
 
-    int   GetPictureAttribute(PictureAttribute attribute);
-    int   SetPictureAttribute(PictureAttribute attribute, int value);
-    void  SetColourSpace(VideoCStd csp = kCSTD_Unknown);
+  protected:
+    ~VideoColourSpace();
 
   private:
-    void  SetStudioLevels(bool studio);
-    void  SetBrightness(int value);
-    void  SetContrast(int value);
-    void  SetHue(int value);
-    void  SetSaturation(int value);
-
-    void  SaveValue(PictureAttribute attribute, int value);
+    void  SetFullRange(bool FullRange);
+    void  SetBrightness(int Value);
+    void  SetContrast(int Value);
+    void  SetHue(int Value);
+    void  SetSaturation(int Value);
+    void  SaveValue(PictureAttribute Attribute, int Value);
     void  Update(void);
     void  Debug(void);
+    QMatrix4x4 GetPrimaryConversion(int Source, int Dest);
+    static void GetPrimaries(int Primary, ColourPrimaries &Out, float &Gamma);
+    static QMatrix4x4 RGBtoXYZ(ColourPrimaries Primaries);
 
   private:
-    PictureAttributeSupported  m_supported_attributes;
-    QMap<PictureAttribute,int> m_db_settings;
+    PictureAttributeSupported  m_supportedAttributes {kPictureAttributeSupported_None};
+    QMap<PictureAttribute,int> m_dbSettings;
 
-    bool      m_changed;
-    bool      m_studioLevels;
-    float     m_brightness;
-    float     m_contrast;
-    float     m_saturation;
-    float     m_hue;
-    VideoCStd m_colourSpace;
-    Matrix    m_matrix;
+    bool              m_fullRange              {true};
+    float             m_brightness             {0.0F};
+    float             m_contrast               {1.0F};
+    float             m_saturation             {1.0F};
+    float             m_hue                    {0.0F};
+    float             m_alpha                  {1.0F};
+    int               m_colourSpace            {AVCOL_SPC_UNSPECIFIED};
+    int               m_colourSpaceDepth       {8};
+    int               m_range                  {AVCOL_RANGE_MPEG};
+    bool              m_updatesDisabled        {true};
+    int               m_colourShifted          {0};
+    int               m_colourTransfer         {AVCOL_TRC_BT709};
+    PrimariesMode     m_primariesMode          {PrimariesAuto};
+    int               m_colourPrimaries        {AVCOL_PRI_BT709};
+    int               m_displayPrimaries       {AVCOL_PRI_BT709};
+    float             m_colourGamma            {2.2F};
+    float             m_displayGamma           {2.2F};
+    QMatrix4x4        m_primaryMatrix;
+    float             m_customDisplayGamma     {2.2F};
+    ColourPrimaries  *m_customDisplayPrimaries {nullptr};
+    VideoColourSpace *m_parent                 {nullptr};
 };
 
 #endif

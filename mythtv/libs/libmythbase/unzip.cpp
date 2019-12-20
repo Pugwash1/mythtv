@@ -227,7 +227,7 @@ bool UnZip::isOpen() const
 */
 UnZip::ErrorCode UnZip::openArchive(const QString& filename)
 {
-	QFile* file = new QFile(filename);
+	auto* file = new QFile(filename);
 
 	if (!file->exists()) {
 		delete file;
@@ -761,7 +761,6 @@ UnZip::ErrorCode UnzipPrivate::seekToCentralDirectory()
 	}
 	else
 	{
-		qint64 read = 0;
 		char* p = nullptr;
 
 		offset -= UNZIP_EOCD_SIZE;
@@ -772,7 +771,7 @@ UnZip::ErrorCode UnzipPrivate::seekToCentralDirectory()
 		if (!device->seek( offset ))
 			return UnZip::SeekFailed;
 
-		while ((read = device->read(buffer1, UNZIP_EOCD_SIZE)) >= 0)
+		while (device->read(buffer1, UNZIP_EOCD_SIZE) >= 0)
 		{
 			if ( (p = strstr(buffer1, "PK\5\6")) != nullptr)
 			{
@@ -924,7 +923,7 @@ UnZip::ErrorCode UnzipPrivate::parseCentralDirectoryRecord()
 
 	QString filename = QString::fromLatin1(buffer2, szName);
 
-	ZipEntryP* h = new ZipEntryP;
+	auto* h = new ZipEntryP;
 	h->compMethod = compMethod;
 
 	h->gpFlag[0] = buffer1[UNZIP_CD_OFF_GPFLAG];
@@ -1151,7 +1150,7 @@ UnZip::ErrorCode UnzipPrivate::extractFile(const QString& path, ZipEntryP& entry
 		int zret = Z_OK;
 
 		// Use inflateInit2 with negative windowBits to get raw decompression
-		if ( (zret = inflateInit2_(&zstr, -MAX_WBITS, ZLIB_VERSION, sizeof(z_stream))) != Z_OK )
+		if (inflateInit2_(&zstr, -MAX_WBITS, ZLIB_VERSION, sizeof(z_stream)) != Z_OK )
 			return UnZip::ZlibError;
 
 		int szDecomp = 0;
@@ -1245,7 +1244,7 @@ bool UnzipPrivate::createDirectory(const QString& path)
 */
 quint32 UnzipPrivate::getULong(const unsigned char* data, quint32 offset)
 {
-	quint32 res = (quint32) data[offset];
+	auto res = (quint32) data[offset];
 	res |= (((quint32)data[offset+1]) << 8);
 	res |= (((quint32)data[offset+2]) << 16);
 	res |= (((quint32)data[offset+3]) << 24);
@@ -1258,7 +1257,7 @@ quint32 UnzipPrivate::getULong(const unsigned char* data, quint32 offset)
 */
 quint64 UnzipPrivate::getULLong(const unsigned char* data, quint32 offset)
 {
-	quint64 res = (quint64) data[offset];
+	auto res = (quint64) data[offset];
 	res |= (((quint64)data[offset+1]) << 8);
 	res |= (((quint64)data[offset+2]) << 16);
 	res |= (((quint64)data[offset+3]) << 24);
@@ -1346,7 +1345,7 @@ bool UnzipPrivate::testKeys(const ZipEntryP& header, quint32* keys)
 
 	// decrypt encryption header
 	for (int i=0; i<11; ++i)
-		updateKeys(keys, lastByte = buffer1[i] ^ decryptByte(keys[2]));
+		updateKeys(keys, buffer1[i] ^ decryptByte(keys[2]));
 	updateKeys(keys, lastByte = buffer1[11] ^ decryptByte(keys[2]));
 
 	// if there is an extended header (bit in the gp flag) buffer[11] is a byte from the file time

@@ -140,7 +140,7 @@ void V4L2encSignalMonitor::UpdateValues(void)
                        kDTVSigMon_WaitForMGT | kDTVSigMon_WaitForVCT |
                        kDTVSigMon_WaitForNIT | kDTVSigMon_WaitForSDT))
     {
-        V4LChannel* chn = reinterpret_cast<V4LChannel*>(m_channel);
+        auto* chn = reinterpret_cast<V4LChannel*>(m_channel);
         m_stream_handler =
             V4L2encStreamHandler::Get(chn->GetDevice(),
                                       chn->GetAudioDevice().toInt(), m_inputid);
@@ -187,7 +187,8 @@ bool V4L2encSignalMonitor::HasLock(void)
  */
 int V4L2encSignalMonitor::StableResolution(void)
 {
-    int width, height;
+    int width;
+    int height;
 
     if (m_v4l2.GetResolution(width, height))
     {

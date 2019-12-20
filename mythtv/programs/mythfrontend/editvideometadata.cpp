@@ -233,7 +233,7 @@ namespace
         MythScreenStack *popupStack =
                 GetMythMainWindow()->GetStack("popup stack");
 
-        MythUIFileBrowser *fb = new MythUIFileBrowser(popupStack, fp);
+        auto *fb = new MythUIFileBrowser(popupStack, fp);
         fb->SetNameFilter(GetSupportedImageExtensionFilter());
         if (fb->Create())
         {
@@ -260,13 +260,12 @@ namespace
 
         const FileAssociations::association_list fa_list =
                 FileAssociations::getFileAssociation().getList();
-        for (FileAssociations::association_list::const_iterator p =
-                fa_list.begin(); p != fa_list.end(); ++p)
+        for (auto p = fa_list.cbegin(); p != fa_list.cend(); ++p)
         {
             exts << QString("*.%1").arg(p->extension.toUpper());
         }
 
-        MythUIFileBrowser *fb = new MythUIFileBrowser(popupStack, fp);
+        auto *fb = new MythUIFileBrowser(popupStack, fp);
         fb->SetNameFilter(exts);
         if (fb->Create())
         {
@@ -326,16 +325,14 @@ void EditMetadataDialog::fillWidgets()
 
     // No memory leak. MythUIButtonListItem adds the new item into
     // m_categoryList.
-    MythUIButtonListItem *button =
-        new MythUIButtonListItem(m_categoryList, VIDEO_CATEGORY_UNKNOWN);
+    new MythUIButtonListItem(m_categoryList, VIDEO_CATEGORY_UNKNOWN);
     const VideoCategory::entry_list &vcl =
             VideoCategory::GetCategory().getList();
-    for (VideoCategory::entry_list::const_iterator p = vcl.begin();
-            p != vcl.end(); ++p)
+    for (auto p = vcl.cbegin(); p != vcl.cend(); ++p)
     {
         // No memory leak. MythUIButtonListItem adds the new item into
         // m_categoryList.
-        button = new MythUIButtonListItem(m_categoryList, p->second);
+        auto *button = new MythUIButtonListItem(m_categoryList, p->second);
         button->SetData(p->first);
     }
     m_categoryList->SetValueByData(m_workingMetadata->GetCategoryID());
@@ -345,7 +342,7 @@ void EditMetadataDialog::fillWidgets()
     {
         // No memory leak. MythUIButtonListItem adds the new item into
         // m_levelList.
-        button = new MythUIButtonListItem(m_levelList,
+        auto *button = new MythUIButtonListItem(m_levelList,
                                           tr("Level %1").arg(i.GetLevel()));
         button->SetData(i.GetLevel());
     }
@@ -358,17 +355,15 @@ void EditMetadataDialog::fillWidgets()
 
     // No memory leak. MythUIButtonListItem adds the new item into
     // m_childList.
-    // cppcheck-suppress unreadVariable
-    button = new MythUIButtonListItem(m_childList,tr("None"));
+    new MythUIButtonListItem(m_childList,tr("None"));
 
     // TODO: maybe make the title list have the same sort order
     // as elsewhere.
-    typedef std::vector<std::pair<unsigned int, QString> > title_list;
+    using title_list = std::vector<std::pair<unsigned int, QString> >;
     const VideoMetadataListManager::metadata_list &mdl = m_metaCache.getList();
     title_list tc;
     tc.reserve(mdl.size());
-    for (VideoMetadataListManager::metadata_list::const_iterator p = mdl.begin();
-            p != mdl.end(); ++p)
+    for (auto p = mdl.cbegin(); p != mdl.cend(); ++p)
     {
         QString title;
         if ((*p)->GetSeason() > 0 || (*p)->GetEpisode() > 0)
@@ -385,7 +380,7 @@ void EditMetadataDialog::fillWidgets()
     {
         if (p->first != m_workingMetadata->GetID())
         {
-            button = new MythUIButtonListItem(m_childList,p->second);
+            auto *button = new MythUIButtonListItem(m_childList,p->second);
             button->SetData(p->first);
         }
     }
@@ -497,8 +492,7 @@ void EditMetadataDialog::NewCategoryPopup()
 
     MythScreenStack *popupStack = GetMythMainWindow()->GetStack("popup stack");
 
-    MythTextInputDialog *categorydialog =
-                                    new MythTextInputDialog(popupStack,message);
+    auto *categorydialog = new MythTextInputDialog(popupStack,message);
 
     if (categorydialog->Create())
     {
@@ -651,7 +645,7 @@ void EditMetadataDialog::OnArtworkSearchDone(MetadataLookup *lookup)
         m_busyPopup = nullptr;
     }
 
-    VideoArtworkType type = lookup->GetData().value<VideoArtworkType>();
+    auto type = lookup->GetData().value<VideoArtworkType>();
     ArtworkList list = lookup->GetArtwork(type);
 
     if (list.isEmpty())
@@ -660,8 +654,7 @@ void EditMetadataDialog::OnArtworkSearchDone(MetadataLookup *lookup)
         GetNotificationCenter()->Queue(n);
         return;
     }
-    ImageSearchResultsDialog *resultsdialog =
-          new ImageSearchResultsDialog(m_popupStack, list, type);
+    auto *resultsdialog = new ImageSearchResultsDialog(m_popupStack, list, type);
 
     connect(resultsdialog, SIGNAL(haveResult(ArtworkInfo, VideoArtworkType)),
             SLOT(OnSearchListSelection(ArtworkInfo, VideoArtworkType)));
@@ -675,7 +668,7 @@ void EditMetadataDialog::OnSearchListSelection(const ArtworkInfo& info, VideoArt
     QString msg = tr("Downloading selected artwork...");
     createBusyDialog(msg);
 
-    MetadataLookup *lookup = new MetadataLookup();
+    auto *lookup = new MetadataLookup();
     lookup->SetType(kMetadataVideo);
 
     lookup->SetSubtype(GuessLookupType(m_workingMetadata));
@@ -707,7 +700,7 @@ void EditMetadataDialog::handleDownloadedImages(MetadataLookup *lookup)
         m_busyPopup = nullptr;
     }
 
-    VideoArtworkType type = lookup->GetData().value<VideoArtworkType>();
+    auto type = lookup->GetData().value<VideoArtworkType>();
     ArtworkMap map = lookup->GetDownloads();
 
     if (map.count() >= 1)
@@ -731,7 +724,7 @@ void EditMetadataDialog::FindNetArt(VideoArtworkType type)
     QString msg = tr("Searching for available artwork...");
     createBusyDialog(msg);
 
-    MetadataLookup *lookup = new MetadataLookup();
+    auto *lookup = new MetadataLookup();
     lookup->SetStep(kLookupSearch);
     lookup->SetType(kMetadataVideo);
     lookup->SetAutomatic(true);
@@ -977,7 +970,7 @@ void EditMetadataDialog::customEvent(QEvent *levent)
 {
     if (levent->type() == DialogCompletionEvent::kEventType)
     {
-        DialogCompletionEvent *dce = (DialogCompletionEvent*)(levent);
+        auto *dce = (DialogCompletionEvent*)(levent);
 
         const QString resultid = dce->GetId();
 
@@ -996,7 +989,7 @@ void EditMetadataDialog::customEvent(QEvent *levent)
     }
     else if (levent->type() == MetadataLookupEvent::kEventType)
     {
-        MetadataLookupEvent *lue = (MetadataLookupEvent *)levent;
+        auto *lue = (MetadataLookupEvent *)levent;
 
         MetadataLookupList lul = lue->m_lookupList;
 
@@ -1020,7 +1013,7 @@ void EditMetadataDialog::customEvent(QEvent *levent)
     }
     else if (levent->type() == MetadataLookupFailure::kEventType)
     {
-        MetadataLookupFailure *luf = (MetadataLookupFailure *)levent;
+        auto *luf = (MetadataLookupFailure *)levent;
 
         MetadataLookupList lul = luf->m_lookupList;
 
@@ -1040,7 +1033,7 @@ void EditMetadataDialog::customEvent(QEvent *levent)
     }
     else if (levent->type() == ImageDLEvent::kEventType)
     {
-        ImageDLEvent *ide = (ImageDLEvent *)levent;
+        auto *ide = (ImageDLEvent *)levent;
 
         MetadataLookup *lookup = ide->m_item;
 

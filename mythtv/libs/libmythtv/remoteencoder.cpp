@@ -7,7 +7,6 @@
 #include "mythdate.h"
 #include "mythcorecontext.h"
 #include "signalmonitor.h"
-#include "videooutbase.h"
 #include "mythdb.h"
 #include "mythsocket.h"
 #include "mythlogging.h"
@@ -143,7 +142,7 @@ ProgramInfo *RemoteEncoder::GetRecording(void)
 
     if (SendReceiveStringList(strlist))
     {
-        ProgramInfo *proginfo = new ProgramInfo(strlist);
+        auto *proginfo = new ProgramInfo(strlist);
         if (proginfo->GetChanID())
             return proginfo;
         delete proginfo;

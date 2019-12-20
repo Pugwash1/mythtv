@@ -245,7 +245,7 @@ bool StreamHandler::RemoveAllPIDFilters(void)
         del_pids.push_back(it.key());
 
     bool ok = true;
-    vector<int>::iterator dit = del_pids.begin();
+    auto dit = del_pids.begin();
     for (; dit != del_pids.end(); ++dit)
         ok &= RemovePIDFilter(*dit);
 
@@ -254,7 +254,8 @@ bool StreamHandler::RemoveAllPIDFilters(void)
 
 void StreamHandler::UpdateListeningForEIT(void)
 {
-    vector<uint> add_eit, del_eit;
+    vector<uint> add_eit;
+    vector<uint> del_eit;
 
     QMutexLocker read_locker(&m_listener_lock);
 
@@ -325,7 +326,7 @@ bool StreamHandler::UpdateFiltersFromStreamData(void)
 
     // Remove PIDs
     bool ok = true;
-    vector<uint>::iterator dit = del_pids.begin();
+    auto dit = del_pids.begin();
     for (; dit != del_pids.end(); ++dit)
         ok &= RemovePIDFilter(*dit);
 

@@ -738,8 +738,7 @@ int DVDRingBuffer::safe_read(void *data, uint sz)
             case DVDNAV_CELL_CHANGE:
             {
                 // get event details
-                dvdnav_cell_change_event_t *cell_event =
-                    (dvdnav_cell_change_event_t*) (blockBuf);
+                auto *cell_event = (dvdnav_cell_change_event_t*) (blockBuf);
 
                 // update information for the current cell
                 m_cellChanged = true;
@@ -847,8 +846,7 @@ int DVDRingBuffer::safe_read(void *data, uint sz)
             case DVDNAV_SPU_STREAM_CHANGE:
             {
                 // get event details
-                dvdnav_spu_stream_change_event_t* spu =
-                    (dvdnav_spu_stream_change_event_t*)(blockBuf);
+                auto* spu = (dvdnav_spu_stream_change_event_t*)(blockBuf);
 
                 // clear any existing subs/buttons
                 IncrementButtonVersion;
@@ -875,8 +873,7 @@ int DVDRingBuffer::safe_read(void *data, uint sz)
             case DVDNAV_AUDIO_STREAM_CHANGE:
             {
                 // get event details
-                dvdnav_audio_stream_change_event_t* audio =
-                    (dvdnav_audio_stream_change_event_t*)(blockBuf);
+                auto* audio = (dvdnav_audio_stream_change_event_t*)(blockBuf);
 
                 // retrieve the new track
                 int new_track = GetAudioTrackNum(audio->physical);
@@ -1082,8 +1079,7 @@ int DVDRingBuffer::safe_read(void *data, uint sz)
             case DVDNAV_VTS_CHANGE:
             {
                 // retrieve event details
-                dvdnav_vts_change_event_t* vts =
-                    (dvdnav_vts_change_event_t*)(blockBuf);
+                auto* vts = (dvdnav_vts_change_event_t*)(blockBuf);
 
                 // update player
                 int aspect = dvdnav_get_video_aspect(m_dvdnav);
@@ -1125,8 +1121,7 @@ int DVDRingBuffer::safe_read(void *data, uint sz)
             case DVDNAV_HIGHLIGHT:
             {
                 // retrieve details
-                dvdnav_highlight_event_t* hl =
-                    (dvdnav_highlight_event_t*)(blockBuf);
+                auto* hl = (dvdnav_highlight_event_t*)(blockBuf);
 
                 // update the current button
                 m_menuBtnLock.lock();
@@ -1153,8 +1148,7 @@ int DVDRingBuffer::safe_read(void *data, uint sz)
             case DVDNAV_STILL_FRAME:
             {
                 // retrieve still frame details (length)
-                dvdnav_still_event_t* still =
-                    (dvdnav_still_event_t*)(blockBuf);
+                auto* still = (dvdnav_still_event_t*)(blockBuf);
 
                 if (!bReprocessing && !m_skipstillorwait)
                 {
@@ -1620,12 +1614,8 @@ bool DVDRingBuffer::DecodeSubtitles(AVSubtitle *sub, int *gotSubtitles,
 {
     #define GETBE16(p) (((p)[0] << 8) | (p)[1])
 
-    int cmd_pos, pos, cmd, next_cmd_pos, offset1, offset2;
-    int x1, x2, y1, y2;
     uint8_t alpha[4] = {0, 0, 0, 0};
     uint8_t palette[4] = {0, 0, 0, 0};
-    uint i;
-    int date;
 
     if (!spu_pkt)
         return false;
@@ -1639,18 +1629,21 @@ bool DVDRingBuffer::DecodeSubtitles(AVSubtitle *sub, int *gotSubtitles,
     sub->start_display_time = startTime;
     sub->end_display_time = startTime;
 
-    cmd_pos = GETBE16(spu_pkt + 2);
+    int cmd_pos = GETBE16(spu_pkt + 2);
     while ((cmd_pos + 4) < buf_size)
     {
-        offset1 = -1;
-        offset2 = -1;
-        date = GETBE16(spu_pkt + cmd_pos);
-        next_cmd_pos = GETBE16(spu_pkt + cmd_pos + 2);
-        pos = cmd_pos + 4;
-        x1 = x2 = y1 = y2 = 0;
+        int offset1 = -1;
+        int offset2 = -1;
+        int date = GETBE16(spu_pkt + cmd_pos);
+        int next_cmd_pos = GETBE16(spu_pkt + cmd_pos + 2);
+        int pos = cmd_pos + 4;
+        int x1 = 0;
+        int x2 = 0;
+        int y1 = 0;
+        int y2 = 0;
         while (pos < buf_size)
         {
-            cmd = spu_pkt[pos++];
+            int cmd = spu_pkt[pos++];
             switch(cmd)
             {
                 case 0x00:
@@ -1721,19 +1714,17 @@ bool DVDRingBuffer::DecodeSubtitles(AVSubtitle *sub, int *gotSubtitles,
         the_end:
         if (offset1 >= 0)
         {
-            int w, h;
-            uint8_t *bitmap;
-            w = x2 - x1 + 1;
+            int w = x2 - x1 + 1;
             if (w < 0)
                 w = 0;
-            h = y2 - y1 + 1;
+            int h = y2 - y1 + 1;
             if (h < 0)
                 h = 0;
             if (w > 0 && h > 0)
             {
                 if (sub->rects != nullptr)
                 {
-                    for (i = 0; i < sub->num_rects; i++)
+                    for (uint i = 0; i < sub->num_rects; i++)
                     {
                         av_free(sub->rects[i]->data[0]);
                         av_free(sub->rects[i]->data[1]);
@@ -1743,11 +1734,11 @@ bool DVDRingBuffer::DecodeSubtitles(AVSubtitle *sub, int *gotSubtitles,
                     sub->num_rects = 0;
                 }
 
-                bitmap = (uint8_t*) av_malloc(w * h);
+                auto *bitmap = (uint8_t*) av_malloc(w * h);
                 sub->num_rects = (NumMenuButtons() > 0) ? 2 : 1;
                 sub->rects = (AVSubtitleRect **)
                         av_mallocz(sizeof(AVSubtitleRect*) * sub->num_rects);
-                for (i = 0; i < sub->num_rects; i++)
+                for (uint i = 0; i < sub->num_rects; i++)
                 {
                     sub->rects[i] = (AVSubtitleRect *) av_mallocz(sizeof(AVSubtitleRect));
                 }
@@ -2192,13 +2183,10 @@ void DVDRingBuffer::guess_palette(uint32_t *rgba_palette,
 int DVDRingBuffer::decode_rle(uint8_t *bitmap, int linesize, int w, int h,
                                   const uint8_t *buf, int nibble_offset, int buf_size)
 {
-    int x, y, nibble_end;
-    uint8_t *d;
-
-    nibble_end = buf_size * 2;
-    x = 0;
-    y = 0;
-    d = bitmap;
+    int nibble_end = buf_size * 2;
+    int x = 0;
+    int y = 0;
+    uint8_t *d = bitmap;
     for(;;) {
         if (nibble_offset >= nibble_end)
             return -1;
@@ -2265,8 +2253,6 @@ int DVDRingBuffer::is_transp(const uint8_t *buf, int pitch, int n,
 int DVDRingBuffer::find_smallest_bounding_rectangle(AVSubtitle *s)
 {
     uint8_t transp_color[256] = { 0 };
-    int y1, y2, x1, x2, y, w, h, i;
-    uint8_t *bitmap;
 
     if (s->num_rects == 0 || s->rects == nullptr ||
         s->rects[0]->w <= 0 || s->rects[0]->h <= 0)
@@ -2274,13 +2260,13 @@ int DVDRingBuffer::find_smallest_bounding_rectangle(AVSubtitle *s)
         return 0;
     }
 
-    for(i = 0; i < s->rects[0]->nb_colors; i++)
+    for (int i = 0; i < s->rects[0]->nb_colors; i++)
     {
         if ((((uint32_t*)s->rects[0]->data[1])[i] >> 24) == 0)
             transp_color[i] = 1;
     }
 
-    y1 = 0;
+    int y1 = 0;
     while (y1 < s->rects[0]->h &&
             is_transp(s->rects[0]->data[0] + y1 * s->rects[0]->linesize[0],
                     1, s->rects[0]->w, transp_color))
@@ -2295,7 +2281,7 @@ int DVDRingBuffer::find_smallest_bounding_rectangle(AVSubtitle *s)
         return 0;
     }
 
-    y2 = s->rects[0]->h - 1;
+    int y2 = s->rects[0]->h - 1;
     while (y2 > 0 &&
             is_transp(s->rects[0]->data[0] + y2 * s->rects[0]->linesize[0], 1,
                     s->rects[0]->w, transp_color))
@@ -2303,7 +2289,7 @@ int DVDRingBuffer::find_smallest_bounding_rectangle(AVSubtitle *s)
         y2--;
     }
 
-    x1 = 0;
+    int x1 = 0;
     while (x1 < (s->rects[0]->w - 1) &&
            is_transp(s->rects[0]->data[0] + x1, s->rects[0]->linesize[0],
                     s->rects[0]->h, transp_color))
@@ -2311,7 +2297,7 @@ int DVDRingBuffer::find_smallest_bounding_rectangle(AVSubtitle *s)
         x1++;
     }
 
-    x2 = s->rects[0]->w - 1;
+    int x2 = s->rects[0]->w - 1;
     while (x2 > 0 &&
            is_transp(s->rects[0]->data[0] + x2, s->rects[0]->linesize[0],
                      s->rects[0]->h, transp_color))
@@ -2319,13 +2305,13 @@ int DVDRingBuffer::find_smallest_bounding_rectangle(AVSubtitle *s)
         x2--;
     }
 
-    w = x2 - x1 + 1;
-    h = y2 - y1 + 1;
-    bitmap = (uint8_t*) av_malloc(w * h);
+    int w = x2 - x1 + 1;
+    int h = y2 - y1 + 1;
+    auto *bitmap = (uint8_t*) av_malloc(w * h);
     if (!bitmap)
         return 1;
 
-    for(y = 0; y < h; y++)
+    for (int y = 0; y < h; y++)
     {
         memcpy(bitmap + w * y, s->rects[0]->data[0] + x1 +
                 (y1 + y) * s->rects[0]->linesize[0], w);

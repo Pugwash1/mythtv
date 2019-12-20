@@ -73,19 +73,19 @@ DTC::ConnectionInfo* Myth::GetConnectionInfo( const QString  &sPin )
     QString sServerIP = gCoreContext->GetBackendServerIP();
     //QString sPeerIP   = pRequest->GetPeerAddress();
 
-    if ((params.dbHostName.compare("localhost",Qt::CaseInsensitive)==0
-      || params.dbHostName == "127.0.0.1"
-      || params.dbHostName == "::1")
+    if ((params.m_dbHostName.compare("localhost",Qt::CaseInsensitive)==0
+      || params.m_dbHostName == "127.0.0.1"
+      || params.m_dbHostName == "::1")
       && !sServerIP.isEmpty())  // &&
         //(sServerIP         != sPeerIP    ))
     {
-        params.dbHostName = sServerIP;
+        params.m_dbHostName = sServerIP;
     }
 
     // If dbHostName is an IPV6 address with scope,
     // remove the scope. Unescaped % signs are an
     // xml violation
-    QString dbHostName(params.dbHostName);
+    QString dbHostName(params.m_dbHostName);
     QHostAddress addr;
     if (addr.setAddress(dbHostName))
     {
@@ -96,25 +96,25 @@ DTC::ConnectionInfo* Myth::GetConnectionInfo( const QString  &sPin )
     // Create and populate a ConnectionInfo object
     // ----------------------------------------------------------------------
 
-    DTC::ConnectionInfo *pInfo     = new DTC::ConnectionInfo();
+    auto                *pInfo     = new DTC::ConnectionInfo();
     DTC::DatabaseInfo   *pDatabase = pInfo->Database();
     DTC::WOLInfo        *pWOL      = pInfo->WOL();
     DTC::VersionInfo    *pVersion  = pInfo->Version();
 
-    pDatabase->setHost         ( dbHostName           );
-    pDatabase->setPing         ( params.dbHostPing    );
-    pDatabase->setPort         ( params.dbPort        );
-    pDatabase->setUserName     ( params.dbUserName    );
-    pDatabase->setPassword     ( params.dbPassword    );
-    pDatabase->setName         ( params.dbName        );
-    pDatabase->setType         ( params.dbType        );
-    pDatabase->setLocalEnabled ( params.localEnabled  );
-    pDatabase->setLocalHostName( params.localHostName );
+    pDatabase->setHost         ( dbHostName             );
+    pDatabase->setPing         ( params.m_dbHostPing    );
+    pDatabase->setPort         ( params.m_dbPort        );
+    pDatabase->setUserName     ( params.m_dbUserName    );
+    pDatabase->setPassword     ( params.m_dbPassword    );
+    pDatabase->setName         ( params.m_dbName        );
+    pDatabase->setType         ( params.m_dbType        );
+    pDatabase->setLocalEnabled ( params.m_localEnabled  );
+    pDatabase->setLocalHostName( params.m_localHostName );
 
-    pWOL->setEnabled           ( params.wolEnabled   );
-    pWOL->setReconnect         ( params.wolReconnect );
-    pWOL->setRetry             ( params.wolRetry     );
-    pWOL->setCommand           ( params.wolCommand   );
+    pWOL->setEnabled           ( params.m_wolEnabled   );
+    pWOL->setReconnect         ( params.m_wolReconnect );
+    pWOL->setRetry             ( params.m_wolRetry     );
+    pWOL->setCommand           ( params.m_wolCommand   );
 
     pVersion->setVersion       ( MYTH_SOURCE_VERSION   );
     pVersion->setBranch        ( MYTH_SOURCE_PATH      );
@@ -263,13 +263,15 @@ DTC::StorageGroupDirList *Myth::GetStorageGroupDirs( const QString &sGroupName,
     // return the results of the query plus R/W and size information
     // ----------------------------------------------------------------------
 
-    DTC::StorageGroupDirList* pList = new DTC::StorageGroupDirList();
+    auto* pList = new DTC::StorageGroupDirList();
 
     while (query.next())
     {
         DTC::StorageGroupDir *pStorageGroupDir = pList->AddNewStorageGroupDir();
         QFileInfo fi(query.value(3).toString());
-        int64_t free = 0, total = 0, used = 0;
+        int64_t free = 0;
+        int64_t total = 0;
+        int64_t used = 0;
 
         free = getDiskSpace(query.value(3).toString(), total, used);
 
@@ -394,7 +396,7 @@ bool Myth::RemoveStorageGroupDir( const QString &sGroupName,
 
 DTC::TimeZoneInfo *Myth::GetTimeZone(  )
 {
-    DTC::TimeZoneInfo *pResults = new DTC::TimeZoneInfo();
+    auto *pResults = new DTC::TimeZoneInfo();
 
     pResults->setTimeZoneID( MythTZ::getTimeZoneID() );
     pResults->setUTCOffset( MythTZ::calc_utc_offset() );
@@ -469,7 +471,7 @@ DTC::LogMessageList *Myth::GetLogs(  const QString   &HostName,
                                      const QString   &Level,
                                      const QString   &MsgContains )
 {
-    DTC::LogMessageList *pList = new DTC::LogMessageList();
+    auto *pList = new DTC::LogMessageList();
 
     MSqlQuery query(MSqlQuery::InitCon());
 
@@ -590,7 +592,7 @@ DTC::LogMessageList *Myth::GetLogs(  const QString   &HostName,
 
 DTC::FrontendList *Myth::GetFrontends( bool OnLine )
 {
-    DTC::FrontendList *pList = new DTC::FrontendList();
+    auto *pList = new DTC::FrontendList();
     QMap<QString, Frontend*> frontends;
     if (OnLine)
         frontends = gBackendContext->GetConnectedFrontends();
@@ -665,7 +667,7 @@ DTC::SettingList *Myth::GetSettingList(const QString &sHostName)
                   .arg( sHostName ));
     }
 
-    DTC::SettingList *pList = new DTC::SettingList();
+    auto *pList = new DTC::SettingList();
 
     //pList->setObjectName( "Settings" );
     pList->setHostName  ( sHostName  );
@@ -792,7 +794,7 @@ bool Myth::SendMessage( const QString &sMessage,
     if (udpPort != 0)
         port = udpPort;
 
-    QUdpSocket *sock = new QUdpSocket();
+    auto *sock = new QUdpSocket();
     QByteArray utf8 = xmlMessage.toUtf8();
     int size = utf8.length();
 
@@ -866,7 +868,7 @@ bool Myth::SendNotification( bool  bError,
     if (udpPort != 0)
         port = udpPort;
 
-    QUdpSocket *sock = new QUdpSocket();
+    auto *sock = new QUdpSocket();
     QByteArray utf8 = xmlMessage.toUtf8();
     int size = utf8.length();
 
@@ -938,7 +940,7 @@ bool Myth::CheckDatabase( bool repair )
 
 bool Myth::DelayShutdown( void )
 {
-    Scheduler *scheduler = dynamic_cast<Scheduler*>(gCoreContext->GetScheduler());
+    auto *scheduler = dynamic_cast<Scheduler*>(gCoreContext->GetScheduler());
     scheduler->DelayShutdown();
     LOG(VB_GENERAL, LOG_NOTICE, "Shutdown delayed 5 minutes for external application.");
     return true;
@@ -1035,7 +1037,7 @@ DTC::BackendInfo* Myth::GetBackendInfo( void )
     // Create and populate a Configuration object
     // ----------------------------------------------------------------------
 
-    DTC::BackendInfo       *pInfo      = new DTC::BackendInfo();
+    auto                   *pInfo      = new DTC::BackendInfo();
     DTC::BuildInfo         *pBuild     = pInfo->Build();
     DTC::EnvInfo           *pEnv       = pInfo->Env();
     DTC::LogInfo           *pLog       = pInfo->Log();

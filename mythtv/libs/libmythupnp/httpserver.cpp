@@ -190,11 +190,7 @@ void HttpServer::LoadSSLConfig()
     m_sslConfig.setSslOption(QSsl::SslOptionDisableLegacyRenegotiation, true); // Potential DoS multiplier
     m_sslConfig.setSslOption(QSsl::SslOptionDisableCompression, true); // CRIME attack
 
-#if QT_VERSION < QT_VERSION_CHECK(5,5,0)
-    QList<QSslCipher> availableCiphers = QSslSocket::supportedCiphers();
-#else
     QList<QSslCipher> availableCiphers = QSslConfiguration::supportedCiphers();
-#endif
     QList<QSslCipher> secureCiphers;
     QList<QSslCipher>::iterator it;
     for (it = availableCiphers.begin(); it != availableCiphers.end(); ++it)
@@ -305,7 +301,7 @@ QString HttpServer::GetServerVersion(void)
 void HttpServer::newTcpConnection(qt_socket_fd_t socket)
 {
     PoolServerType type = kTCPServer;
-    PrivTcpServer *server = dynamic_cast<PrivTcpServer *>(QObject::sender());
+    auto *server = dynamic_cast<PrivTcpServer *>(QObject::sender());
     if (server)
         type = server->GetServerType();
 
@@ -486,7 +482,7 @@ void HttpWorker::run(void)
     {
 
 #ifndef QT_NO_OPENSSL
-        QSslSocket *pSslSocket = new QSslSocket();
+        auto *pSslSocket = new QSslSocket();
         if (pSslSocket->setSocketDescriptor(m_socket)
            && gCoreContext->CheckSubnet(pSslSocket))
         {

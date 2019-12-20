@@ -29,7 +29,7 @@ void BDOverlayScreen::DisplayBDOverlay(BDOverlay *overlay)
     SetArea(rect);
     DeleteAllChildren();
 
-    VideoOutput *vo = m_player->GetVideoOutput();
+    MythVideoOutput *vo = m_player->GetVideoOutput();
     if (!vo)
         return;
 
@@ -51,7 +51,7 @@ void BDOverlayScreen::DisplayBDOverlay(BDOverlay *overlay)
     if (image)
     {
         image->Assign(img);
-        MythUIImage *uiimage = new MythUIImage(this, "bdoverlay");
+        auto *uiimage = new MythUIImage(this, "bdoverlay");
         if (uiimage)
         {
             uiimage->SetImage(image);

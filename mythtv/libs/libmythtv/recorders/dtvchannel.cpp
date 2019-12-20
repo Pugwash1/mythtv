@@ -11,7 +11,7 @@
 #define LOC QString("DTVChan[%1](%2): ").arg(m_inputid).arg(GetDevice())
 
 QReadWriteLock DTVChannel::s_master_map_lock(QReadWriteLock::Recursive);
-typedef QMap<QString,QList<DTVChannel*> > MasterMap;
+using MasterMap = QMap<QString,QList<DTVChannel*> >;
 MasterMap DTVChannel::s_master_map;
 
 DTVChannel::~DTVChannel()
@@ -184,11 +184,20 @@ bool DTVChannel::SetChannelByString(const QString &channum)
     }
 
     // Fetch tuning data from the database.
-    QString tvformat, modulation, freqtable, freqid, si_std;
+    QString tvformat;
+    QString modulation;
+    QString freqtable;
+    QString freqid;
+    QString si_std;
     int finetune;
     uint64_t frequency;
     int mpeg_prog_num;
-    uint atsc_major, atsc_minor, mplexid, chanid, tsid, netid;
+    uint atsc_major;
+    uint atsc_minor;
+    uint mplexid;
+    uint chanid;
+    uint tsid;
+    uint netid;
 
     if (!ChannelUtil::GetChannelData(
         m_sourceid, chanid, channum,
@@ -338,7 +347,7 @@ bool DTVChannel::SetChannelByString(const QString &channum)
         int pcrpid = -1;
         vector<uint> pids;
         vector<uint> types;
-        pid_cache_t::iterator pit = pid_cache.begin();
+        auto pit = pid_cache.begin();
         for (; pit != pid_cache.end(); ++pit)
         {
             if (!pit->GetStreamID())

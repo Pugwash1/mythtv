@@ -71,11 +71,11 @@ class MBASE_PUBLIC MDBManager
     MSqlDatabase *getStaticCon(MSqlDatabase **dbcon, const QString& name);
 
     QMutex m_lock;
-    typedef QList<MSqlDatabase*> DBList;
+    using DBList = QList<MSqlDatabase*>;
     QHash<QThread*, DBList> m_pool; // protected by m_lock
 #if REUSE_CONNECTION
     QHash<QThread*, MSqlDatabase*> m_inuse; // protected by m_lock
-    QHash<QThread*, int> m_inuse_count; // protected by m_lock
+    QHash<QThread*, int> m_inuseCount; // protected by m_lock
 #endif
 
     int m_nextConnID         {0};
@@ -83,19 +83,19 @@ class MBASE_PUBLIC MDBManager
 
     MSqlDatabase *m_schedCon {nullptr};
     MSqlDatabase *m_channelCon {nullptr};
-    QHash<QThread*, DBList> m_static_pool;
+    QHash<QThread*, DBList> m_staticPool;
 };
 
 /// \brief MSqlDatabase Info, used by MSqlQuery. Do not use directly.
-typedef struct _MSqlQueryInfo
+struct MSqlQueryInfo
 {
     MSqlDatabase *db;
     QSqlDatabase qsqldb;
     bool returnConnection;
-} MSqlQueryInfo;
+};
 
 /// \brief typedef for a map of string -> string bindings for generic queries.
-typedef QMap<QString, QVariant> MSqlBindings;
+using MSqlBindings = QMap<QString, QVariant>;
 
 /// \brief Add the entries in addfrom to the map in output
  MBASE_PUBLIC  void MSqlAddMoreBindings(MSqlBindings &output, MSqlBindings &addfrom);
@@ -212,11 +212,11 @@ class MBASE_PUBLIC MSqlQuery : private QSqlQuery
     /// \brief Checks DB connection + login (login info via Mythcontext)
     static bool testDBConnection();
 
-    typedef enum
+    enum ConnectionReuse
     {
         kDedicatedConnection,
         kNormalConnection,
-    } ConnectionReuse;
+    };
     /// \brief Only use this in combination with MSqlQuery constructor
     static MSqlQueryInfo InitCon(ConnectionReuse = kNormalConnection);
 
@@ -238,7 +238,7 @@ class MBASE_PUBLIC MSqlQuery : private QSqlQuery
     MSqlDatabase *m_db               {nullptr};
     bool          m_isConnected      {false};
     bool          m_returnConnection {false};
-    QString       m_last_prepared_query; // holds a copy of the last prepared query
+    QString       m_lastPreparedQuery; // holds a copy of the last prepared query
 };
 
 #endif

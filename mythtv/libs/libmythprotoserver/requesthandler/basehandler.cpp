@@ -33,7 +33,7 @@ bool BaseRequestHandler::HandleAnnounce(MythSocket *socket,
     bool systemevents = ( (eventlevel == 1) || (eventlevel == 3));
     bool normalevents = ( (eventlevel == 1) || (eventlevel == 2));
 
-    SocketHandler *handler = new SocketHandler(socket, m_parent, hostname);
+    auto *handler = new SocketHandler(socket, m_parent, hostname);
     socket->SetAnnounce(slist);
 
     handler->BlockShutdown(blockShutdown);
@@ -167,7 +167,10 @@ bool BaseRequestHandler::HandleQueryHostname(SocketHandler *sock)
 bool BaseRequestHandler::HandleQueryMemStats(SocketHandler *sock)
 {
     QStringList strlist;
-    int         totalMB = 0, freeMB = 0, totalVM = 0, freeVM = 0;
+    int totalMB = 0;
+    int freeMB  = 0;
+    int totalVM = 0;
+    int freeVM  = 0;
 
     if (getMemStats(totalMB, freeMB, totalVM, freeVM))
     {

@@ -7,12 +7,12 @@
 class VideoMetadataListManagerImp
 {
   public:
-    typedef VideoMetadataListManager::VideoMetadataPtr VideoMetadataPtr;
-    typedef VideoMetadataListManager::metadata_list metadata_list;
+    using VideoMetadataPtr = VideoMetadataListManager::VideoMetadataPtr;
+    using metadata_list = VideoMetadataListManager::metadata_list;
 
   private:
-    typedef std::map<unsigned int, metadata_list::iterator> int_to_meta;
-    typedef std::map<QString, metadata_list::iterator> string_to_meta;
+    using int_to_meta = std::map<unsigned int, metadata_list::iterator>;
+    using string_to_meta = std::map<QString, metadata_list::iterator>;
 
   public:
     void setList(metadata_list &list)
@@ -21,8 +21,7 @@ class VideoMetadataListManagerImp
         m_fileMap.clear();
         m_metaList.swap(list);
 
-        for (metadata_list::iterator p = m_metaList.begin();
-             p != m_metaList.end(); ++p)
+        for (auto p = m_metaList.begin(); p != m_metaList.end(); ++p)
         {
             m_idMap.insert(int_to_meta::value_type((*p)->GetID(), p));
             m_fileMap.insert(
@@ -38,6 +37,7 @@ class VideoMetadataListManagerImp
 
     VideoMetadataPtr byFilename(const QString &file_name) const
     {
+        //NOLINTNEXTLINE(modernize-use-auto)
         string_to_meta::const_iterator p = m_fileMap.find(file_name);
         if (p != m_fileMap.end())
         {
@@ -48,6 +48,7 @@ class VideoMetadataListManagerImp
 
     VideoMetadataPtr byID(unsigned int db_id) const
     {
+        //NOLINTNEXTLINE(modernize-use-auto)
         int_to_meta::const_iterator p = m_idMap.find(db_id);
         if (p != m_idMap.end())
         {
@@ -71,16 +72,15 @@ class VideoMetadataListManagerImp
     {
         if (metadata)
         {
-            int_to_meta::iterator im = m_idMap.find(metadata->GetID());
+            auto im = m_idMap.find(metadata->GetID());
 
             if (im != m_idMap.end())
             {
-                metadata_list::iterator mdi = im->second;
+                auto mdi = im->second;
                 (*mdi)->DeleteFromDatabase();
 
                 m_idMap.erase(im);
-                string_to_meta::iterator sm =
-                        m_fileMap.find(metadata->GetFilename());
+                auto sm = m_fileMap.find(metadata->GetFilename());
                 if (sm != m_fileMap.end())
                     m_fileMap.erase(sm);
                 m_metaList.erase(mdi);
@@ -189,30 +189,30 @@ bool VideoMetadataListManager::purgeByID(unsigned int db_id)
     return m_imp->purgeByID(db_id);
 }
 
-const QString meta_node::m_empty_path;
+const QString meta_node::kEmptyPath;
 
 const QString& meta_node::getPath() const
 {
-    return m_empty_path;
+    return kEmptyPath;
 }
 
 const QString& meta_node::getFQPath()
 {
-    if (m_fq_path.length())
-        return m_fq_path;
+    if (m_fqPath.length())
+        return m_fqPath;
 
-    if (m_parent && !m_path_root)
-        m_fq_path = m_parent->getFQPath() + "/" + getPath();
+    if (m_parent && !m_pathRoot)
+        m_fqPath = m_parent->getFQPath() + "/" + getPath();
     else
     {
         QString p = getPath();
         if (p.startsWith("myth://"))
-            m_fq_path = p;
+            m_fqPath = p;
         else
-            m_fq_path = ((p.length() && p[0] != '/') ? "/" : "") + p;
+            m_fqPath = ((p.length() && p[0] != '/') ? "/" : "") + p;
     }
 
-    return m_fq_path;
+    return m_fqPath;
 }
 
 void meta_node::setParent(meta_node *parent)
@@ -222,10 +222,10 @@ void meta_node::setParent(meta_node *parent)
 
 void meta_node::setPathRoot(bool is_root)
 {
-    m_path_root = is_root;
+    m_pathRoot = is_root;
 }
 
-const QString meta_data_node::m_meta_bug = "Bug";
+const QString meta_data_node::kMetaBug = "Bug";
 
 const QString& meta_data_node::getName() const
 {
@@ -234,7 +234,7 @@ const QString& meta_data_node::getName() const
         return m_data->GetTitle();
     }
 
-    return m_meta_bug;
+    return kMetaBug;
 }
 
 const VideoMetadata* meta_data_node::getData() const
@@ -440,8 +440,7 @@ bool meta_dir_node::has_entries() const
 
     if (!ret)
     {
-        for (meta_dir_list::const_iterator p = m_subdirs.begin();
-        p != m_subdirs.end(); ++p)
+        for (auto p = m_subdirs.cbegin(); p != m_subdirs.cend(); ++p)
         {
             ret = (*p)->has_entries();
             if (ret) break;

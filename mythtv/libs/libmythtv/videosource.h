@@ -58,9 +58,9 @@ class VideoSourceSelector : public TransMythUIComboBoxSetting
     Q_OBJECT
 
   public:
-    VideoSourceSelector(uint           _initial_sourceid,
-                        const QString &_card_types,
-                        bool           _must_have_mplexid);
+    VideoSourceSelector(uint    _initial_sourceid,
+                        QString _card_types,
+                        bool    _must_have_mplexid);
 
     void Load(void) override; // StandardSetting
 
@@ -70,6 +70,21 @@ class VideoSourceSelector : public TransMythUIComboBoxSetting
     uint    m_initialSourceId;
     QString m_cardTypes;
     bool    m_mustHaveMplexId;
+};
+
+class VideoSourceShow : public GroupSetting
+{
+    Q_OBJECT
+
+  public:
+    VideoSourceShow(uint    _initial_sourceid);
+
+    void Load(void) override; // StandardSetting
+
+    uint GetSourceID(void) const { return getValue().toUInt(); }
+
+  private:
+    uint    m_initialSourceId;
 };
 
 class FreqTableSelector :
@@ -326,7 +341,7 @@ class HDHomeRunDevice
     UseHDHomeRunDevice *checkbox;
 };
 
-typedef QMap<QString, HDHomeRunDevice> HDHomeRunDeviceList;
+using HDHomeRunDeviceList = QMap<QString, HDHomeRunDevice>;
 
 class HDHomeRunDeviceID;
 class HDHomeRunConfigurationGroup : public GroupSetting
@@ -378,7 +393,7 @@ class VBoxDevice
     bool    discovered;
 };
 
-typedef QMap<QString, VBoxDevice> VBoxDeviceList;
+using VBoxDeviceList = QMap<QString, VBoxDevice>;
 
 class VBoxDeviceIDList;
 class VBoxDeviceID;
@@ -733,8 +748,8 @@ class MTV_PUBLIC VideoSourceEditor : public GroupSetting
   public:
     VideoSourceEditor();
 
-    bool cardTypesInclude(const int& SourceID,
-                          const QString& thecardtype);
+    static bool cardTypesInclude(const int& SourceID,
+                                 const QString& thecardtype);
 
     void Load(void) override; // StandardSetting
     void AddSelection(const QString &label, const char *slot);

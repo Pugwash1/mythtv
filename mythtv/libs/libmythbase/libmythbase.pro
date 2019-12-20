@@ -35,6 +35,7 @@ HEADERS += mythsession.h
 HEADERS += ../../external/qjsonwrapper/qjsonwrapper/Json.h
 HEADERS += cleanupguard.h portchecker.h
 HEADERS += mythsorthelper.h
+HEADERS += mythpower.h
 
 SOURCES += mthread.cpp mthreadpool.cpp
 SOURCES += mythsocket.cpp
@@ -57,6 +58,14 @@ SOURCES += mythsession.cpp
 SOURCES += ../../external/qjsonwrapper/qjsonwrapper/Json.cpp
 SOURCES += cleanupguard.cpp portchecker.cpp
 SOURCES += mythsorthelper.cpp
+SOURCES += mythpower.cpp
+
+using_qtdbus {
+    QT      += dbus
+    DEFINES += USING_DBUS
+    HEADERS += platforms/mythpowerdbus.h
+    SOURCES += platforms/mythpowerdbus.cpp
+}
 
 unix {
     SOURCES += mythsystemunix.cpp
@@ -94,7 +103,7 @@ inc2.files = $${inc.files}
 
 INSTALLS += inc inc2
 
-INCLUDEPATH += ../../external/qjsonwrapper/ ../../external/libudfread
+INCLUDEPATH += ../../external/qjsonwrapper/ ../../external/libudfread ./platforms
 DEPENDPATH  +=  ../../external/libudfread
 
 DEFINES += RUNPREFIX=\\\"$${RUNPREFIX}\\\"
@@ -106,9 +115,13 @@ linux:DEFINES += linux
 macx {
     HEADERS += mythcdrom-darwin.h
     SOURCES += mythcdrom-darwin.cpp
-
-    QMAKE_CXXFLAGS += -F/System/Library/Frameworks/IOKit.framework/Frameworks
-    LIBS           += -framework IOKit
+    HEADERS += platforms/mythpowerosx.h
+    SOURCES += platforms/mythpowerosx.cpp
+    QMAKE_OBJECTIVE_CFLAGS += $$QMAKE_CXXFLAGS
+    QMAKE_OBJECTIVE_CXXFLAGS += $$QMAKE_CXXFLAGS
+    OBJECTIVE_HEADERS += platforms/mythcocoautils.h
+    OBJECTIVE_SOURCES += platforms/mythcocoautils.mm
+    LIBS              += -framework Cocoa -framework IOKit
 }
 
 linux {

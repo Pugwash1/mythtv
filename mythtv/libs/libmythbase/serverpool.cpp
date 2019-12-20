@@ -166,8 +166,10 @@ void ServerPool::SelectDefaultListen(bool force)
                     // IPv4 address is not defined, populate one
                     // restrict autoconfiguration to RFC1918 private networks
                     static QPair<QHostAddress, int>
-                       s_privNet1 = QHostAddress::parseSubnet("10.0.0.0/8"),
-                       s_privNet2 = QHostAddress::parseSubnet("172.16.0.0/12"),
+                       s_privNet1 = QHostAddress::parseSubnet("10.0.0.0/8");
+                    static QPair<QHostAddress, int>
+                       s_privNet2 = QHostAddress::parseSubnet("172.16.0.0/12");
+                    static QPair<QHostAddress, int>
                        s_privNet3 = QHostAddress::parseSubnet("192.168.0.0/16");
 
                     if (ip.isInSubnet(s_privNet1) || ip.isInSubnet(s_privNet2) ||
@@ -401,7 +403,7 @@ bool ServerPool::listen(QList<QHostAddress> addrs, quint16 port,
           && ! gCoreContext->GetBoolSetting("IPv6Support",true))
             continue;
 
-        PrivTcpServer *server = new PrivTcpServer(this, servertype);
+        auto *server = new PrivTcpServer(this, servertype);
             connect(server, &PrivTcpServer::newConnection,
                 this,   &ServerPool::newTcpConnection);
 
@@ -530,7 +532,7 @@ bool ServerPool::bind(QList<QHostAddress> addrs, quint16 port,
             }
         }
 
-        PrivUdpSocket *socket = new PrivUdpSocket(this, host);
+        auto *socket = new PrivUdpSocket(this, host);
 
         if (socket->bind(*it, port))
         {
@@ -636,11 +638,11 @@ void ServerPool::newTcpConnection(qt_socket_fd_t socket)
 {
     // Ignore connections from an SSL server for now, these are only handled
     // by HttpServer which overrides newTcpConnection
-    PrivTcpServer *server = dynamic_cast<PrivTcpServer *>(QObject::sender());
+    auto *server = dynamic_cast<PrivTcpServer *>(QObject::sender());
     if (!server || server->GetServerType() == kSSLServer)
         return;
 
-    QTcpSocket *qsock = new QTcpSocket(this);
+    auto *qsock = new QTcpSocket(this);
     if (qsock->setSocketDescriptor(socket)
        && gCoreContext->CheckSubnet(qsock))
     {
@@ -652,7 +654,7 @@ void ServerPool::newTcpConnection(qt_socket_fd_t socket)
 
 void ServerPool::newUdpDatagram(void)
 {
-    QUdpSocket *socket = dynamic_cast<QUdpSocket*>(sender());
+    auto *socket = dynamic_cast<QUdpSocket*>(sender());
 
     while (socket->state() == QAbstractSocket::BoundState &&
            socket->hasPendingDatagrams())

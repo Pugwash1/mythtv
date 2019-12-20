@@ -48,7 +48,7 @@ MHEG *MHCreateEngine(MHContext *context)
 MHEngine::MHEngine(MHContext *context): m_Context(context)
 {
     // Required for BBC Freeview iPlayer
-    MHPSEntry *pEntry = new MHPSEntry;
+    auto *pEntry = new MHPSEntry;
     pEntry->m_FileName.Copy("ram://bbcipstr");
     pEntry->m_Data.Append(new MHUnion(true)); // Default true
     // The next value must be true to enable Freeview interaction channel
@@ -262,7 +262,8 @@ static EProtocol PathProtocol(const QString& csPath)
     if (csPath.startsWith("CI:"))
         return kProtoCI;
 
-    int firstColon = csPath.indexOf(':'), firstSlash = csPath.indexOf('/');
+    int firstColon = csPath.indexOf(':');
+    int firstSlash = csPath.indexOf('/');
     if (firstColon > 0 && firstSlash > 0 && firstColon < firstSlash)
         return kProtoUnknown;
 
@@ -293,7 +294,7 @@ bool MHEngine::Launch(const MHObjectRef &target, bool fIsSpawn)
         return false;
     }
 
-    MHApplication *pProgram = dynamic_cast<MHApplication*>(ParseProgram(text));
+    auto *pProgram = dynamic_cast<MHApplication*>(ParseProgram(text));
     if (! pProgram)
     {
         MHLOG(MHLogWarning, "Empty application");
@@ -574,7 +575,8 @@ MHRoot *MHEngine::FindObject(const MHObjectRef &oRef, bool failOnNotFound)
 {
     // It should match either the application or the scene.
     MHGroup *pSearch = nullptr;
-    MHGroup *pScene = CurrentScene(), *pApp = CurrentApp();
+    MHGroup *pScene = CurrentScene();
+    MHGroup *pApp = CurrentApp();
 
     if (pScene && GetPathName(pScene->m_ObjectReference.m_GroupId) == GetPathName(oRef.m_GroupId))
     {
@@ -685,7 +687,7 @@ void MHEngine::EventTriggered(MHRoot *pSource, enum EventType ev, const MHUnion 
         default:
         {
             // Asynchronous events.  Add to the event queue.
-            MHAsynchEvent *pEvent = new MHAsynchEvent;
+            auto *pEvent = new MHAsynchEvent;
             pEvent->m_pEventSource = pSource;
             pEvent->m_eventType = ev;
             pEvent->m_eventData = evData;
@@ -766,7 +768,7 @@ void MHEngine::BringToFront(const MHRoot *p)
         return;    // If it's not there do nothing
     }
 
-    MHVisible *pVis = (MHVisible *)p; // Can now safely cast it.
+    auto *pVis = (MHVisible *)p; // Can now safely cast it.
     CurrentApp()->m_DisplayStack.RemoveAt(nPos); // Remove it from its present posn
     CurrentApp()->m_DisplayStack.Append(pVis); // Push it on the top.
     Redraw(pVis->GetVisibleArea()); // Request a redraw
@@ -781,7 +783,7 @@ void MHEngine::SendToBack(const MHRoot *p)
         return;    // If it's not there do nothing
     }
 
-    MHVisible *pVis = (MHVisible *)p; // Can now safely cast it.
+    auto *pVis = (MHVisible *)p; // Can now safely cast it.
     CurrentApp()->m_DisplayStack.RemoveAt(nPos); // Remove it from its present posn
     CurrentApp()->m_DisplayStack.InsertAt(pVis, 0); // Put it on the bottom.
     Redraw(pVis->GetVisibleArea()); // Request a redraw
@@ -796,7 +798,7 @@ void MHEngine::PutBefore(const MHRoot *p, const MHRoot *pRef)
         return;    // If it's not there do nothing
     }
 
-    MHVisible *pVis = (MHVisible *)p; // Can now safely cast it.
+    auto *pVis = (MHVisible *)p; // Can now safely cast it.
     int nRef = CurrentApp()->FindOnStack(pRef);
 
     if (nRef == -1)
@@ -834,7 +836,7 @@ void MHEngine::PutBehind(const MHRoot *p, const MHRoot *pRef)
         return;    // If the reference visible isn't there do nothing.
     }
 
-    MHVisible *pVis = (MHVisible *)p; // Can now safely cast it.
+    auto *pVis = (MHVisible *)p; // Can now safely cast it.
     CurrentApp()->m_DisplayStack.RemoveAt(nPos);
 
     if (nRef >= nPos)
@@ -1016,7 +1018,7 @@ void MHEngine::RequestExternalContent(MHIngredient *pRequester)
         // Need to record this and check later.
         MHLOG(MHLogNotifications, QString("Waiting for %1 <= %2")
             .arg(pRequester->m_ObjectReference.Printable()).arg(csPath.left(128)) );
-        MHExternContent *pContent = new MHExternContent;
+        auto *pContent = new MHExternContent;
         pContent->m_FileName = csPath;
         pContent->m_pRequester = pRequester;
         pContent->m_time.start();
@@ -1173,7 +1175,7 @@ bool MHEngine::LoadStorePersistent(bool fIsLoad, const MHOctetString &fileName, 
         // Set the store to the values.
         for (i = 0; i < variables.Size(); i++)
         {
-            MHUnion *pValue = new MHUnion;
+            auto *pValue = new MHUnion;
             pEntry->m_Data.Append(pValue);
             FindObject(*(variables.GetAt(i)))->GetVariableValue(*pValue, this);
             MHLOG(MHLogNotifications, QString("Store Persistent(%1) %2=>#%3")

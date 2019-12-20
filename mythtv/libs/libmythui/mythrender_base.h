@@ -7,17 +7,14 @@
 
 #include "referencecounter.h"
 #include "mythuiexp.h"
-#include "mythuidefines.h"
 
-typedef enum
+enum RenderType
 {
     kRenderUnknown = 0,
     kRenderDirect3D9,
     kRenderVDPAU,
-    kRenderOpenGL1,
-    kRenderOpenGL2,
-    kRenderOpenGL2ES,
-} RenderType;
+    kRenderOpenGL
+};
 
 class MUI_PUBLIC MythRender : public ReferenceCounter
 {
@@ -39,7 +36,7 @@ class MUI_PUBLIC MythRender : public ReferenceCounter
     RenderType Type(void) const { return m_type;    }
     bool  IsErrored(void) const { return m_errored; }
     QSize GetSize(void) const   { return m_size;    }
-    virtual void Release(void)  { }
+    virtual void ReleaseResources(void) { }
 
   protected:
     virtual  ~MythRender() = default;

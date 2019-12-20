@@ -3,6 +3,8 @@
 // C++ includes
 #include <algorithm>
 #include <climits>
+#include <utility>
+
 using namespace std;
 
 // Qt includes
@@ -63,14 +65,14 @@ DBPerson::DBPerson(const DBPerson &other) :
     m_name.squeeze();
 }
 
-DBPerson::DBPerson(Role role, const QString &name) :
-    m_role(role), m_name(name)
+DBPerson::DBPerson(Role role, QString name) :
+    m_role(role), m_name(std::move(name))
 {
     m_name.squeeze();
 }
 
-DBPerson::DBPerson(const QString &role, const QString &name) :
-    m_role(kUnknown), m_name(name)
+DBPerson::DBPerson(const QString &role, QString name) :
+    m_role(kUnknown), m_name(std::move(name))
 {
     if (!role.isEmpty())
     {
@@ -466,12 +468,11 @@ static int score_match(const QString &a, const QString &b)
     if (A == B)
         return 1000;
 
-    QStringList al, bl;
-    al = A.split(" ", QString::SkipEmptyParts);
+    QStringList al = A.split(" ", QString::SkipEmptyParts);
     if (al.isEmpty())
         return 0;
 
-    bl = B.split(" ", QString::SkipEmptyParts);
+    QStringList bl = B.split(" ", QString::SkipEmptyParts);
     if (bl.isEmpty())
         return 0;
 
@@ -1409,7 +1410,8 @@ void ProgramData::FixProgramList(QList<ProgInfo*> &fixlist)
         // remove overlapping programs
         if ((*cur)->HasTimeConflict(**it))
         {
-            QList<ProgInfo*>::iterator tokeep, todelete;
+            QList<ProgInfo*>::iterator tokeep;
+            QList<ProgInfo*>::iterator todelete;
 
             if ((*cur)->m_endtime <= (*cur)->m_starttime)
                 tokeep = it, todelete = cur;    // NOLINT(bugprone-branch-clone)
@@ -1461,7 +1463,8 @@ void ProgramData::FixProgramList(QList<ProgInfo*> &fixlist)
 void ProgramData::HandlePrograms(
     uint sourceid, QMap<QString, QList<ProgInfo> > &proglist)
 {
-    uint unchanged = 0, updated = 0;
+    uint unchanged = 0;
+    uint updated = 0;
 
     MSqlQuery query(MSqlQuery::InitCon());
 
@@ -1553,8 +1556,12 @@ void ProgramData::HandlePrograms(MSqlQuery             &query,
 int ProgramData::fix_end_times(void)
 {
     int count = 0;
-    QString chanid, starttime, endtime, querystr;
-    MSqlQuery query1(MSqlQuery::InitCon()), query2(MSqlQuery::InitCon());
+    QString chanid;
+    QString starttime;
+    QString endtime;
+    QString querystr;
+    MSqlQuery query1(MSqlQuery::InitCon());
+    MSqlQuery query2(MSqlQuery::InitCon());
 
     querystr = "SELECT chanid, starttime, endtime FROM program "
                "WHERE endtime = '0000-00-00 00:00:00' "

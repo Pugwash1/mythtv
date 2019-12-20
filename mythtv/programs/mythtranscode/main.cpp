@@ -146,14 +146,17 @@ int main(int argc, char *argv[])
 {
     uint chanid = 0;
     QDateTime starttime;
-    QString infile, outfile;
+    QString infile;
+    QString outfile;
     QString profilename = QString("autodetect");
     QString fifodir = nullptr;
     int jobID = -1;
     int jobType = JOB_NONE;
     int otype = REPLEX_MPEG2;
-    bool useCutlist = false, keyframesonly = false;
-    bool build_index = false, fifosync = false;
+    bool useCutlist = false;
+    bool keyframesonly = false;
+    bool build_index = false;
+    bool fifosync = false;
     bool mpeg2 = false;
     bool forcefps = false;
     bool fifo_info = false;
@@ -287,7 +290,8 @@ int main(int argc, char *argv[])
             // sanitize cutlist
             if (deleteMap.count() >= 2)
             {
-                frm_dir_map_t::iterator cur = deleteMap.begin(), prev;
+                frm_dir_map_t::iterator cur = deleteMap.begin();
+                frm_dir_map_t::iterator prev;
                 prev = cur++;
                 while (cur != deleteMap.end())
                 {
@@ -547,7 +551,7 @@ int main(int argc, char *argv[])
     if (jobID >= 0)
         JobQueue::ChangeJobStatus(jobID, JOB_RUNNING);
 
-    Transcode *transcode = new Transcode(pginfo);
+    auto *transcode = new Transcode(pginfo);
 
     if (!build_index)
     {
@@ -645,7 +649,7 @@ int main(int argc, char *argv[])
            check_func = &CheckJobQueue;
         }
 
-        MPEG2fixup *m2f = new MPEG2fixup(infile, outfile,
+        auto *m2f = new MPEG2fixup(infile, outfile,
                                          &deleteMap, nullptr, false, false, 20,
                                          showprogress, otype, update_func,
                                          check_func);

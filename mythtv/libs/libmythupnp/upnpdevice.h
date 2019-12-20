@@ -33,9 +33,9 @@ class QTextStream;
 // Typedefs
 /////////////////////////////////////////////////////////////////////////////
 
-typedef QList< UPnpDevice*  >  UPnpDeviceList;
-typedef QList< UPnpService* >  UPnpServiceList;
-typedef QList< UPnpIcon*    >  UPnpIconList;
+using UPnpDeviceList  = QList< UPnpDevice*  >;
+using UPnpServiceList = QList< UPnpService* >;
+using UPnpIconList    = QList< UPnpIcon*    >;
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -147,11 +147,11 @@ class UPNP_PUBLIC UPnpDeviceDesc
 
         UPnpDevice      m_rootDevice;
         QString         m_sHostName;
-        QUrl            m_HostUrl;
+        QUrl            m_hostUrl;
 
     protected:
 
-        void    _InternalLoad( QDomNode  oNode, UPnpDevice *pCurDevice );
+        void    InternalLoad( QDomNode  oNode, UPnpDevice *pCurDevice );
 
         static void     ProcessIconList   ( const QDomNode& oListNode, UPnpDevice *pDevice );
         static void     ProcessServiceList( const QDomNode& oListNode, UPnpDevice *pDevice );
@@ -217,8 +217,7 @@ class UPNP_PUBLIC DeviceLocation : public ReferenceCounter
             // Should be atomic decrement
             g_nAllocated--;
 
-            if (m_pDeviceDesc != nullptr)
-                delete m_pDeviceDesc;
+            delete m_pDeviceDesc;
         }
 
         UPnpDeviceDesc *m_pDeviceDesc;  // We take ownership of this pointer.

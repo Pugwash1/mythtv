@@ -39,9 +39,9 @@
 
 struct MimeType
 {
-    QString mimeType;
-    QString extension;
-    bool    isVideo;
+    QString m_mimeType;
+    QString m_extension;
+    bool    m_isVideo;
 };
 
 static MimeType SupportedMimeTypes[] =
@@ -244,7 +244,10 @@ void BrowserApi::customEvent(QEvent *e)
 {
     if (e->type() == MythEvent::MythEventMessage)
     {
-        MythEvent *me = static_cast<MythEvent *>(e);
+        auto *me = dynamic_cast<MythEvent *>(e);
+        if (me == nullptr)
+            return;
+
         const QString& message = me->Message();
 
         if (!message.startsWith("MUSIC_CONTROL"))
@@ -291,9 +294,16 @@ bool MythWebPage::extension(Extension extension, const ExtensionOption *option,
         if (!option || !output)
             return false;
 
-        const ErrorPageExtensionOption *erroroption
-                        = static_cast<const ErrorPageExtensionOption *>(option);
+        // Using static_cast yields the clang-tidy warning: do not use
+        // static_cast to downcast from a base to a derived class; use
+        // dynamic_cast instead.  Using dynamic-cast yields the
+        // compiler error: 'QWebPage::ExtensionOption' is not
+        // polymorphic.
+        //
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+        const auto *erroroption = static_cast<const ErrorPageExtensionOption *>(option);
         ErrorPageExtensionReturn *erroroutput = nullptr;
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
         erroroutput = static_cast<ErrorPageExtensionReturn *>(output);
 
         QString filename = "htmls/notfound.html";
@@ -536,9 +546,8 @@ void  MythWebView::doDownloadRequested(const QNetworkRequest &request)
         MythScreenStack *popupStack = GetMythMainWindow()->GetStack("popup stack");
 
         QString msg = tr("Enter filename to save file");
-        MythTextInputDialog *input = new MythTextInputDialog(popupStack, msg,
-                                                             FilterNone, false,
-                                                             saveFilename);
+        auto *input = new MythTextInputDialog(popupStack, msg, FilterNone,
+                                              false, saveFilename);
 
         if (input->Create())
         {
@@ -592,7 +601,7 @@ void MythWebView::customEvent(QEvent *event)
 {
     if (event->type() == DialogCompletionEvent::kEventType)
     {
-        DialogCompletionEvent *dce = (DialogCompletionEvent *)(event);
+        auto *dce = (DialogCompletionEvent *)(event);
 
         // make sure the user didn't ESCAPE out of the dialog
         if (dce->GetResult() < 0)
@@ -641,9 +650,11 @@ void MythWebView::customEvent(QEvent *event)
     }
     else if (event->type() == MythEvent::MythEventMessage)
     {
-        MythEvent *me = static_cast<MythEvent *>(event);
-        QStringList tokens = me->Message().split(" ", QString::SkipEmptyParts);
+        auto *me = dynamic_cast<MythEvent *>(event);
+        if (me == nullptr)
+            return;
 
+        QStringList tokens = me->Message().split(" ", QString::SkipEmptyParts);
         if (tokens.isEmpty())
             return;
 
@@ -686,7 +697,7 @@ void MythWebView::showDownloadMenu(void)
 
     MythScreenStack *popupStack = GetMythMainWindow()->GetStack("popup stack");
 
-    MythDialogBox *menu = new MythDialogBox(label, popupStack, "downloadmenu");
+    auto *menu = new MythDialogBox(label, popupStack, "downloadmenu");
 
     if (!menu->Create())
     {
@@ -712,8 +723,8 @@ QString MythWebView::getExtensionForMimetype(const QString &mimetype)
 {
     for (int x = 0; x < SupportedMimeTypesCount; x++)
     {
-        if (!mimetype.isEmpty() && mimetype == SupportedMimeTypes[x].mimeType)
-            return SupportedMimeTypes[x].extension;
+        if (!mimetype.isEmpty() && mimetype == SupportedMimeTypes[x].m_mimeType)
+            return SupportedMimeTypes[x].m_extension;
     }
 
     return QString("");
@@ -723,14 +734,14 @@ bool MythWebView::isMusicFile(const QString &extension, const QString &mimetype)
 {
     for (int x = 0; x < SupportedMimeTypesCount; x++)
     {
-        if (!SupportedMimeTypes[x].isVideo)
+        if (!SupportedMimeTypes[x].m_isVideo)
         {
             if (!mimetype.isEmpty() &&
-                mimetype == SupportedMimeTypes[x].mimeType)
+                mimetype == SupportedMimeTypes[x].m_mimeType)
                 return true;
 
             if (!extension.isEmpty() &&
-                extension.toLower() == SupportedMimeTypes[x].extension)
+                extension.toLower() == SupportedMimeTypes[x].m_extension)
                 return true;
         }
     }
@@ -742,14 +753,14 @@ bool MythWebView::isVideoFile(const QString &extension, const QString &mimetype)
 {
     for (int x = 0; x < SupportedMimeTypesCount; x++)
     {
-        if (SupportedMimeTypes[x].isVideo)
+        if (SupportedMimeTypes[x].m_isVideo)
         {
             if (!mimetype.isEmpty() &&
-                mimetype == SupportedMimeTypes[x].mimeType)
+                mimetype == SupportedMimeTypes[x].m_mimeType)
                 return true;
 
             if (!extension.isEmpty() &&
-                extension.toLower() == SupportedMimeTypes[x].extension)
+                extension.toLower() == SupportedMimeTypes[x].m_extension)
                 return true;
         }
     }
@@ -1680,7 +1691,7 @@ void MythUIWebBrowser::HandleMouseAction(const QString &action)
         {
             curPos = widget->mapFromGlobal(curPos);
 
-            QMouseEvent *me = new QMouseEvent(QEvent::MouseButtonPress, curPos,
+            auto *me = new QMouseEvent(QEvent::MouseButtonPress, curPos,
                                               Qt::LeftButton, Qt::LeftButton,
                                               Qt::NoModifier);
             QCoreApplication::postEvent(widget, me);
@@ -1763,8 +1774,7 @@ bool MythUIWebBrowser::ParseElement(
  */
 void MythUIWebBrowser::CopyFrom(MythUIType *base)
 {
-    MythUIWebBrowser *browser = dynamic_cast<MythUIWebBrowser *>(base);
-
+    auto *browser = dynamic_cast<MythUIWebBrowser *>(base);
     if (!browser)
     {
         LOG(VB_GENERAL, LOG_ERR, "ERROR, bad parsing");
@@ -1789,6 +1799,6 @@ void MythUIWebBrowser::CopyFrom(MythUIType *base)
  */
 void MythUIWebBrowser::CreateCopy(MythUIType *parent)
 {
-    MythUIWebBrowser *browser = new MythUIWebBrowser(parent, objectName());
+    auto *browser = new MythUIWebBrowser(parent, objectName());
     browser->CopyFrom(this);
 }

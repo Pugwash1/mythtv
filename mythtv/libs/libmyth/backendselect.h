@@ -25,7 +25,7 @@ const QString kDefaultMFE = "UPnP/MythFrontend/DefaultBackend/";
 const QString kDefaultPIN = kDefaultMFE + "SecurityPin";
 const QString kDefaultUSN = kDefaultMFE + "USN";
 
-typedef QMap <QString, DeviceLocation*> ItemMap;
+using ItemMap = QMap <QString, DeviceLocation*>;
 
 /**
  * \class BackendSelection
@@ -39,12 +39,12 @@ class BackendSelection : public MythScreenType
     Q_OBJECT
 
   public:
-    typedef enum Decision
+    enum Decision
     {
         kManualConfigure = -1,
         kCancelConfigure = 0,
         kAcceptConfigure = +1,
-    } BackendDecision;
+    };
     static Decision Prompt(
         DatabaseParams *dbParams, Configuration *pConfig);
 
@@ -72,7 +72,7 @@ class BackendSelection : public MythScreenType
     void PromptForPassword(void);
     void CloseWithDecision(Decision);
 
-    DatabaseParams   *m_DBparams        {nullptr};
+    DatabaseParams   *m_dbParams        {nullptr};
     Configuration    *m_pConfig         {nullptr};
     bool              m_exitOnFinish;
     ItemMap           m_devices;
@@ -84,11 +84,11 @@ class BackendSelection : public MythScreenType
     //MythUIButton   *m_searchButton    {nullptr};
 
     QString           m_pinCode;
-    QString           m_USN;
+    QString           m_usn;
 
     QMutex            m_mutex;
 
-    BackendDecision   m_backendDecision {kCancelConfigure};
+    Decision          m_backendDecision {kCancelConfigure};
     QEventLoop       *m_loop            {nullptr};
 };
 

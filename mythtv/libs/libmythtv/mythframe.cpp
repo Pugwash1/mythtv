@@ -30,8 +30,48 @@
 #include "mythcorecontext.h"
 #include "mythlogging.h"
 
-extern "C" {
-#include "libavcodec/avcodec.h"
+const char* format_description(VideoFrameType Type)
+{
+    switch (Type)
+    {
+        case FMT_NONE:       return "None";
+        case FMT_RGB24:      return "RGB24";
+        case FMT_YV12:       return "YV12";
+        case FMT_RGB32:      return "RGB32";
+        case FMT_ARGB32:     return "ARGB32";
+        case FMT_RGBA32:     return "RGBA32";
+        case FMT_YUV422P:    return "YUV422P";
+        case FMT_BGRA:       return "BGRA";
+        case FMT_YUY2:       return "YUY2";
+        case FMT_NV12:       return "NV12";
+        case FMT_P010:       return "P010";
+        case FMT_P016:       return "P016";
+        case FMT_YUV420P9:   return "YUV420P9";
+        case FMT_YUV420P10:  return "YUV420P10";
+        case FMT_YUV420P12:  return "YUV420P12";
+        case FMT_YUV420P14:  return "YUV420P14";
+        case FMT_YUV420P16:  return "YUV420P16";
+        case FMT_YUV422P9:   return "YUV422P9";
+        case FMT_YUV422P10:  return "YUV422P10";
+        case FMT_YUV422P12:  return "YUV422P12";
+        case FMT_YUV422P14:  return "YUV422P14";
+        case FMT_YUV422P16:  return "YUV422P16";
+        case FMT_YUV444P:    return "YUV444P";
+        case FMT_YUV444P9:   return "YUV444P9";
+        case FMT_YUV444P10:  return "YUV444P10";
+        case FMT_YUV444P12:  return "YUV444P12";
+        case FMT_YUV444P14:  return "YUV444P14";
+        case FMT_YUV444P16:  return "YUV444P16";
+        case FMT_VDPAU:      return "VDPAU";
+        case FMT_VAAPI:      return "VAAPI";
+        case FMT_DXVA2:      return "DXVA2";
+        case FMT_MMAL:       return "MMAL";
+        case FMT_MEDIACODEC: return "MediaCodec";
+        case FMT_VTB:        return "VideoToolBox";
+        case FMT_NVDEC:      return "NVDec";
+        case FMT_DRMPRIME:   return "DRM-PRIME";
+    }
+    return "?";
 }
 
 #ifndef __MAX
@@ -54,6 +94,7 @@ static bool has_sse4     = false;
 #define cpuid    __cpuid
 
 #else
+/* NOLINTNEXTLINE(readability-non-const-parameter) */
 inline void cpuid(int CPUInfo[4],int InfoType)
 {
     __asm__ __volatile__ (
@@ -267,18 +308,6 @@ static inline void SSE_splitplanes(uint8_t* dstu, int dstu_pitch,
 }
 #endif /* ARCH_X86 */
 
-static inline void copyplane(uint8_t* dst, int dst_pitch,
-                             const uint8_t* src, int src_pitch,
-                             int width, int height)
-{
-    for (int y = 0; y < height; y++)
-    {
-        memcpy(dst, src, width);
-        src += src_pitch;
-        dst += dst_pitch;
-    }
-}
-
 static void splitplanes(uint8_t* dstu, int dstu_pitch,
                         uint8_t* dstv, int dstv_pitch,
                         const uint8_t* src, int src_pitch,
@@ -307,6 +336,12 @@ void framecopy(VideoFrame* dst, const VideoFrame* src, bool useSSE)
     dst->interlaced_frame = src->interlaced_frame;
     dst->repeat_pict      = src->repeat_pict;
     dst->top_field_first  = src->top_field_first;
+    dst->interlaced_reversed = src->interlaced_reversed;
+    dst->colorspace       = src->colorspace;
+    dst->colorrange       = src->colorrange;
+    dst->colorprimaries   = src->colorprimaries;
+    dst->colortransfer    = src->colortransfer;
+    dst->chromalocation   = src->chromalocation;
 
     if (FMT_YV12 == codec)
     {
@@ -596,6 +631,12 @@ void MythUSWCCopy::copy(VideoFrame *dst, const VideoFrame *src)
     dst->interlaced_frame = src->interlaced_frame;
     dst->repeat_pict      = src->repeat_pict;
     dst->top_field_first  = src->top_field_first;
+    dst->interlaced_reversed = src->interlaced_reversed;
+    dst->colorspace       = src->colorspace;
+    dst->colorrange       = src->colorrange;
+    dst->colorprimaries   = src->colorprimaries;
+    dst->colortransfer    = src->colortransfer;
+    dst->chromalocation   = src->chromalocation;
 
     int width   = src->width;
     int height  = src->height;
@@ -768,4 +809,62 @@ void MythUSWCCopy::reset(int width)
     Q_UNUSED(width);
 #endif
     resetUSWCDetection();
+}
+
+/// \brief Return the color depth for the given MythTV frame format
+int ColorDepth(int Format)
+{
+    switch (Format)
+    {
+        case FMT_YUV420P9:
+        case FMT_YUV422P9:
+        case FMT_YUV444P9:  return 9;
+        case FMT_P010:
+        case FMT_YUV420P10:
+        case FMT_YUV422P10:
+        case FMT_YUV444P10: return 10;
+        case FMT_YUV420P12:
+        case FMT_YUV422P12:
+        case FMT_YUV444P12: return 12;
+        case FMT_YUV420P14:
+        case FMT_YUV422P14:
+        case FMT_YUV444P14: return 14;
+        case FMT_P016:
+        case FMT_YUV420P16:
+        case FMT_YUV422P16:
+        case FMT_YUV444P16: return 16;
+        default: break;
+    }
+    return 8;
+}
+
+MythDeintType GetSingleRateOption(const VideoFrame* Frame, MythDeintType Type,
+                                  MythDeintType Override)
+{
+    if (Frame)
+    {
+        MythDeintType options = Frame->deinterlace_single &
+                (Override ? Override : Frame->deinterlace_allowed);
+        if (options & Type)
+            return GetDeinterlacer(options);
+    }
+    return DEINT_NONE;
+}
+
+MythDeintType GetDoubleRateOption(const VideoFrame* Frame, MythDeintType Type,
+                                  MythDeintType Override)
+{
+    if (Frame)
+    {
+        MythDeintType options = Frame->deinterlace_double &
+                (Override ? Override : Frame->deinterlace_allowed);
+        if (options & Type)
+            return GetDeinterlacer(options);
+    }
+    return DEINT_NONE;
+}
+
+MythDeintType GetDeinterlacer(MythDeintType Option)
+{
+    return Option & (DEINT_BASIC | DEINT_MEDIUM | DEINT_HIGH);
 }

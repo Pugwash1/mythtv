@@ -44,7 +44,7 @@ void AudioBuffer::appendData(unsigned char *buffer, int len, int frames,
         // can't use av_realloc as it doesn't guarantee reallocated memory
         // to be 16 bytes aligned
         m_realsize = ((m_size + len) / ABLOCK_SIZE + 1 ) * ABLOCK_SIZE;
-        uint8_t *tmp = (uint8_t *)av_malloc(m_realsize);
+        auto *tmp = (uint8_t *)av_malloc(m_realsize);
         if (tmp == nullptr)
         {
             throw std::bad_alloc();
@@ -84,11 +84,11 @@ void AudioReencodeBuffer::Reconfigure(const AudioSettings &settings)
 {
     ClearError();
 
-    m_passthru        = settings.m_use_passthru;
+    m_passthru        = settings.m_usePassthru;
     m_channels        = settings.m_channels;
     m_bytes_per_frame = m_channels *
         AudioOutputSettings::SampleSize(settings.m_format);
-    m_eff_audiorate   = settings.m_samplerate;
+    m_eff_audiorate   = settings.m_sampleRate;
 }
 
 /**
@@ -138,7 +138,7 @@ bool AudioReencodeBuffer::AddFrames(void *buffer, int frames, int64_t timecode)
 bool AudioReencodeBuffer::AddData(void *buffer, int len, int64_t timecode,
                                   int frames)
 {
-    unsigned char *buf = (unsigned char *)buffer;
+    auto *buf = (unsigned char *)buffer;
 
     // Test if target is using a fixed buffer size.
     if (m_audioFrameSize)

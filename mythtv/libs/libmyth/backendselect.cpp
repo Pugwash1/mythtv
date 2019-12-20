@@ -17,7 +17,7 @@ BackendSelection::BackendSelection(
     MythScreenStack *parent, DatabaseParams *params,
     Configuration *pConfig, bool exitOnFinish) :
     MythScreenType(parent, "BackEnd Selection"),
-    m_DBparams(params), m_pConfig(pConfig), m_exitOnFinish(exitOnFinish)
+    m_dbParams(params), m_pConfig(pConfig), m_exitOnFinish(exitOnFinish)
 {
     if (exitOnFinish)
     {
@@ -52,7 +52,7 @@ BackendSelection::Decision BackendSelection::Prompt(
     if (!mainStack)
         return ret;
 
-    BackendSelection *backendSettings =
+    auto *backendSettings =
         new BackendSelection(mainStack, dbParams, pConfig, true);
 
     if (backendSettings->Create())
@@ -98,8 +98,7 @@ void BackendSelection::Accept(MythUIButtonListItem *item)
     if (!item)
         return;
 
-    DeviceLocation *dev = item->GetData().value<DeviceLocation *>();
-
+    auto *dev = item->GetData().value<DeviceLocation *>();
     if (!dev)
     {
         Cancel();
@@ -114,7 +113,7 @@ void BackendSelection::Accept(MythUIButtonListItem *item)
         {
             if (m_pinCode.length())
                 m_pConfig->SetValue(kDefaultPIN, m_pinCode);
-            m_pConfig->SetValue(kDefaultUSN, m_USN);
+            m_pConfig->SetValue(kDefaultUSN, m_usn);
             m_pConfig->Save();
         }
         CloseWithDecision(kAcceptConfigure);
@@ -189,11 +188,11 @@ bool BackendSelection::ConnectBackend(DeviceLocation *dev)
     QString          error;
     QString          message;
 
-    m_USN   = dev->m_sUSN;
+    m_usn   = dev->m_sUSN;
 
     MythXMLClient client( dev->m_sLocation );
 
-    UPnPResultCode stat = client.GetConnectionInfo(m_pinCode, m_DBparams, message);
+    UPnPResultCode stat = client.GetConnectionInfo(m_pinCode, m_dbParams, message);
 
     QString backendName = dev->GetFriendlyName();
 
@@ -205,7 +204,7 @@ bool BackendSelection::ConnectBackend(DeviceLocation *dev)
         case UPnPResult_Success:
             LOG(VB_UPNP, LOG_INFO,
                 QString("ConnectBackend() - success. New hostname: %1")
-                .arg(m_DBparams->dbHostName));
+                .arg(m_dbParams->m_dbHostName));
             return true;
 
         case UPnPResult_HumanInterventionRequired:
@@ -293,7 +292,7 @@ bool BackendSelection::TryDBfromURL(const QString &error, QString URL)
     {
         URL.remove("http://");
         URL.remove(QRegExp("[:/].*"));
-        m_DBparams->dbHostName = URL;
+        m_dbParams->m_dbHostName = URL;
         return true;
     }
 
@@ -304,7 +303,7 @@ void BackendSelection::customEvent(QEvent *event)
 {
     if (event->type() == MythEvent::MythEventMessage)
     {
-        MythEvent *me      = dynamic_cast<MythEvent *>(event);
+        auto *me = dynamic_cast<MythEvent *>(event);
         if (me == nullptr)
             return;
 
@@ -337,8 +336,7 @@ void BackendSelection::customEvent(QEvent *event)
     }
     else if (event->type() == DialogCompletionEvent::kEventType)
     {
-        DialogCompletionEvent *dce = dynamic_cast<DialogCompletionEvent*>(event);
-
+        auto *dce = dynamic_cast<DialogCompletionEvent*>(event);
         if (!dce)
             return;
 
@@ -358,10 +356,8 @@ void BackendSelection::PromptForPassword(void)
 
     MythScreenStack *popupStack = GetMythMainWindow()->GetStack("popup stack");
 
-    MythTextInputDialog *pwDialog = new MythTextInputDialog(popupStack,
-                                                            message,
-                                                            FilterNone,
-                                                            true);
+    auto *pwDialog = new MythTextInputDialog(popupStack, message,
+                                             FilterNone, true);
 
     if (pwDialog->Create())
     {

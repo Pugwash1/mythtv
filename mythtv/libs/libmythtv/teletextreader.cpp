@@ -192,7 +192,8 @@ QString TeletextReader::GetPage(void)
     if (mag > 8 || mag < 1)
         return str;
 
-    int count = 1, selected = 0;
+    int count = 1;
+    int selected = 0;
     const TeletextPage *page = FindPage(m_curpage);
     if (page)
     {
@@ -396,7 +397,10 @@ void TeletextReader::AddTeletextData(int magazine, int row,
     //LOG(VB_GENERAL, LOG_ERR, QString("AddTeletextData(%1, %2)")
     //    .arg(magazine).arg(row));
 
-    int b1, b2, b3, err = 0;
+    int b1;
+    int b2;
+    int b3;
+    int err = 0;
 
     if (magazine < 1 || magazine > 8)
         return;
@@ -582,14 +586,13 @@ const TeletextSubPage *TeletextReader::FindSubPageInternal(
         return nullptr;
 
     const TeletextPage *ttpage = &(pageIter->second);
-    int_to_subpage_t::const_iterator subpageIter =
-        ttpage->subpages.begin();
+    auto subpageIter = ttpage->subpages.cbegin();
 
     // try to find the subpage given, or first if subpage == -1
     if (subpage != -1)
         subpageIter = ttpage->subpages.find(subpage);
 
-    if (subpageIter == ttpage->subpages.end())
+    if (subpageIter == ttpage->subpages.cend())
         return nullptr;
 
     if (subpage == -1)
@@ -599,10 +602,9 @@ const TeletextSubPage *TeletextReader::FindSubPageInternal(
     if (direction == -1)
     {
         --subpageIter;
-        if (subpageIter == ttpage->subpages.end())
+        if (subpageIter == ttpage->subpages.cend())
         {
-            int_to_subpage_t::const_reverse_iterator iter =
-                ttpage->subpages.rbegin();
+            auto iter = ttpage->subpages.crbegin();
             res = &(iter->second);
         }
         else
@@ -614,8 +616,8 @@ const TeletextSubPage *TeletextReader::FindSubPageInternal(
     if (direction == 1)
     {
         ++subpageIter;
-        if (subpageIter == ttpage->subpages.end())
-            subpageIter = ttpage->subpages.begin();
+        if (subpageIter == ttpage->subpages.cend())
+            subpageIter = ttpage->subpages.cbegin();
 
         res = &(subpageIter->second);
     }

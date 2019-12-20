@@ -133,13 +133,23 @@ class EPGSettings : public GroupSetting
     EPGSettings();
 };
 
+class MythDisplay;
 class AppearanceSettings : public GroupSetting
 {
-    Q_DECLARE_TR_FUNCTIONS(AppearanceSettings);
+    Q_OBJECT
 
   public:
     AppearanceSettings();
+   ~AppearanceSettings() override;
     void applyChange() override; // GroupSetting
+
+  public slots:
+    void PopulateScreens(int Screens);
+
+  private:
+    HostComboBoxSetting *m_xineramaScreen { nullptr };
+    HostComboBoxSetting *m_xineramaAspect { nullptr };
+    MythDisplay         *m_display        { nullptr };
 };
 
 class HostRefreshRateComboBoxSetting : public HostComboBoxSetting
@@ -211,9 +221,15 @@ class PlaybackProfileItemConfig : public GroupSetting
     void framerateChanged(const QString &val);
     void decoderChanged(const QString &dec);
     void vrenderChanged(const QString &renderer);
-    void orenderChanged(const QString &renderer);
-    void deint0Changed(const QString &deint);
-    void deint1Changed(const QString &deint);
+    void SingleQualityChanged(const QString &Quality);
+    void DoubleQualityChanged(const QString &Quality);
+    static void LoadQuality(TransMythUIComboBoxSetting *Deint,
+                            TransMythUICheckBoxSetting *Shader,
+                            TransMythUICheckBoxSetting *Driver,
+                            QString &Value);
+    static QString GetQuality(TransMythUIComboBoxSetting *Deint,
+                              TransMythUICheckBoxSetting *Shader,
+                              TransMythUICheckBoxSetting *Driver);
     void InitLabel(void);
     void DoDeleteSlot(bool);
 
@@ -227,11 +243,12 @@ class PlaybackProfileItemConfig : public GroupSetting
     TransMythUISpinBoxSetting  *m_max_cpus     {nullptr};
     TransMythUICheckBoxSetting *m_skiploop     {nullptr};
     TransMythUIComboBoxSetting *m_vidrend      {nullptr};
-    TransMythUIComboBoxSetting *m_osdrend      {nullptr};
-    TransMythUICheckBoxSetting *m_osdfade      {nullptr};
-    TransMythUIComboBoxSetting *m_deint0       {nullptr};
-    TransMythUIComboBoxSetting *m_deint1       {nullptr};
-    TransTextEditSetting       *m_filters      {nullptr};
+    TransMythUIComboBoxSetting *m_singleDeint  {nullptr};
+    TransMythUICheckBoxSetting *m_singleShader {nullptr};
+    TransMythUICheckBoxSetting *m_singleDriver {nullptr};
+    TransMythUIComboBoxSetting *m_doubleDeint  {nullptr};
+    TransMythUICheckBoxSetting *m_doubleShader {nullptr};
+    TransMythUICheckBoxSetting *m_doubleDriver {nullptr};
     PlaybackProfileConfig      *m_parentConfig {nullptr};
     uint                        m_index        {0};
 };
@@ -259,8 +276,8 @@ class PlaybackProfileConfig : public GroupSetting
 
   private:
     void ReloadSettings(void);
-    item_list_t m_items;
-    item_list_t m_del_items;
+    vector<ProfileItem> m_items;
+    vector<ProfileItem> m_del_items;
     QString     m_profile_name;
     uint        m_groupid {0};
 

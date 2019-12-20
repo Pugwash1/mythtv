@@ -8,7 +8,6 @@ using namespace std;
 #include "mythcontext.h"
 #include "videoout_d3d.h"
 #include "osd.h"
-#include "filtermanager.h"
 #include "fourcc.h"
 #include "videodisplayprofile.h"
 #include "mythmainwindow.h"
@@ -28,25 +27,17 @@ const int kNumBuffers = 31;
 const int kNeedFreeFrames = 1;
 const int kPrebufferFramesNormal = 10;
 const int kPrebufferFramesSmall = 4;
-const int kKeepPrebuffer = 2;
-
-#define NUM_DXVA2_BUFS 30
 
 #define LOC      QString("VideoOutputD3D: ")
 
-void VideoOutputD3D::GetRenderOptions(render_opts &opts,
-                                      QStringList &cpudeints)
+void VideoOutputD3D::GetRenderOptions(RenderOptions &Options)
 {
-    opts.renderers->append("direct3d");
-    opts.deints->insert("direct3d", cpudeints);
-    (*opts.osds)["direct3d"].append("direct3d");
-    (*opts.safe_renderers)["dummy"].append("direct3d");
-    (*opts.safe_renderers)["nuppel"].append("direct3d");
-    if (opts.decoders->contains("ffmpeg"))
-        (*opts.safe_renderers)["ffmpeg"].append("direct3d");
-    if (opts.decoders->contains("crystalhd"))
-        (*opts.safe_renderers)["crystalhd"].append("direct3d");
-    opts.priorities->insert("direct3d", 70);
+    Options.renderers->append("direct3d");
+    (*Options.safe_renderers)["dummy"].append("direct3d");
+    (*Options.safe_renderers)["nuppel"].append("direct3d");
+    if (Options.decoders->contains("ffmpeg"))
+        (*Options.safe_renderers)["ffmpeg"].append("direct3d");
+    Options.priorities->insert("direct3d", 70);
 
 #ifdef USING_DXVA2
     if (opts.decoders->contains("dxva2"))
@@ -55,17 +46,9 @@ void VideoOutputD3D::GetRenderOptions(render_opts &opts,
 }
 
 VideoOutputD3D::VideoOutputD3D(void)
-  : VideoOutput(),         m_lock(QMutex::Recursive),
-    m_hWnd(nullptr),       m_render(nullptr),
-    m_video(nullptr),
-    m_render_valid(false), m_render_reset(false), m_pip_active(nullptr),
-    m_osd_painter(nullptr)
+  : MythVideoOutput(),
 {
     m_pauseFrame.buf = nullptr;
-#ifdef USING_DXVA2
-    m_decoder = nullptr;
-#endif
-    m_pause_surface = nullptr;
 }
 
 VideoOutputD3D::~VideoOutputD3D()
@@ -76,25 +59,25 @@ VideoOutputD3D::~VideoOutputD3D()
 void VideoOutputD3D::TearDown(void)
 {
     QMutexLocker locker(&m_lock);
-    vbuffers.DiscardFrames(true);
-    vbuffers.Reset();
-    vbuffers.DeleteBuffers();
+    m_videoBuffers.DiscardFrames(true);
+    m_videoBuffers.Reset();
+    m_videoBuffers.DeleteBuffers();
     if (m_pauseFrame.buf)
     {
         delete [] m_pauseFrame.buf;
         m_pauseFrame.buf = nullptr;
     }
 
-    if (m_osd_painter)
+    if (m_osdPainter)
     {
         // Hack to ensure that the osd painter is not
         // deleted while image load thread is still busy
         // loading images with that painter
-        m_osd_painter->Teardown();
+        m_osdPainter->Teardown();
         if (invalid_osd_painter)
             delete invalid_osd_painter;
-        invalid_osd_painter = m_osd_painter;
-        m_osd_painter = nullptr;
+        invalid_osd_painter = m_osdPainter;
+        m_osdPainter = nullptr;
     }
 
     DeleteDecoder();
@@ -104,15 +87,15 @@ void VideoOutputD3D::TearDown(void)
 void VideoOutputD3D::DestroyContext(void)
 {
     QMutexLocker locker(&m_lock);
-    m_render_valid = false;
-    m_render_reset = false;
+    m_renderValid = false;
+    m_renderReset = false;
 
     while (!m_pips.empty())
     {
         delete *m_pips.begin();
         m_pips.erase(m_pips.begin());
     }
-    m_pip_ready.clear();
+    m_pipReady.clear();
 
     if (m_video)
     {
@@ -144,24 +127,24 @@ bool VideoOutputD3D::InputChanged(const QSize &video_dim_buf,
                                   const QSize &video_dim_disp,
                                   float        aspect,
                                   MythCodecID  av_codec_id,
-                                  void        *codec_private,
-                                  bool        &aspect_only)
+                                  bool        &aspect_only,
+                                  MythMultiLocker*)
 {
     QMutexLocker locker(&m_lock);
 
-    QSize cursize = window.GetActualVideoDim();
+    QSize cursize = m_window.GetVideoDim();
 
     LOG(VB_PLAYBACK, LOG_INFO, LOC +
         QString("InputChanged from %1: %2x%3 aspect %4 to %5: %6x%7 aspect %9")
-            .arg(toString(video_codec_id)).arg(cursize.width())
-            .arg(cursize.height()).arg(window.GetVideoAspect())
+            .arg(toString(m_videoCodecID)).arg(cursize.width())
+            .arg(cursize.height()).arg(m_window.GetVideoAspect())
             .arg(toString(av_codec_id)).arg(video_dim_disp.width())
             .arg(video_dim_disp.height()).arg(aspect));
 
 
-    bool cid_changed = (video_codec_id != av_codec_id);
+    bool cid_changed = (m_videoCodecID != av_codec_id);
     bool res_changed = video_dim_disp != cursize;
-    bool asp_changed = aspect      != window.GetVideoAspect();
+    bool asp_changed = aspect      != m_window.GetVideoAspect();
 
     if (!res_changed && !cid_changed)
     {
@@ -175,16 +158,15 @@ bool VideoOutputD3D::InputChanged(const QSize &video_dim_buf,
     }
 
     TearDown();
-    QRect disp = window.GetDisplayVisibleRect();
+    QRect disp = m_window.GetDisplayVisibleRect();
     if (Init(video_dim_buf, video_dim_disp,
              aspect, (WId)m_hWnd, disp, av_codec_id))
     {
-        BestDeint();
         return true;
     }
 
     LOG(VB_GENERAL, LOG_ERR, LOC + "Failed to re-initialise video output.");
-    errorState = kError_Unknown;
+    m_errorState = kError_Unknown;
 
     return false;
 }
@@ -193,9 +175,9 @@ bool VideoOutputD3D::SetupContext()
 {
     QMutexLocker locker(&m_lock);
     DestroyContext();
-    QSize size = window.GetVideoDim();
+    QSize size = m_window.GetVideoDim();
     m_render = new MythRenderD3D9();
-    if (!(m_render && m_render->Create(window.GetDisplayVisibleRect().size(),
+    if (!(m_render && m_render->Create(m_window.GetDisplayVisibleRect().size(),
                                  m_hWnd)))
         return false;
 
@@ -205,7 +187,7 @@ bool VideoOutputD3D::SetupContext()
 
     LOG(VB_PLAYBACK, LOG_INFO, LOC +
         "Direct3D device successfully initialized.");
-    m_render_valid = true;
+    m_renderValid = true;
     return true;
 }
 
@@ -220,9 +202,8 @@ bool VideoOutputD3D::Init(const QSize &video_dim_buf,
 
     QMutexLocker locker(&m_lock);
     m_hWnd      = (HWND)winid;
-    window.SetAllowPreviewEPG(true);
 
-    VideoOutput::Init(video_dim_buf, video_dim_disp,
+    MythVideoOutput::Init(video_dim_buf, video_dim_disp,
                       aspect, winid, win_rect, codec_id);
 
     LOG(VB_PLAYBACK, LOG_INFO, LOC + QString("Init with codec: %1")
@@ -234,7 +215,7 @@ bool VideoOutputD3D::Init(const QSize &video_dim_buf,
     InitDisplayMeasurements(video_dim_disp.width(), video_dim_disp.height(),
                             false);
 
-    if (codec_is_dxva2(video_codec_id))
+    if (codec_is_dxva2(m_videoCodecID))
     {
         if (!CreateDecoder())
             return false;
@@ -250,10 +231,10 @@ bool VideoOutputD3D::Init(const QSize &video_dim_buf,
         TearDown();
     else
     {
-        m_osd_painter = new MythD3D9Painter(m_render);
-        if (m_osd_painter)
+        m_osdPainter = new MythD3D9Painter(m_render);
+        if (m_osdPainter)
         {
-            m_osd_painter->SetSwapControl(false);
+            m_osdPainter->SetSwapControl(false);
             LOG(VB_PLAYBACK, LOG_INFO, LOC + "Created D3D9 osd painter.");
         }
         else
@@ -265,23 +246,22 @@ bool VideoOutputD3D::Init(const QSize &video_dim_buf,
 
 void VideoOutputD3D::SetProfile(void)
 {
-    if (db_vdisp_profile)
-        db_vdisp_profile->SetVideoRenderer("direct3d");
+    if (m_dbDisplayProfile)
+        m_dbDisplayProfile->SetVideoRenderer("direct3d");
 }
 
 bool VideoOutputD3D::CreateBuffers(void)
 {
-    if (codec_is_dxva2(video_codec_id))
+    if (codec_is_dxva2(m_videoCodecID))
     {
-        vbuffers.Init(NUM_DXVA2_BUFS, false, 2, 1, 4, 1);
-        LOG(VB_PLAYBACK, LOG_INFO, LOC +
-            QString("Created %1 empty DXVA2 buffers.") .arg(NUM_DXVA2_BUFS));
+        m_videoBuffers.Init(VideoBuffers::GetNumBuffers(FMT_DXVA2), false, 2, 1, 4);
+        LOG(VB_PLAYBACK, LOG_INFO, LOC + QString("Created %1 empty DXVA2 buffers.")
+            .arg(VideoBuffers::GetNumBuffers(FMT_DXVA2)));
         return true;
     }
 
-    vbuffers.Init(kNumBuffers, true, kNeedFreeFrames,
-                  kPrebufferFramesNormal, kPrebufferFramesSmall,
-                  kKeepPrebuffer);
+    m_videoBuffers.Init(VideoBuffers::GetNumBuffers(FMT_YV12), true, kNeedFreeFrames,
+                  kPrebufferFramesNormal, kPrebufferFramesSmall);
     return true;
 
 }
@@ -305,23 +285,23 @@ bool VideoOutputD3D::InitBuffers(void)
         return ok;
     }
 #endif
-    return vbuffers.CreateBuffers(FMT_YV12,
-                                  window.GetVideoDim().width(),
-                                  window.GetVideoDim().height());
+    return m_videoBuffers.CreateBuffers(FMT_YV12,
+                                  m_window.GetVideoDim().width(),
+                                  m_window.GetVideoDim().height());
 }
 
 bool VideoOutputD3D::CreatePauseFrame(void)
 {
-    if (codec_is_dxva2(video_codec_id))
+    if (codec_is_dxva2(m_videoCodecID))
         return true;
 
     init(&m_pauseFrame, FMT_YV12,
-         new unsigned char[vbuffers.GetScratchFrame()->size + 128],
-         vbuffers.GetScratchFrame()->width,
-         vbuffers.GetScratchFrame()->height,
-         vbuffers.GetScratchFrame()->size);
+         new unsigned char[m_videoBuffers.GetScratchFrame()->size + 128],
+         m_videoBuffers.GetScratchFrame()->width,
+         m_videoBuffers.GetScratchFrame()->height,
+         m_videoBuffers.GetScratchFrame()->size);
 
-    m_pauseFrame.frameNumber = vbuffers.GetScratchFrame()->frameNumber;
+    m_pauseFrame.frameNumber = m_videoBuffers.GetScratchFrame()->frameNumber;
     return true;
 }
 
@@ -336,27 +316,27 @@ void VideoOutputD3D::PrepareFrame(VideoFrame *buffer, FrameScanType t,
         return;
     }
 
-    if (!buffer && codec_is_std(video_codec_id))
-        buffer = vbuffers.GetScratchFrame();
+    if (!buffer && codec_is_std(m_videoCodecID))
+        buffer = m_videoBuffers.GetScratchFrame();
 
     bool dummy = false;
     if (buffer)
     {
         dummy = buffer->dummy;
-        framesPlayed = buffer->frameNumber + 1;
+        m_framesPlayed = buffer->frameNumber + 1;
     }
 
     if (!m_render || !m_video)
         return;
 
-    m_render_valid = m_render->Test(m_render_reset);
-    if (m_render_valid)
+    m_renderValid = m_render->Test(m_renderReset);
+    if (m_renderValid)
     {
-        QRect dvr = vsz_enabled ? vsz_desired_display_rect :
-                                  window.GetDisplayVideoRect();
+        QRect dvr = m_window.GetITVResizing() ? m_window.GetITVDisplayRect() :
+                                  m_window.GetDisplayVideoRect();
         bool ok = m_render->ClearBuffer();
         if (ok && !dummy)
-            ok = m_video->UpdateVertices(dvr, window.GetVideoRect(),
+            ok = m_video->UpdateVertices(dvr, m_window.GetVideoRect(),
                                          255, true);
 
         if (ok)
@@ -369,9 +349,9 @@ void VideoOutputD3D::PrepareFrame(VideoFrame *buffer, FrameScanType t,
                 QMap<MythPlayer*,D3D9Image*>::iterator it = m_pips.begin();
                 for (; it != m_pips.end(); ++it)
                 {
-                    if (m_pip_ready[it.key()])
+                    if (m_pipReady[it.key()])
                     {
-                        if (m_pip_active == *it)
+                        if (m_pipActive == *it)
                         {
                             QRect rect = (*it)->GetRect();
                             if (!rect.isNull())
@@ -385,10 +365,10 @@ void VideoOutputD3D::PrepareFrame(VideoFrame *buffer, FrameScanType t,
                 }
 
                 if (m_visual)
-                    m_visual->Draw(GetTotalOSDBounds(), m_osd_painter, nullptr);
+                    m_visual->Draw(GetTotalOSDBounds(), m_osdPainter, nullptr);
 
-                if (osd && m_osd_painter && !window.IsEmbedding())
-                    osd->DrawDirect(m_osd_painter, GetTotalOSDBounds().size(),
+                if (osd && m_osdPainter && !m_window.IsEmbedding())
+                    osd->Draw(m_osdPainter, GetTotalOSDBounds().size(),
                                     true);
                 m_render->End();
             }
@@ -409,52 +389,45 @@ void VideoOutputD3D::Show(FrameScanType )
     if (!m_render)
         return;
 
-    m_render_valid = m_render->Test(m_render_reset);
-    if (m_render_valid)
-        m_render->Present(window.IsEmbedding() ? m_hEmbedWnd : nullptr);
+    m_renderValid = m_render->Test(m_renderReset);
+    if (m_renderValid)
+        m_render->Present(m_window.IsEmbedding() ? m_hEmbedWnd : nullptr);
 }
 
 void VideoOutputD3D::EmbedInWidget(const QRect &rect)
 {
-    if (window.IsEmbedding())
+    if (m_window.IsEmbedding())
         return;
 
-    VideoOutput::EmbedInWidget(rect);
+    MythVideoOutput::EmbedInWidget(rect);
     // TODO: Initialise m_hEmbedWnd?
 }
 
 void VideoOutputD3D::StopEmbedding(void)
 {
-    if (!window.IsEmbedding())
+    if (!m_window.IsEmbedding())
         return;
 
-    VideoOutput::StopEmbedding();
-}
-
-void VideoOutputD3D::Zoom(ZoomDirection direction)
-{
-    QMutexLocker locker(&m_lock);
-    VideoOutput::Zoom(direction);
-    MoveResize();
+    MythVideoOutput::StopEmbedding();
 }
 
 void VideoOutputD3D::UpdatePauseFrame(int64_t &disp_timecode)
 {
     QMutexLocker locker(&m_lock);
-    VideoFrame *used_frame = vbuffers.Head(kVideoBuffer_used);
+    VideoFrame *used_frame = m_videoBuffers.Head(kVideoBuffer_used);
 
-    if (codec_is_std(video_codec_id))
+    if (codec_is_std(m_videoCodecID))
     {
         if (!used_frame)
-            used_frame = vbuffers.GetScratchFrame();
+            used_frame = m_videoBuffers.GetScratchFrame();
         CopyFrame(&m_pauseFrame, used_frame);
         disp_timecode = m_pauseFrame.disp_timecode;
     }
-    else if (codec_is_dxva2(video_codec_id))
+    else if (codec_is_dxva2(m_videoCodecID))
     {
         if (used_frame)
         {
-            m_pause_surface = used_frame->buf;
+            m_pauseSurface = used_frame->buf;
             disp_timecode = used_frame->disp_timecode;
         }
         else
@@ -464,7 +437,7 @@ void VideoOutputD3D::UpdatePauseFrame(int64_t &disp_timecode)
 
 void VideoOutputD3D::UpdateFrame(VideoFrame *frame, D3D9Image *img)
 {
-    if (codec_is_dxva2(video_codec_id))
+    if (codec_is_dxva2(m_videoCodecID))
         return;
 
     // TODO - add a size check
@@ -488,7 +461,6 @@ void VideoOutputD3D::UpdateFrame(VideoFrame *frame, D3D9Image *img)
 }
 
 void VideoOutputD3D::ProcessFrame(VideoFrame *frame, OSD *osd,
-                                  FilterChain *filterList,
                                   const PIPMap &pipPlayers,
                                   FrameScanType scan)
 {
@@ -503,7 +475,7 @@ void VideoOutputD3D::ProcessFrame(VideoFrame *frame, OSD *osd,
         return;
     }
 
-    bool gpu = codec_is_dxva2(video_codec_id);
+    bool gpu = codec_is_dxva2(m_videoCodecID);
 
     if (gpu && frame && frame->codec != FMT_DXVA2)
     {
@@ -517,61 +489,43 @@ void VideoOutputD3D::ProcessFrame(VideoFrame *frame, OSD *osd,
     {
         if (!gpu)
         {
-            frame = vbuffers.GetScratchFrame();
-            CopyFrame(vbuffers.GetScratchFrame(), &m_pauseFrame);
+            frame = m_videoBuffers.GetScratchFrame();
+            CopyFrame(m_videoBuffers.GetScratchFrame(), &m_pauseFrame);
         }
         pauseframe = true;
     }
 
-    CropToDisplay(frame);
-
     if (frame)
         dummy = frame->dummy;
-    bool deint_proc = m_deinterlacing && (m_deintFilter != nullptr) &&
-                      !dummy;
 
-    if (filterList && !gpu && !dummy)
-        filterList->ProcessFrame(frame);
+    bool safepauseframe = pauseframe && !gpu;
 
-    bool safepauseframe = pauseframe && !IsBobDeint() && !gpu;
-    if (deint_proc && m_deinterlaceBeforeOSD &&
-       (!pauseframe || safepauseframe))
-    {
-        m_deintFilter->ProcessFrame(frame, scan);
-    }
-
-    if (!window.IsEmbedding())
+    if (!m_window.IsEmbedding())
         ShowPIPs(frame, pipPlayers);
 
-    if ((!pauseframe || safepauseframe) &&
-        deint_proc && !m_deinterlaceBeforeOSD)
-    {
-        m_deintFilter->ProcessFrame(frame, scan);
-    }
-
     // Test the device
-    m_render_valid |= m_render->Test(m_render_reset);
-    if (m_render_reset)
+    m_renderValid |= m_render->Test(m_renderReset);
+    if (m_renderReset)
         SetupContext();
 
     // Update a software decoded frame
-    if (m_render_valid && !gpu && !dummy)
+    if (m_renderValid && !gpu && !dummy)
         UpdateFrame(frame, m_video);
 
     // Update a GPU decoded frame
-    if (m_render_valid && gpu && !dummy)
+    if (m_renderValid && gpu && !dummy)
     {
-        m_render_valid = m_render->Test(m_render_reset);
-        if (m_render_reset)
+        m_renderValid = m_render->Test(m_renderReset);
+        if (m_renderReset)
             CreateDecoder();
 
-        if (m_render_valid && frame)
+        if (m_renderValid && frame)
         {
             m_render->CopyFrame(frame->buf, m_video);
         }
-        else if (m_render_valid && pauseframe)
+        else if (m_renderValid && pauseframe)
         {
-            m_render->CopyFrame(m_pause_surface, m_video);
+            m_render->CopyFrame(m_pauseSurface, m_video);
         }
     }
 }
@@ -601,7 +555,7 @@ void VideoOutputD3D::ShowPIP(VideoFrame */*frame*/,
 
     QRect position = GetPIPRect(loc, pipplayer);
 
-    m_pip_ready[pipplayer] = false;
+    m_pipReady[pipplayer] = false;
     D3D9Image *m_pip = m_pips[pipplayer];
     if (!m_pip)
     {
@@ -634,9 +588,9 @@ void VideoOutputD3D::ShowPIP(VideoFrame */*frame*/,
     m_pip->UpdateVertices(position, QRect(0, 0, pipVideoWidth, pipVideoHeight),
                           255, true);
     UpdateFrame(pipimage, m_pip);
-    m_pip_ready[pipplayer] = true;
+    m_pipReady[pipplayer] = true;
     if (pipActive)
-        m_pip_active = m_pip;
+        m_pipActive = m_pip;
 
     pipplayer->ReleaseCurrentFrame(pipimage);
 }
@@ -651,7 +605,7 @@ void VideoOutputD3D::RemovePIP(MythPlayer *pipplayer)
     D3D9Image *m_pip = m_pips[pipplayer];
     if (m_pip)
         delete m_pip;
-    m_pip_ready.remove(pipplayer);
+    m_pipReady.remove(pipplayer);
     m_pips.remove(pipplayer);
 }
 
@@ -669,19 +623,7 @@ QStringList VideoOutputD3D::GetAllowedRenderers(
 
 MythPainter *VideoOutputD3D::GetOSDPainter(void)
 {
-    return m_osd_painter;
-}
-
-bool VideoOutputD3D::ApproveDeintFilter(const QString& filtername) const
-{
-    if (codec_is_std(video_codec_id))
-    {
-        return !filtername.contains("bobdeint") &&
-               !filtername.contains("opengl") &&
-               !filtername.contains("vdpau");
-    }
-
-    return false;
+    return m_osdPainter;
 }
 
 MythCodecID VideoOutputD3D::GetBestSupportedCodec(
@@ -699,18 +641,6 @@ MythCodecID VideoOutputD3D::GetBestSupportedCodec(
         return test_cid;
 #endif
     return (MythCodecID)(kCodec_MPEG1 + (stream_type - 1));
-}
-
-
-void* VideoOutputD3D::GetDecoderContext(unsigned char* buf, uint8_t*& id)
-{
-    (void)buf;
-    (void)id;
-#ifdef USING_DXVA2
-    if (m_decoder)
-        return (void*)&m_decoder->m_context;
-#endif
-    return nullptr;
 }
 
 bool VideoOutputD3D::CreateDecoder(void)
