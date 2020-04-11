@@ -199,7 +199,8 @@ int Transcode::TranscodeFile(const QString &inputname,
                              bool fifo_info, bool cleanCut,
                              frm_dir_map_t &deleteMap,
                              int AudioTrackNo,
-                             bool passthru)
+                             bool forcefps, bool passthru)
+
 {
     QDateTime curtime = MythDate::current();
     QDateTime statustime = curtime;
@@ -380,6 +381,12 @@ int Transcode::TranscodeFile(const QString &inputname,
     bool skippedLastFrame = false;
 
     m_kfaTable = new vector<struct kfatable_entry>;
+    if (forcefps) {
+        // we want the true fps so we do this since thats all we have
+        if (video_frame_rate > 30) {
+            video_frame_rate =video_frame_rate /2;
+        }
+    }
 
     if (m_avfMode)
     {
@@ -1377,14 +1384,14 @@ int Transcode::TranscodeFile(const QString &inputname,
                 AVPictureFill(&imageIn, lastDecode);
                 AVPictureFill(&imageOut, &frame);
 
-                int bottomBand = (lastDecode->height == 1088) ? 8 : 0;
+                lastDecode->height = (lastDecode->height == 1088) ? 1080 : lastDecode->height;
                 scontext = sws_getCachedContext(scontext,
                                lastDecode->width, lastDecode->height, FrameTypeToPixelFormat(lastDecode->codec),
                                frame.width, frame.height, FrameTypeToPixelFormat(frame.codec),
                                SWS_FAST_BILINEAR, nullptr, nullptr, nullptr);
 
                 sws_scale(scontext, imageIn.data, imageIn.linesize, 0,
-                          lastDecode->height - bottomBand,
+                          lastDecode->height,
                           imageOut.data, imageOut.linesize);
             }
 
