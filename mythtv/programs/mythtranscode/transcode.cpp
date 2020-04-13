@@ -414,7 +414,6 @@ int Transcode::TranscodeFile(const QString &inputname,
         // TODO: is this necessary?  It got commented out, but may still be
         // needed.
         // int actualHeight = (video_height == 1088 ? 1080 : video_height);
-
         // If height or width are 0, then we need to calculate them
         if (newHeight == 0 && newWidth > 0)
             newHeight = (int)(1.0F * newWidth / video_aspect);
@@ -1384,14 +1383,17 @@ int Transcode::TranscodeFile(const QString &inputname,
                 AVPictureFill(&imageIn, lastDecode);
                 AVPictureFill(&imageOut, &frame);
 
-                lastDecode->height = (lastDecode->height == 1088) ? 1080 : lastDecode->height;
+                int bottomBand = (lastDecode->height == 1088) ? 8 : 0;
+                // lastDecode->height = (lastDecode->height == 1088) ? 1080 : lastDecode->height;
+
                 scontext = sws_getCachedContext(scontext,
                                lastDecode->width, lastDecode->height, FrameTypeToPixelFormat(lastDecode->codec),
                                frame.width, frame.height, FrameTypeToPixelFormat(frame.codec),
                                SWS_FAST_BILINEAR, nullptr, nullptr, nullptr);
 
                 sws_scale(scontext, imageIn.data, imageIn.linesize, 0,
-                          lastDecode->height,
+                          lastDecode->height - bottomBand,
+                //        lastDecode->height,
                           imageOut.data, imageOut.linesize);
             }
 
