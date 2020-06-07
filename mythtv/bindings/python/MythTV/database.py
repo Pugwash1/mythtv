@@ -1167,7 +1167,7 @@ class DBCache( MythSchema ):
                 self._db = db
                 self._host = host
                 self._log = log
-                if host is 'NULL':
+                if host == 'NULL':
                     self._insert = """INSERT INTO settings
                                              (value, data, hostname)
                                       VALUES (?, ?, NULL)"""
@@ -1338,15 +1338,7 @@ class DBCache( MythSchema ):
 
     def _gethostfromaddr(self, addr, value=None):
         if value is None:
-            for value in ['BackendServerAddr']:
-                try:
-                    return self._gethostfromaddr(addr, value)
-                except MythDBError:
-                    pass
-            else:
-                raise MythDBError(MythError.DB_SETTING,
-                                    'BackendServerAddr', addr)
-
+            value = 'BackendServerAddr'
         with self as cursor:
             if cursor.execute("""SELECT hostname FROM settings
                                   WHERE value=? AND data=?""", [value, addr]) == 0:
@@ -1360,7 +1352,7 @@ class DBCache( MythSchema ):
         return self.dbconfig.profile
 
     def getMasterBackend(self):
-        return self._gethostfromaddr(self.settings.NULL.MasterServerIP)
+        return self.settings.NULL.MasterServerName
 
     def getStorageGroup(self, groupname=None, hostname=None):
         """
