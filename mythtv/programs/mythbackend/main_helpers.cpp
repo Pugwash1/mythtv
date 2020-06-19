@@ -189,7 +189,8 @@ bool setupTVs(bool ismaster, bool &error)
                     delete tv;
                     // The master assumes card comes up so we need to
                     // set error and exit if a non-master card fails.
-                    error = true;
+                    // allow slaves to start without capture card..
+                    // error = true;
                 }
             }
         }
