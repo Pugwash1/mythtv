@@ -37,9 +37,10 @@ VDPAUCodec::VDPAUCodec(MythCodecContext::CodecProfile Profile, QSize Size, uint3
 
 bool VDPAUCodec::Supported(int Width, int Height, int Level)
 {
+    // Note - level checks are now ignored here and in FFmpeg
     uint32_t macros = static_cast<uint32_t>(((Width + 15) & ~15) * ((Height + 15) & ~15)) / 256;
     bool result = (Width <= m_maxSize.width()) && (Height <= m_maxSize.height()) &&
-                  (macros <= m_maxMacroBlocks) && (static_cast<uint32_t>(Level) <= m_maxLevel);
+                  (macros <= m_maxMacroBlocks) /*&& (static_cast<uint32_t>(Level) <= m_maxLevel)*/;
     if (!result)
     {
         LOG(VB_PLAYBACK, LOG_DEBUG, LOC + QString("Not supported: Size %1x%2 > %3x%4, MBs %5 > %6, Level %7 > %8")
@@ -96,13 +97,16 @@ bool MythVDPAUHelper::ProfileCheck(VdpDecoderProfile Profile, uint32_t &Level,
         .arg(Profile).arg(supported).arg(Level).arg(Macros).arg(Width).arg(Height).arg(status));
 
     if (((supported != VDP_TRUE) || (status != VDP_STATUS_OK)) &&
-        (Profile == VDP_DECODER_PROFILE_H264_CONSTRAINED_BASELINE))
+        (Profile == VDP_DECODER_PROFILE_H264_CONSTRAINED_BASELINE ||
+         Profile == VDP_DECODER_PROFILE_H264_BASELINE))
     {
-        LOG(VB_GENERAL, LOG_INFO, LOC + "Driver does not report support for H264 Constrained Baseline...");
+        LOG(VB_GENERAL, LOG_INFO, LOC + QString("Driver does not report support for H264 %1Baseline")
+            .arg(Profile == VDP_DECODER_PROFILE_H264_CONSTRAINED_BASELINE ? "Constrained " : ""));
 
         // H264 Constrained baseline is reported as not supported on older chipsets but
         // works due to support for H264 Main. Test for H264 main if constrained baseline
         // fails - which mimics the fallback in FFmpeg.
+        // Updated to included baseline... not so sure about that:)
         status = m_vdpDecoderQueryCapabilities(m_device, VDP_DECODER_PROFILE_H264_MAIN, &supported,
                                                &Level, &Macros, &Width, &Height);
         CHECK_ST
@@ -350,9 +354,7 @@ bool MythVDPAUHelper::CheckH264Decode(AVCodecContext *Context)
     switch (Context->profile & ~FF_PROFILE_H264_INTRA)
     {
         case FF_PROFILE_H264_BASELINE: profile = VDP_DECODER_PROFILE_H264_BASELINE; break;
-#ifdef VDP_DECODER_PROFILE_H264_CONSTRAINED_BASELINE
         case FF_PROFILE_H264_CONSTRAINED_BASELINE: profile = VDP_DECODER_PROFILE_H264_CONSTRAINED_BASELINE; break;
-#endif
         case FF_PROFILE_H264_MAIN: profile = VDP_DECODER_PROFILE_H264_MAIN; break;
         case FF_PROFILE_H264_HIGH: profile = VDP_DECODER_PROFILE_H264_HIGH; break;
 #ifdef VDP_DECODER_PROFILE_H264_EXTENDED
