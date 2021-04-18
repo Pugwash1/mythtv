@@ -139,7 +139,7 @@ MythVideoOutputOpenGL::MythVideoOutputOpenGL(QString Profile)
     }
 
     // we need to control buffer swapping
-    m_openGLPainter->SetSwapControl(false);
+    m_openGLPainter->SetViewControl(MythOpenGLPainter::None);
 
     // Create OpenGLVideo
     QRect dvr = GetDisplayVisibleRect();
@@ -164,7 +164,7 @@ MythVideoOutputOpenGL::~MythVideoOutputOpenGL()
     }
     m_openGLVideoPiPsReady.clear();
     if (m_openGLPainter)
-        m_openGLPainter->SetSwapControl(true);
+        m_openGLPainter->SetViewControl(MythOpenGLPainter::Viewport | MythOpenGLPainter::Framebuffer);
     delete m_openGLVideo;
     if (m_render)
     {
@@ -424,7 +424,7 @@ void MythVideoOutputOpenGL::ProcessFrame(VideoFrame *Frame, OSD */*osd*/,
             m_dbDisplayProfile->SetInput(m_window.GetVideoDispDim(), 0 , codecName);
 
         bool ok = Init(m_newVideoDim, m_newVideoDispDim, m_newAspect,
-                       m_display, m_window.GetDisplayVisibleRect(), m_newCodecId);
+                       m_display, m_window.GetRawWindowRect(), m_newCodecId);
         m_newCodecId = kCodec_NONE;
         m_newVideoDim = QSize();
         m_newVideoDispDim = QSize();
@@ -433,6 +433,9 @@ void MythVideoOutputOpenGL::ProcessFrame(VideoFrame *Frame, OSD */*osd*/,
 
         if (wasembedding && ok)
             EmbedInWidget(oldrect);
+
+        // Update deinterlacers for any input change
+        SetDeinterlacing(m_deinterlacing, m_deinterlacing2X, m_forcedDeinterlacer);
 
         if (!ok)
             return;
@@ -580,6 +583,9 @@ void MythVideoOutputOpenGL::PrepareFrame(VideoFrame *Frame, FrameScanType Scan, 
     // main UI when embedded
     if (m_window.IsEmbedding())
     {
+        // If we are using high dpi, the painter needs to set the appropriate
+        // viewport and enable scaling of its images
+        m_openGLPainter->SetViewControl(MythOpenGLPainter::Viewport);
         MythMainWindow *win = GetMythMainWindow();
         if (win && win->GetPaintWindow())
         {
@@ -595,6 +601,7 @@ void MythVideoOutputOpenGL::PrepareFrame(VideoFrame *Frame, FrameScanType Scan, 
                 m_render->SetViewPort(main, true);
             }
         }
+        m_openGLPainter->SetViewControl(MythOpenGLPainter::None);
     }
 
     // video

@@ -22,6 +22,7 @@
 
 #define SEARCH_TIME 3000
 #define VBOX_URI "urn:schemas-upnp-org:device:MediaServer:1"
+#define VBOX_UDN "uuid:b7531642-0123-3210"
 
 VBox::VBox(const QString &url)
 {
@@ -102,11 +103,12 @@ QStringList VBox::doUPNPSearch(void)
 
         QString friendlyName = BE->GetDeviceDesc()->m_rootDevice.m_sFriendlyName;
         QString ip = BE->GetDeviceDesc()->m_hostUrl.host();
+        QString udn = BE->GetDeviceDesc()->m_rootDevice.m_sUDN;
         int port = BE->GetDeviceDesc()->m_hostUrl.port();
 
         LOG(VB_GENERAL, LOG_DEBUG, LOC + QString("Found possible VBox at %1 (%2:%3)").arg(friendlyName).arg(ip).arg(port));
 
-        if (friendlyName.startsWith("VBox"))
+        if (udn.startsWith(VBOX_UDN))
         {
             // we found one
             QString id;
@@ -240,7 +242,8 @@ bool VBox::checkVersion(QString &version)
         sList = version.split('.');
 
         // sanity check this looks like a VBox version string
-        if (sList.count() < 3 || !(version.startsWith("VB.") || version.startsWith("VJ.")))
+        if (sList.count() < 3 || !(version.startsWith("VB.") || version.startsWith("VJ.")
+            || version.startsWith("VT.")))
         {
             LOG(VB_GENERAL, LOG_INFO, LOC + QString("Failed to parse version from %1").arg(version));
             delete xmlDoc;

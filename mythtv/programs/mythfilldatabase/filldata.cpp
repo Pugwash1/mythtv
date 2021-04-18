@@ -178,8 +178,19 @@ bool FillData::GrabData(const Source& source, int offset)
     LOG(VB_XMLTV, LOG_INFO,
             "----------------- Start of XMLTV output -----------------");
 
-    uint systemcall_status = myth_system(command, kMSRunShell);
+    MythSystemLegacy run_grabber(command, kMSRunShell | kMSStdErr);
+
+    run_grabber.Run();
+    uint systemcall_status = run_grabber.Wait();
     bool succeeded = (systemcall_status == GENERIC_EXIT_OK);
+
+    QByteArray result = run_grabber.ReadAllErr();
+    QTextStream ostream(result);
+    while (!ostream.atEnd())
+        {
+            QString line = ostream.readLine().simplified();
+            LOG(VB_XMLTV, LOG_INFO, line);
+        }
 
     LOG(VB_XMLTV, LOG_INFO,
             "------------------ End of XMLTV output ------------------");
@@ -194,12 +205,14 @@ bool FillData::GrabData(const Source& source, int offset)
         {
             m_interrupted = true;
             status = QObject::tr("FAILED: XMLTV grabber ran but was interrupted.");
+            LOG(VB_GENERAL, LOG_ERR,
+                QString("XMLTV grabber ran but was interrupted."));
         }
         else
         {
             status = QObject::tr("FAILED: XMLTV grabber returned error code %1.")
                             .arg(systemcall_status);
-            LOG(VB_GENERAL, LOG_ERR, LOC +
+            LOG(VB_GENERAL, LOG_ERR,
                 QString("XMLTV grabber returned error code %1")
                     .arg(systemcall_status));
         }
