@@ -22,7 +22,7 @@ class Transcode : public QObject
         const QString &profileName,
         bool honorCutList, bool framecontrol, int jobID,
         const QString& fifodir, bool fifo_info, bool cleanCut, frm_dir_map_t &deleteMap,
-        int AudioTrackNo, bool passthru = false);
+        int AudioTrackNo, bool forcefps, bool passthru = false);
     void ShowProgress(bool val) { m_showProgress = val; }
     void SetRecorderOptions(const QString& options) { m_recorderOptions = options; }
     void SetAVFMode(void) { m_avfMode = true; }

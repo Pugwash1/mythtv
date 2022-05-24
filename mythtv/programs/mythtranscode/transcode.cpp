@@ -197,7 +197,8 @@ int Transcode::TranscodeFile(const QString &inputname,
                              bool fifo_info, bool cleanCut,
                              frm_dir_map_t &deleteMap,
                              int AudioTrackNo,
-                             bool passthru)
+                             bool forcefps, bool passthru)
+
 {
     QDateTime curtime = MythDate::current();
     QDateTime statustime = curtime;
@@ -381,6 +382,12 @@ int Transcode::TranscodeFile(const QString &inputname,
     bool skippedLastFrame = false;
 
     m_kfaTable = new std::vector<struct kfatable_entry>;
+    if (forcefps) {
+        // we want the true fps so we do this since thats all we have
+        if (video_frame_rate > 30) {
+            video_frame_rate =video_frame_rate /2;
+        }
+    }
 
     if (m_avfMode)
     {
@@ -408,7 +415,6 @@ int Transcode::TranscodeFile(const QString &inputname,
         // TODO: is this necessary?  It got commented out, but may still be
         // needed.
         // int actualHeight = (video_height == 1088 ? 1080 : video_height);
-
         // If height or width are 0, then we need to calculate them
         if (newHeight == 0 && newWidth > 0)
             newHeight = (int)(1.0F * newWidth / video_aspect);

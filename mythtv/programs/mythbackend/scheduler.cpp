@@ -3546,9 +3546,8 @@ void Scheduler::PutInactiveSlavesToSleep(void)
     for (auto * enc : qAsConst(*m_tvList))
     {
         if ((!enc->IsLocal()) &&
-            (enc->IsAwake()) &&
-            (!SlavesInUse.contains(enc->GetHostName())) &&
-            (!enc->IsFallingAsleep()))
+            (enc->IsAwake() || enc->IsFallingAsleep() ) &&
+            (!SlavesInUse.contains(enc->GetHostName())))
         {
             QString sleepCommand =
                 gCoreContext->GetSettingOnHost("SleepCommand",
