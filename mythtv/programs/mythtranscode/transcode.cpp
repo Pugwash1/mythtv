@@ -1089,7 +1089,7 @@ int Transcode::TranscodeFile(const QString &inputname,
             std::chrono::milliseconds viddelta = frame.m_timecode - vidTime;
             std::chrono::milliseconds delta = viddelta - auddelta;
             std::chrono::milliseconds absdelta = std::chrono::abs(delta);
-            if (absdelta < 500ms && absdelta >= vidFrameTimeMs)
+            if (absdelta < 500ms && absdelta >= ( vidFrameTimeMs * 2) )
             {
                QString msg = QString("Audio is %1ms %2 video at # %3: "
                                      "auddelta=%4, viddelta=%5")
