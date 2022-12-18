@@ -22,10 +22,7 @@
 #if !defined(BASECLASSES_H)
 #define BASECLASSES_H
 
-#include "config.h"
-#if HAVE_MALLOC_H
-#include <malloc.h>
-#endif
+#include <cstdlib> // malloc etc.
 
 #include <array>
 #include <QString>
