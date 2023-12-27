@@ -84,8 +84,8 @@ void ServerPool::SelectDefaultListen(bool force)
             return;
     }
 
-    LOG(VB_GENERAL, LOG_CRIT, LOC + QString("Waiting 15 seconds for network stable."));
-    sleep(15);
+    //LOG(VB_GENERAL, LOG_CRIT, LOC + QString("Waiting 15 seconds for network stable."));
+    //sleep(15);
  
     QWriteLocker wlock(&naLock);
     naList_4.clear();
