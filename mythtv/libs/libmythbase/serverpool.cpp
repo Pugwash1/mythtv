@@ -8,6 +8,8 @@
 #include "mythlogging.h"
 #include "serverpool.h"
 
+#include <unistd.h>
+
 static inline
 QString prettyip(const QHostAddress& x)
 {
@@ -82,6 +84,9 @@ void ServerPool::SelectDefaultListen(bool force)
             return;
     }
 
+    //LOG(VB_GENERAL, LOG_CRIT, LOC + QString("Waiting 15 seconds for network stable."));
+    //sleep(15);
+ 
     QWriteLocker wlock(&naLock);
     naList_4.clear();
     naList_6.clear();
