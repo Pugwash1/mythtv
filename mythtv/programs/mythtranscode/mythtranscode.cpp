@@ -161,6 +161,7 @@ int main(int argc, char *argv[])
     bool build_index = false;
     bool fifosync = false;
     bool mpeg2 = false;
+    bool forcefps = false;
     bool fifo_info = false;
     bool cleanCut = false;
     frm_dir_map_t deleteMap;
@@ -350,6 +351,8 @@ int main(int argc, char *argv[])
         recorderOptions = cmdline.toString("recopt");
     if (cmdline.toBool("mpeg2"))
         mpeg2 = true;
+    if (cmdline.toBool("forcefps"))
+        forcefps = true;
     if (cmdline.toBool("ostream"))
     {
         if (cmdline.toString("ostream") == "dvd")
@@ -610,7 +613,7 @@ int main(int argc, char *argv[])
                                           profilename, useCutlist,
                                           (fifosync || keyframesonly), jobID,
                                           fifodir, fifo_info, cleanCut, deleteMap,
-                                          AudioTrackNo, passthru);
+                                          AudioTrackNo, forcefps, passthru);
 
         if ((result == REENCODE_OK) && (jobID >= 0))
         {
