@@ -137,7 +137,7 @@ int Transcode::TranscodeFile(const QString &inputname,
                              bool fifo_info, bool cleanCut,
                              frm_dir_map_t &deleteMap,
                              int AudioTrackNo,
-                             bool passthru)
+                             bool forcefps, bool passthru)
 {
     QDateTime curtime = MythDate::current();
     QDateTime statustime = curtime;
@@ -618,7 +618,14 @@ int Transcode::TranscodeFile(const QString &inputname,
             video_frame_rate = player->GetFrameRate();
         }
 
-        // Display details of the format of the fifo data.
+        if (forcefps) {
+            // we want the true fps so we do this since thats all we have
+            if (video_frame_rate > 30) {
+                video_frame_rate = video_frame_rate /2;
+            }
+        }
+
+            // Display details of the format of the fifo data.
         LOG(VB_GENERAL, LOG_INFO,
             QString("FifoVideoWidth %1").arg(video_width));
         LOG(VB_GENERAL, LOG_INFO,
@@ -757,7 +764,7 @@ int Transcode::TranscodeFile(const QString &inputname,
             std::chrono::milliseconds viddelta = frame.m_timecode - vidTime;
             std::chrono::milliseconds delta = viddelta - auddelta;
             std::chrono::milliseconds absdelta = std::chrono::abs(delta);
-            if (absdelta < 500ms && absdelta >= vidFrameTimeMs)
+            if (absdelta < 500ms && absdelta >= ( vidFrameTimeMs * 2) )
             {
                QString msg = QString("Audio is %1ms %2 video at # %3: "
                                      "auddelta=%4, viddelta=%5")
